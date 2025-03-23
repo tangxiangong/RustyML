@@ -1,11 +1,11 @@
 pub mod math {
-    /// Calculate the sum of squared errors between two vectors: sum((predicted - actual)^2)
+    /// Calculate the sum of squared errors
     ///
     /// # Parameters
     /// * `predicted` - Predicted values vector (y')
     /// * `actual` - Actual values vector (y)
     ///
-    /// # Return Value
+    /// # Returns
     /// * Sum of squared errors sum((predicted_i - actual_i)^2)
     ///
     /// # Panic
@@ -34,7 +34,7 @@ pub mod math {
             .sum()
     }
 
-    /// Calculates the Sum of Square Total (SST)
+    /// Calculates the Sum of Square Total
     ///
     /// SST measures the total variability in the data, computed as the sum of squared
     /// differences between each actual value and the mean of all values.
@@ -74,7 +74,7 @@ pub mod math {
     /// * `actual` - Array of actual values
     ///
     /// # Returns
-    /// * `f64` - R-squared value, typically ranges from 0 to 1, with values closer to 1 indicating better fit
+    /// * `f64` - R-squared value, typically ranges from 0 to 1
     ///
     /// # Notes
     /// - Returns 0 if SST is 0 (when all actual values are identical)
