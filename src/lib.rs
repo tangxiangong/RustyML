@@ -45,8 +45,8 @@ pub mod math {
             return 0.0;
         }
 
-    // Calculate the mean
-    let mean = values.iter().sum::<f64>() / values.len() as f64;
+        // Calculate the mean
+        let mean = values.iter().sum::<f64>() / values.len() as f64;
 
     // Calculate sum of squared differences from the mean
     values.iter()
