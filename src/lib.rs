@@ -1,3 +1,21 @@
+/// Error types that can occur during model operations
+#[derive(Debug)]
+pub enum ModelError {
+    /// Indicates that the model has not been fitted yet
+    NotFitted,
+}
+
+impl std::fmt::Display for ModelError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ModelError::NotFitted => write!(f, "Model has not been fitted. Parameters are unavailable."),
+        }
+    }
+}
+
+/// Implements the standard error trait for ModelError
+impl std::error::Error for ModelError {}
+
 pub mod math {
     /// Calculate the sum of squared errors
     ///
@@ -384,5 +402,51 @@ impl LinearRegression {
         }
 
         predictions
+    }
+
+    /// Returns the model coefficients if the model has been fitted
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<f64>)` - A vector of model coefficients
+    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_machine_learning::LinearRegression;
+    ///
+    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
+    /// // ... fit the model ...
+    /// let coefficients = model.get_coefficients().expect("Model should be fitted");
+    /// ```
+    pub fn get_coefficients(&self) -> Result<Vec<f64>, ModelError> {
+        match &self.coefficients {
+            Some(coeffs) => Ok(coeffs.clone()),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the intercept term if the model has been fitted
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(f64)` - The intercept value
+    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_machine_learning::LinearRegression;
+    ///
+    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
+    /// // ... fit the model ...
+    /// let intercept = model.get_intercept().expect("Model should be fitted");
+    /// ```
+    pub fn get_intercept(&self) -> Result<f64, ModelError> {
+        match self.intercept {
+            Some(intercept) => Ok(intercept),
+            None => Err(ModelError::NotFitted),
+        }
     }
 }
