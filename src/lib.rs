@@ -53,6 +53,32 @@ pub fn sum_of_square_total(values: &[f64]) -> f64 {
         .sum()
 }
 
+/// Calculate the R-squared score
+///
+/// R² = 1 - (SSE / SST)
+///
+/// # Arguments
+/// * `predicted` - Array of predicted values
+/// * `actual` - Array of actual values
+///
+/// # Returns
+/// * `f64` - R-squared value, typically ranges from 0 to 1, with values closer to 1 indicating better fit
+///
+/// # Notes
+/// - Returns 0 if SST is 0 (when all actual values are identical)
+/// - R-squared can theoretically be negative, indicating that the model performs worse than simply predicting the mean
+pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
+    let sse = sum_of_squared_errors(predicted, actual);
+    let sst = sum_of_square_total(actual);
+
+    // Prevent division by zero (when all actual values are identical)
+    if sst == 0.0 {
+        return 0.0;
+    }
+
+    1.0 - (sse / sst)
+}
+
 pub struct LinearRegression {
     /// Coefficients (slopes)
     pub coefficients: Option<Vec<f64>>,
