@@ -22,6 +22,37 @@ pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
         .sum()
 }
 
+/// Calculates the Sum of Square Total (SST)
+///
+/// SST measures the total variability in the data, computed as the sum of squared
+/// differences between each actual value and the mean of all values.
+///
+/// # Parameters
+/// * `values` - A slice of observed values
+///
+/// # Returns
+/// * The Sum of Square Total (SST)
+///
+/// # Examples
+/// ```
+///  use rust_machine_learning::sum_of_square_total;
+/// let values = vec![2.0, 4.0, 6.0, 8.0];
+/// let sst = sum_of_square_total(&values);
+/// ```
+pub fn sum_of_square_total(values: &[f64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+
+    // Calculate the mean
+    let mean = values.iter().sum::<f64>() / values.len() as f64;
+
+    // Calculate sum of squared differences from the mean
+    values.iter()
+        .map(|&value| (value - mean).powi(2))
+        .sum()
+}
+
 pub struct LinearRegression {
     /// Coefficients (slopes)
     pub coefficients: Option<Vec<f64>>,
