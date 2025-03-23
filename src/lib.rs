@@ -9,7 +9,7 @@
 ///
 /// # Panic
 /// The function will panic if the vectors have different lengths
-pub fn sum_of_squared_errors(predicted: &[u64], actual: &[u64]) -> u64 {
+pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
     // Ensure both vectors have the same length
     assert_eq!(predicted.len(), actual.len(), "Vectors must have the same length");
     // Calculate the sum of squared errors
