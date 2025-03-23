@@ -10,6 +10,17 @@ pub mod math {
     ///
     /// # Panic
     /// The function will panic if the vectors have different lengths
+    /// # Example
+    /// ```
+    /// use rust_machine_learning::math::sum_of_squared_errors;
+    ///
+    /// let predicted = vec![1.0, 2.0, 3.0, 4.0];
+    /// let actual = vec![1.2, 1.8, 3.3, 3.9];
+    ///
+    /// // Calculate the sum of squared errors
+    /// let sse = sum_of_squared_errors(&predicted, &actual);
+    /// ```
+
     pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
         // Ensure both vectors have the same length
         assert_eq!(predicted.len(), actual.len(), "Vectors must have the same length");
