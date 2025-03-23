@@ -79,6 +79,18 @@ pub mod math {
     /// # Notes
     /// - Returns 0 if SST is 0 (when all actual values are identical)
     /// - R-squared can theoretically be negative, indicating that the model performs worse than simply predicting the mean
+    /// - A value close to 1 indicates a good fit
+    /// # Example
+    /// ```
+    /// use rust_machine_learning::math::{r2_score, sum_of_squared_errors, sum_of_square_total};
+    ///
+    /// let actual = vec![3.0, 2.0, 5.0, 7.0, 9.0];
+    /// let predicted = vec![2.8, 1.9, 5.2, 7.5, 8.9];
+    ///
+    /// // Calculate R-squared
+    /// let r2 = r2_score(&predicted, &actual);
+    /// ```
+
     pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
         let sse = sum_of_squared_errors(predicted, actual);
         let sst = sum_of_square_total(actual);
