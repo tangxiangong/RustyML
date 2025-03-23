@@ -108,7 +108,7 @@ pub struct LinearRegression {
     /// Coefficients (slopes)
     coefficients: Option<Vec<f64>>,
     /// Intercept
-    pub intercept: Option<f64>,
+    intercept: Option<f64>,
     /// Whether to fit an intercept
     pub fit_intercept: bool,
     /// Learning rate
