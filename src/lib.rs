@@ -106,7 +106,7 @@ pub mod math {
 
 pub struct LinearRegression {
     /// Coefficients (slopes)
-    pub coefficients: Option<Vec<f64>>,
+    coefficients: Option<Vec<f64>>,
     /// Intercept
     pub intercept: Option<f64>,
     /// Whether to fit an intercept
