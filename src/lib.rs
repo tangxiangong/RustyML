@@ -16,12 +16,7 @@ pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
     predicted.iter()
         .zip(actual.iter())
         .map(|(p, a)| {
-            // Using u64, we need to ensure p >= a or a >= p to avoid overflow
-            let diff = if p >= a {
-                p - a
-            } else {
-                a - p
-            };
+            let diff = p - a;
             diff * diff // Calculate square
         })
         .sum()
