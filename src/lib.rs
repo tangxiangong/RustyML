@@ -189,8 +189,8 @@ impl LinearRegression {
                 predictions.push(pred);
             }
 
-            // Calculate mean squared error using the provided function
-            let sse = sum_of_squared_errors(&predictions, y);
+            // Calculate mean squared error
+            let sse = math::sum_of_squared_errors(&predictions, y);
             let cost = sse / (2.0 * n_samples as f64); // Mean squared error divided by 2
 
             // Calculate gradients
