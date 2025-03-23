@@ -1,14 +1,28 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+/// Calculate the sum of squared errors between two vectors: sum((predicted - actual)^2)
+///
+/// # Parameters
+/// * `predicted` - Predicted values vector (y')
+/// * `actual` - Actual values vector (y)
+///
+/// # Return Value
+/// * Sum of squared errors sum((predicted_i - actual_i)^2)
+///
+/// # Panic
+/// The function will panic if the vectors have different lengths
+pub fn sum_of_squared_errors(predicted: &[u64], actual: &[u64]) -> u64 {
+    // Ensure both vectors have the same length
+    assert_eq!(predicted.len(), actual.len(), "Vectors must have the same length");
+    // Calculate the sum of squared errors
+    predicted.iter()
+        .zip(actual.iter())
+        .map(|(p, a)| {
+            // Using u64, we need to ensure p >= a or a >= p to avoid overflow
+            let diff = if p >= a {
+                p - a
+            } else {
+                a - p
+            };
+            diff * diff // Calculate square
+        })
+        .sum()
 }
