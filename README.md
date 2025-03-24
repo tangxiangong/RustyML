@@ -12,20 +12,24 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Sigmoid function for logistic regression and neural networks | Sigmoid函数，用于逻辑回归和神经网络
     - Logistic loss (log loss) for binary classification models | 逻辑损失函数(对数损失)，用于二元分类模型
     - Accuracy score for classification model evaluation | 准确率分数，用于分类模型评估
+    - Calculate the squared Euclidean distance between two points | 计算两点之间的欧几里得距离平方
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
-    - Linear Regression (initial implementation) | 线性回归(初步实现)
-    - Logistic Regression (initial implementation) | 逻辑回归(初步实现)
+    - Regression | 回归问题:
+      - Linear Regression (initial implementation) | 线性回归(初步实现)
+      - Logistic Regression (initial implementation) | 逻辑回归(初步实现) 
+
+    - Clustering | 聚类问题:
+      - KMeans (initial implementation) | K均值聚类(初步实现)
 
 ## Vision | 愿景
 While the library is in its early stages, Rust AI aims to evolve into a comprehensive crate that includes:
 虽然该库处于早期阶段，但Rust AI旨在发展成为一个包含以下内容的综合性crate：
 - **Classical Machine Learning Algorithms | 经典机器学习算法**:
     - Linear and Logistic Regression | 线性和逻辑回归
-    - Support Vector Machines | 支持向量机
-    - Decision Trees and Random Forests | 决策树和随机森林
-    - Clustering algorithms (K-means, DBSCAN) | 聚类算法(K均值，DBSCAN)
-    - Dimensionality reduction techniques (PCA, t-SNE) | 降维技术(PCA, t-SNE)
+    - Decision Trees | 决策树
+    - Clustering algorithms (K-means, MeanShift, KNN) | 聚类算法(K均值, MeanShift, KNN)
+    - Dimensionality reduction technique (PCA) | 降维技术(PCA)
 
 - **Deep Learning | 深度学习**:
     - Neural network building blocks | 神经网络构建模块
