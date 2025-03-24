@@ -11,7 +11,7 @@
 ///
 /// # Examples
 /// ```
-///  use rust_machine_learning::math::sum_of_square_total;
+///  use rust_ai::math::sum_of_square_total;
 /// let values = vec![2.0, 4.0, 6.0, 8.0];
 /// let sst = sum_of_square_total(&values);
 /// ```
@@ -42,7 +42,7 @@ pub fn sum_of_square_total(values: &[f64]) -> f64 {
 /// The function will panic if the vectors have different lengths
 /// # Example
 /// ```
-/// use rust_machine_learning::math::sum_of_squared_errors;
+/// use rust_ai::math::sum_of_squared_errors;
 ///
 /// let predicted = vec![1.0, 2.0, 3.0, 4.0];
 /// let actual = vec![1.2, 1.8, 3.3, 3.9];
@@ -81,7 +81,7 @@ pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
 /// - A value close to 1 indicates a good fit
 /// # Example
 /// ```
-/// use rust_machine_learning::math::{r2_score, sum_of_squared_errors, sum_of_square_total};
+/// use rust_ai::math::{r2_score, sum_of_squared_errors, sum_of_square_total};
 ///
 /// let actual = vec![3.0, 2.0, 5.0, 7.0, 9.0];
 /// let predicted = vec![2.8, 1.9, 5.2, 7.5, 8.9];
