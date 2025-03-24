@@ -41,6 +41,40 @@ impl std::error::Error for ModelError {}
 /// ```
 pub mod math;
 
+/// Linear Regression model implementation
+///
+/// Trains a simple linear regression model using gradient descent algorithm. This implementation
+/// supports multivariate regression, optional intercept term, and allows adjustment of learning rate,
+/// maximum iterations, and convergence tolerance.
+///
+/// # Examples
+///
+/// ```
+/// use rust_machine_learning::LinearRegression;
+///
+/// // Create a linear regression model
+/// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-6);
+///
+/// // Prepare training data
+/// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
+/// let y = vec![6.0, 9.0, 12.0];
+///
+/// // Train the model
+/// model.fit(&x, &y);
+///
+/// // Make predictions
+/// let new_data = vec![vec![4.0, 5.0]];
+/// let predictions = model.predict(&new_data);
+/// ```
+///
+/// # Parameters
+///
+/// * `coefficients` - Model coefficients (slopes), None before training
+/// * `intercept` - Model intercept, None before training
+/// * `fit_intercept` - Whether to include an intercept term in the model
+/// * `learning_rate` - Learning rate for gradient descent
+/// * `max_iterations` - Maximum number of iterations for gradient descent
+/// * `tolerance` - Convergence tolerance
 pub struct LinearRegression {
     /// Coefficients (slopes)
     coefficients: Option<Vec<f64>>,
