@@ -43,6 +43,8 @@ use ndarray::{Array1, Array2, ArrayView2};
 /// // Make predictions
 /// let predictions = model.predict(&x_test);
 /// ```
+
+#[derive(Debug, Clone)]
 pub struct LogisticRegression {
     /// Model weights, None before training
     weights: Option<Array1<f64>>,
