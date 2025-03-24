@@ -88,82 +88,12 @@ impl LinearRegression {
         }
     }
 
-    /// Sets whether to fit the intercept term in the model
-    ///
-    /// If set to true, the model will include an intercept term.
-    /// If set to false, the model will pass through the origin.
-    ///
-    /// # Parameters
-    ///
-    /// * `fit_intercept` - Boolean value indicating whether to fit the intercept
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to self for method chaining
-    pub fn set_fit_intercept(&mut self, fit_intercept: bool) -> &mut Self {
-        self.fit_intercept = fit_intercept;
-        self
-    }
-
-    /// Sets the learning rate for gradient descent
-    ///
-    /// The learning rate controls the step size in each iteration of gradient descent.
-    /// A higher learning rate may lead to faster convergence or divergence,
-    /// while a smaller learning rate may require more iterations but provide higher precision.
-    ///
-    /// # Parameters
-    ///
-    /// * `learning_rate` - A floating-point value, typically between 0 and 1
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to self for method chaining
-    pub fn set_learning_rate(&mut self, learning_rate: f64) -> &mut Self {
-        self.learning_rate = learning_rate;
-        self
-    }
-
-    /// Sets the maximum number of iterations for gradient descent
-    ///
-    /// Limits the number of iterations in the gradient descent algorithm to prevent
-    /// infinite loops in cases where convergence cannot be achieved.
-    ///
-    /// # Parameters
-    ///
-    /// * `max_iterations` - Maximum number of iterations to perform
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to self for method chaining
-    pub fn set_max_iterations(&mut self, max_iterations: usize) -> &mut Self {
-        self.max_iterations = max_iterations;
-        self
-    }
-
-    /// Sets the convergence tolerance threshold
-    ///
-    /// The algorithm will stop iterating when the change in the loss function
-    /// between consecutive iterations is less than this tolerance value.
-    /// Smaller tolerance values typically lead to more accurate models but require more iterations.
-    ///
-    /// # Parameters
-    ///
-    /// * `tolerance` - A floating-point value representing the convergence threshold
-    ///
-    /// # Returns
-    ///
-    /// Returns a mutable reference to self for method chaining
-    pub fn set_tolerance(&mut self, tolerance: f64) -> &mut Self {
-        self.tolerance = tolerance;
-        self
-    }
-
     /// Gets the current setting for fitting the intercept term
     ///
     /// # Returns
     ///
     /// Returns `true` if the model includes an intercept term, `false` otherwise
-    pub fn fit_intercept(&self) -> bool {
+    pub fn get_fit_intercept(&self) -> bool {
         self.fit_intercept
     }
 
@@ -174,7 +104,7 @@ impl LinearRegression {
     /// # Returns
     ///
     /// The current learning rate value
-    pub fn learning_rate(&self) -> f64 {
+    pub fn get_learning_rate(&self) -> f64 {
         self.learning_rate
     }
 
@@ -183,7 +113,7 @@ impl LinearRegression {
     /// # Returns
     ///
     /// The maximum number of iterations for the gradient descent algorithm
-    pub fn max_iterations(&self) -> usize {
+    pub fn get_max_iterations(&self) -> usize {
         self.max_iterations
     }
 
@@ -196,8 +126,60 @@ impl LinearRegression {
     /// # Returns
     ///
     /// The current convergence tolerance value
-    pub fn tolerance(&self) -> f64 {
+    pub fn get_tolerance(&self) -> f64 {
         self.tolerance
+    }
+
+    /// Returns the model coefficients if the model has been fitted
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<f64>)` - A vector of model coefficients
+    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_ai::machine_learning::linear_regression::LinearRegression;
+    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
+    /// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
+    /// let y = vec![6.0, 9.0, 12.0];
+    ///
+    /// // ... fit the model ...
+    /// model.fit(&x, &y);
+    /// let coefficients = model.get_coefficients().expect("Model should be fitted");
+    /// ```
+    pub fn get_coefficients(&self) -> Result<Vec<f64>, ModelError> {
+        match &self.coefficients {
+            Some(coeffs) => Ok(coeffs.clone()),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the intercept term if the model has been fitted
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(f64)` - The intercept value
+    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_ai::machine_learning::linear_regression::LinearRegression;
+    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
+    /// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
+    /// let y = vec![6.0, 9.0, 12.0];
+    ///
+    /// // ... fit the model ...
+    /// model.fit(&x, &y);
+    /// let intercept = model.get_intercept().expect("Model should be fitted");
+    /// ```
+    pub fn get_intercept(&self) -> Result<f64, ModelError> {
+        match self.intercept {
+            Some(intercept) => Ok(intercept),
+            None => Err(ModelError::NotFitted),
+        }
     }
 
     /// Fits the linear regression model using gradient descent
@@ -321,57 +303,5 @@ impl LinearRegression {
         }
 
         predictions
-    }
-
-    /// Returns the model coefficients if the model has been fitted
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Vec<f64>)` - A vector of model coefficients
-    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use rust_ai::machine_learning::linear_regression::LinearRegression;
-    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
-    /// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
-    /// let y = vec![6.0, 9.0, 12.0];
-    ///
-    /// // ... fit the model ...
-    /// model.fit(&x, &y);
-    /// let coefficients = model.get_coefficients().expect("Model should be fitted");
-    /// ```
-    pub fn get_coefficients(&self) -> Result<Vec<f64>, ModelError> {
-        match &self.coefficients {
-            Some(coeffs) => Ok(coeffs.clone()),
-            None => Err(ModelError::NotFitted),
-        }
-    }
-
-    /// Returns the intercept term if the model has been fitted
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(f64)` - The intercept value
-    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use rust_ai::machine_learning::linear_regression::LinearRegression;
-    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
-    /// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
-    /// let y = vec![6.0, 9.0, 12.0];
-    ///
-    /// // ... fit the model ...
-    /// model.fit(&x, &y);
-    /// let intercept = model.get_intercept().expect("Model should be fitted");
-    /// ```
-    pub fn get_intercept(&self) -> Result<f64, ModelError> {
-        match self.intercept {
-            Some(intercept) => Ok(intercept),
-            None => Err(ModelError::NotFitted),
-        }
     }
 }

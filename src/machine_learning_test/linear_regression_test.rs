@@ -8,33 +8,19 @@ fn test_default_constructor() {
     assert!(matches!(model.get_coefficients(), Err(ModelError::NotFitted)));
     assert!(matches!(model.get_intercept(), Err(ModelError::NotFitted)));
     // Check if default values meet expectations
-    assert_eq!(model.fit_intercept(), true); // Assuming default is true
-    assert!(model.learning_rate() > 0.0);
-    assert!(model.max_iterations() > 0);
-    assert!(model.tolerance() > 0.0);
+    assert_eq!(model.get_fit_intercept(), true); // Assuming default is true
+    assert!(model.get_learning_rate() > 0.0);
+    assert!(model.get_max_iterations() > 0);
+    assert!(model.get_tolerance() > 0.0);
 }
 
 #[test]
 fn test_new_constructor() {
     let model = LinearRegression::new(false, 0.01, 1000, 1e-5);
-    assert!(!model.fit_intercept());
-    assert_eq!(model.learning_rate(), 0.01);
-    assert_eq!(model.max_iterations(), 1000);
-    assert_eq!(model.tolerance(), 1e-5);
-}
-
-#[test]
-fn test_setters() {
-    let mut model = LinearRegression::default();
-    model.set_fit_intercept(false)
-        .set_learning_rate(0.05)
-        .set_max_iterations(500)
-        .set_tolerance(1e-6);
-
-    assert!(!model.fit_intercept());
-    assert_eq!(model.learning_rate(), 0.05);
-    assert_eq!(model.max_iterations(), 500);
-    assert_eq!(model.tolerance(), 1e-6);
+    assert!(!model.get_fit_intercept());
+    assert_eq!(model.get_learning_rate(), 0.01);
+    assert_eq!(model.get_max_iterations(), 1000);
+    assert_eq!(model.get_tolerance(), 1e-5);
 }
 
 #[test]
