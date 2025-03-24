@@ -1,24 +1,20 @@
 mod linear_regression_test{
-    use crate::{LinearRegression, ModelError};
-
-    /// Tests the default constructor of LinearRegression.
-    /// Verifies that:
-    /// - coefficients and intercept are initially None
-    /// - default parameters have expected values
+    use crate::ModelError;
+    use crate::machine_learning::linear_regression::LinearRegression;
+    
     #[test]
     fn test_default_constructor() {
         let model = LinearRegression::default();
-        assert!(model.coefficients.is_none());
-        assert!(model.intercept.is_none());
+        
+        assert!(matches!(model.get_coefficients(), Err(ModelError::NotFitted)));
+        assert!(matches!(model.get_intercept(), Err(ModelError::NotFitted)));
         // Check if default values meet expectations
         assert_eq!(model.fit_intercept(), true); // Assuming default is true
         assert!(model.learning_rate() > 0.0);
         assert!(model.max_iterations() > 0);
         assert!(model.tolerance() > 0.0);
     }
-    /// Tests the parametrized constructor of LinearRegression.
-
-    /// Ensures that the provided parameters are correctly assigned.
+    
     #[test]
     fn test_new_constructor() {
         let model = LinearRegression::new(false, 0.01, 1000, 1e-5);
@@ -27,12 +23,7 @@ mod linear_regression_test{
         assert_eq!(model.max_iterations(), 1000);
         assert_eq!(model.tolerance(), 1e-5);
     }
-
-    /// Tests the setter methods of LinearRegression.
-    /// Verifies that:
-    /// - Each setter method works correctly
-    /// - Method chaining pattern works as expected
-    /// - Parameters are properly updated after setting
+    
     #[test]
     fn test_setters() {
         let mut model = LinearRegression::default();
@@ -46,11 +37,7 @@ mod linear_regression_test{
         assert_eq!(model.max_iterations(), 500);
         assert_eq!(model.tolerance(), 1e-6);
     }
-
-    /// Tests error handling when model is not fitted.
-    /// Verifies that:
-    /// - Attempting to get coefficients before fitting returns NotFitted error
-    /// - Attempting to get intercept before fitting returns NotFitted error
+    
     #[test]
     fn test_not_fitted_error() {
         let model = LinearRegression::default();
@@ -62,12 +49,7 @@ mod linear_regression_test{
         assert!(matches!(coef_result, Err(ModelError::NotFitted)));
         assert!(matches!(intercept_result, Err(ModelError::NotFitted)));
     }
-
-    /// Tests the basic fit and predict functionality.
-    /// Uses a simple linear relationship (y = 2x + 1) to:
-    /// - Test if the model can accurately learn coefficients
-    /// - Test if the model can accurately learn intercept
-    /// - Test if predictions on new data are accurate
+    
     #[test]
     fn test_fit_and_predict() {
         // Create a simple dataset: y = 2*x + 1
@@ -91,12 +73,7 @@ mod linear_regression_test{
         assert!((predictions[0] - 11.0).abs() < 0.2);
         assert!((predictions[1] - 13.0).abs() < 0.2);
     }
-
-    /// Tests multivariate regression capabilities.
-    /// Uses a linear relationship with multiple features (y = 2*x1 + 3*x2 + 1) to:
-    /// - Verify model can handle multiple input features
-    /// - Check if coefficients are accurately learned for each feature
-    /// - Test predictions with multiple features
+    
     #[test]
     fn test_multivariate_regression() {
         // Create multivariate dataset: y = 2*x1 + 3*x2 + 1
@@ -151,12 +128,7 @@ mod linear_regression_test{
         assert!((predictions[1] - 17.0).abs() < 0.5,
                 "Prediction {} differs too much from expected 17.0", predictions[1]);
     }
-
-    /// Tests regression without intercept.
-    /// Uses a relationship without intercept (y = 2*x) to:
-    /// - Verify model works correctly with fit_intercept=false
-    /// - Check if coefficient is learned correctly
-    /// - Verify intercept is close to zero when not fitted
+    
     #[test]
     fn test_no_intercept() {
         // Test without intercept: y = 2*x
