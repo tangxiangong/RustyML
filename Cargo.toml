@@ -1,5 +1,5 @@
 [package]
-name = "rust_machine_learning"
+name = "rust_ai"
 version = "0.1.0"
 edition = "2024"
 authors = ["SomeB1oody <stanyin64@gmail.com>"]
