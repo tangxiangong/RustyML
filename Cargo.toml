@@ -2,7 +2,7 @@
 name = "rust_ai"
 version = "0.1.0"
 edition = "2024"
-authors = ["SomeB1oody <stanyin64@gmail.com>"]
+authors = ["SomeB1oody"]
 description = "A high-performance machine learning library in pure Rust, offering statistical utilities, ML algorithms, and future support for neural networks and transformer architectures."
 license = "MIT"
 homepage = "https://github.com/SomeB1oody/rust_ai"
