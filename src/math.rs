@@ -241,15 +241,86 @@ pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
 ///
 /// ```
 /// use ndarray::{Array2, ArrayView2};
-/// use rust_ai::math::squared_distance;
+/// use rust_ai::math::squared_euclidean_distance;
 ///
 /// let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
 /// let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
 ///
-/// let dist = squared_distance(&a.view(), &b.view());
+/// let dist = squared_euclidean_distance(&a.view(), &b.view());
 /// assert_eq!(dist, 27.0); // (4-1)² + (5-2)² + (6-3)² = 9 + 9 + 9 = 27
 /// ```
-pub fn squared_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
+pub fn squared_euclidean_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
     let diff = x1 - x2;
     diff.iter().map(|&x| x * x).sum()
+}
+
+/// Calculate the Manhattan distance between two points
+///
+/// Computes the sum of absolute differences between corresponding elements
+/// of two 2D arrays, representing the Manhattan (L1) distance.
+///
+/// # Arguments
+///
+/// * `x1` - First point as a 2D array view
+/// * `x2` - Second point as a 2D array view
+///
+/// # Returns
+///
+/// The Manhattan distance as a f64 value
+///
+/// # Example
+///
+/// ```
+/// use ndarray::{Array2, ArrayView2};
+/// use rust_ai::math::manhattan_distance;
+///
+/// let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+/// let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
+///
+/// let dist = manhattan_distance(&a.view(), &b.view());
+/// assert_eq!(dist, 9.0); // |4-1| + |5-2| + |6-3| = 3 + 3 + 3 = 9
+/// ```
+pub fn manhattan_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
+    let diff = x1 - x2;
+    diff.iter().map(|&x| x.abs()).sum()
+}
+
+/// Calculate the Minkowski distance between two points
+///
+/// Computes the p-norm between corresponding elements of two 2D arrays,
+/// representing the Minkowski distance with parameter p.
+///
+/// # Arguments
+///
+/// * `x1` - First point as a 2D array view
+/// * `x2` - Second point as a 2D array view
+/// * `p` - The order of the norm (p ≥ 1.0)
+///
+/// # Returns
+///
+/// The Minkowski distance as a f64 value
+///
+/// # Example
+///
+/// ```
+/// use ndarray::{Array2, ArrayView2};
+/// use rust_ai::math::minkowski_distance;
+///
+/// let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+/// let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
+///
+/// // p=1 is Manhattan distance
+/// let dist_p1 = minkowski_distance(&a.view(), &b.view(), 1.0);
+/// assert!((dist_p1 - 9.0).abs() < 1e-10);
+///
+/// // p=2 is Euclidean distance
+/// let dist_p2 = minkowski_distance(&a.view(), &b.view(), 2.0);
+/// assert!((dist_p2 - 5.196152).abs() < 1e-6); // sqrt((4-1)² + (5-2)² + (6-3)²) = sqrt(27) ≈ 5.196
+/// ```
+pub fn minkowski_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, p: f64) -> f64 {
+    assert!(p >= 1.0, "p must be greater than or equal to 1.0");
+
+    let diff = x1 - x2;
+    let sum: f64 = diff.iter().map(|&x| x.abs().powf(p)).sum();
+    sum.powf(1.0 / p)
 }

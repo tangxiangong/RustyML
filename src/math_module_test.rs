@@ -1,4 +1,5 @@
 use crate::math::*;
+use ndarray::Array2;
 
 #[test]
 fn test_sum_of_square_total() {
@@ -188,15 +189,80 @@ fn test_squared_distance() {
     // (1-2)^2 + (2-3)^2 + (3-4)^2 + (4-5)^2 = 1 + 1 + 1 + 1 = 4
     let expected = 4.0;
 
-    let result = squared_distance(&a.view(), &b.view());
+    let result = squared_euclidean_distance(&a.view(), &b.view());
     assert_eq!(result, expected);
 
-    let zero_distance = squared_distance(&a.view(), &a.view());
+    let zero_distance = squared_euclidean_distance(&a.view(), &a.view());
     assert_eq!(zero_distance, 0.0);
 
     let c = array![[1.0, 2.0]];
     let d = array![[2.0, 4.0]];
     let expected_cd = (1.0_f64 - 2.0_f64).powi(2) + (2.0_f64 - 4.0_f64).powi(2);
-    let result_cd = squared_distance(&c.view(), &d.view());
+    let result_cd = squared_euclidean_distance(&c.view(), &d.view());
     assert_eq!(result_cd, expected_cd);
+}
+
+#[test]
+fn test_manhattan_distance() {
+    // Basic test case
+    let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+    let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
+
+    let dist = manhattan_distance(&a.view(), &b.view());
+    assert_eq!(dist, 9.0); // |4-1| + |5-2| + |6-3| = 3 + 3 + 3 = 9
+
+    // Test case with negative values
+    let c = Array2::<f64>::from_shape_vec((1, 3), vec![-1.0, -2.0, -3.0]).unwrap();
+    let d = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+
+    let dist2 = manhattan_distance(&c.view(), &d.view());
+    assert_eq!(dist2, 12.0); // |1-(-1)| + |2-(-2)| + |3-(-3)| = 2 + 4 + 6 = 12
+
+    // Test with zero vector
+    let zero = Array2::<f64>::zeros((1, 3));
+    let e = Array2::<f64>::from_shape_vec((1, 3), vec![5.0, 5.0, 5.0]).unwrap();
+
+    let dist3 = manhattan_distance(&zero.view(), &e.view());
+    assert_eq!(dist3, 15.0); // |0-5| + |0-5| + |0-5| = 15
+}
+
+#[test]
+fn test_minkowski_distance() {
+    let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+    let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
+
+    // p=1 should be equivalent to Manhattan distance
+    let dist_p1 = minkowski_distance(&a.view(), &b.view(), 1.0);
+    assert!((dist_p1 - 9.0).abs() < 1e-10);
+
+    // p=2 should be equivalent to Euclidean distance
+    let dist_p2 = minkowski_distance(&a.view(), &b.view(), 2.0);
+    let expected = ((3.0f64.powi(2) + 3.0f64.powi(2) + 3.0f64.powi(2)) as f64).sqrt();
+    assert!((dist_p2 - expected).abs() < 1e-10);
+    assert!((dist_p2 - 5.196152).abs() < 1e-6);
+
+    // Test with p=3
+    let dist_p3 = minkowski_distance(&a.view(), &b.view(), 3.0);
+    let expected_p3 = (3.0f64.powi(3) + 3.0f64.powi(3) + 3.0f64.powi(3)).powf(1.0/3.0);
+    assert!((dist_p3 - expected_p3).abs() < 1e-10);
+
+    // Test with vectors containing zeros
+    let c = Array2::<f64>::from_shape_vec((1, 2), vec![3.0, 0.0]).unwrap();
+    let d = Array2::<f64>::from_shape_vec((1, 2), vec![0.0, 4.0]).unwrap();
+
+    let dist_p1_cd = minkowski_distance(&c.view(), &d.view(), 1.0);
+    assert_eq!(dist_p1_cd, 7.0); // |0-3| + |4-0| = 3 + 4 = 7
+
+    let dist_p2_cd = minkowski_distance(&c.view(), &d.view(), 2.0);
+    assert!((dist_p2_cd - 5.0).abs() < 1e-10); // sqrt(3^2 + 4^2) = 5
+}
+
+#[test]
+#[should_panic(expected = "p must be greater than or equal to 1.0")]
+fn test_minkowski_distance_invalid_p() {
+    let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+    let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
+
+    // p < 1.0 should panic
+    minkowski_distance(&a.view(), &b.view(), 0.5);
 }

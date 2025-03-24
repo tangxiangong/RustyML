@@ -19,6 +19,7 @@ use std::ops::AddAssign;
 /// * `labels` - Cluster labels for training data after fitting
 /// * `inertia` - Sum of squared distances to closest centroid after fitting
 /// * `n_iter` - Number of iterations the algorithm ran for after fitting
+#[derive(Debug, Clone)]
 pub struct KMeans {
     /// Number of clusters
     n_clusters: usize,
@@ -91,7 +92,7 @@ impl KMeans {
     ///
     /// A tuple containing the index of the closest centroid and the squared distance to it
     fn closest_centroid(&self, x: &ArrayView2<f64>) -> (usize, f64) {
-        use crate::math::squared_distance;
+        use crate::math::squared_euclidean_distance;
         let centroids = self.centroids.as_ref().unwrap();
 
         let mut min_dist = f64::MAX;
@@ -100,7 +101,7 @@ impl KMeans {
         for (i, centroid) in centroids.outer_iter().enumerate() {
             let centroid_shaped = centroid.to_shape((1, centroid.len())).unwrap();
             let centroid_view = centroid_shaped.view();
-            let dist = squared_distance(&x, &centroid_view);
+            let dist = squared_euclidean_distance(&x, &centroid_view);
             if dist < min_dist {
                 min_dist = dist;
                 min_idx = i;
@@ -116,7 +117,7 @@ impl KMeans {
     ///
     /// * `data` - Training data as a 2D array
     fn init_centroids(&mut self, data: &Array2<f64>) {
-        use crate::math::squared_distance;
+        use crate::math::squared_euclidean_distance;
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
 
@@ -153,7 +154,7 @@ impl KMeans {
                     let row_j = centroids.row(j);
                     let centroid_shaped = row_j.to_shape((1, n_features)).unwrap();
                     let centroid_view = centroid_shaped.view();
-                    let dist = squared_distance(&sample_view, &centroid_view);
+                    let dist = squared_euclidean_distance(&sample_view, &centroid_view);
                     if dist < min_dist {
                         min_dist = dist;
                     }
