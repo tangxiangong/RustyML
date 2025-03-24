@@ -168,3 +168,55 @@ pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
     }
     total_loss / logits.len() as f64
 }
+
+/// Calculate the accuracy of a classification model
+///
+/// Accuracy is defined as the proportion of correctly predicted samples
+/// over the total number of samples.
+/// For binary classification, predicted and actual values should be 0.0 or 1.0.
+/// For multi-class classification, values should be numeric class labels.
+///
+/// # Arguments
+///
+/// * `predicted` - Array of predicted class labels
+/// * `actual` - Array of actual class labels
+///
+/// # Returns
+///
+/// The accuracy score between 0.0 and 1.0
+///
+/// # Panics
+///
+/// Panics if the input arrays have different lengths
+///
+/// # Examples
+///
+/// ```
+/// use rust_ai::math::accuracy;
+///
+/// // Binary classification example
+/// let predicted = vec![1.0, 0.0, 1.0, 1.0, 0.0];
+/// let actual = vec![1.0, 0.0, 0.0, 1.0, 0.0];
+///
+/// let acc = accuracy(&predicted, &actual);
+/// assert_eq!(acc, 0.8); // 4 out of 5 predictions are correct
+/// ```
+pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
+    assert_eq!(
+        predicted.len(),
+        actual.len(),
+        "Predicted and actual arrays must have the same length"
+    );
+
+    if predicted.is_empty() {
+        return 0.0;
+    }
+
+    let correct_predictions = predicted
+        .iter()
+        .zip(actual.iter())
+        .filter(|&(p, a)| (p - a).abs() < std::f64::EPSILON)
+        .count();
+
+    correct_predictions as f64 / predicted.len() as f64
+}

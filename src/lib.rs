@@ -22,7 +22,9 @@ impl std::error::Error for ModelError {}
 /// - Sum of square total (SST) for measuring data variability
 /// - Sum of squared errors (SSE) for evaluating prediction errors
 /// - R-squared (R²) score for assessing model fit quality
-///
+/// - Sigmoid function for logistic regression and neural networks
+/// - Logistic loss (log loss) for binary classification models
+/// - Accuracy score for classification model evaluation
 /// These functions are particularly useful for regression model evaluation and
 /// performance assessment in machine learning applications.
 ///
