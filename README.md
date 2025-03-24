@@ -47,7 +47,7 @@ While the library is in its early stages, Rust AI aims to evolve into a comprehe
 ## Dependencies | 依赖
 - [ndarray](https://crates.io/crates/ndarray) (0.16.1): N-dimensional array library for Rust | Rust的N维数组库
 
-## Getting Started | 开始使用
+## Getting Started | 开始使用(Not available right now)
 Add the library to your `Cargo.toml`:
 将库添加到您的`Cargo.toml`文件中：
 ``` toml
