@@ -14,6 +14,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Accuracy score for classification model evaluation | 准确率分数，用于分类模型评估
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
+    - Linear Regression (initial implementation) | 线性回归(初步实现)
     - Logistic Regression (initial implementation) | 逻辑回归(初步实现)
 
 ## Vision | 愿景
