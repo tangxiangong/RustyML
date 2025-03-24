@@ -1,3 +1,5 @@
+use ndarray::ArrayView2;
+
 /// Calculates the Sum of Square Total
 ///
 /// SST measures the total variability in the data, computed as the sum of squared
@@ -215,8 +217,39 @@ pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
     let correct_predictions = predicted
         .iter()
         .zip(actual.iter())
-        .filter(|&(p, a)| (p - a).abs() < std::f64::EPSILON)
+        .filter(|&(p, a)| (p - a).abs() < f64::EPSILON)
         .count();
 
     correct_predictions as f64 / predicted.len() as f64
+}
+
+/// Calculate the squared Euclidean distance between two points
+///
+/// Computes the sum of squared differences between corresponding elements
+/// of two 2D arrays, representing the squared Euclidean distance.
+///
+/// # Arguments
+///
+/// * `x1` - First point as a 2D array view
+/// * `x2` - Second point as a 2D array view
+///
+/// # Returns
+///
+/// The squared Euclidean distance as a f64 value
+///
+/// # Example
+///
+/// ```
+/// use ndarray::{Array2, ArrayView2};
+/// use rust_ai::math::squared_distance;
+///
+/// let a = Array2::<f64>::from_shape_vec((1, 3), vec![1.0, 2.0, 3.0]).unwrap();
+/// let b = Array2::<f64>::from_shape_vec((1, 3), vec![4.0, 5.0, 6.0]).unwrap();
+///
+/// let dist = squared_distance(&a.view(), &b.view());
+/// assert_eq!(dist, 27.0); // (4-1)² + (5-2)² + (6-3)² = 9 + 9 + 9 = 27
+/// ```
+pub fn squared_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
+    let diff = x1 - x2;
+    diff.iter().map(|&x| x * x).sum()
 }
