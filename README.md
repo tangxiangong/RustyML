@@ -51,6 +51,7 @@ While the library is in its early stages, Rust AI aims to evolve into a comprehe
 
 ## Dependencies | 依赖
 - [ndarray](https://crates.io/crates/ndarray) (0.16.1): N-dimensional array library for Rust | Rust的N维数组库
+- [rand](https://crates.io/crates/rand) (0.9.0): Random number generators and other randomness functionality for Rust | Rust的随机数生成器和其他随机性功能
 
 ## Getting Started | 开始使用(Not available right now)
 Add the library to your `Cargo.toml`:
