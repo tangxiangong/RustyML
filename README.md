@@ -1,4 +1,4 @@
-# Rust AI
+# RustyML
 A comprehensive machine learning and deep learning library written in pure Rust.
 一个用纯Rust编写的全面机器学习和深度学习库。
 ## Overview | 概述
@@ -14,6 +14,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Accuracy score for classification model evaluation | 准确率分数，用于分类模型评估
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
+    - Linear Regression (initial implementation) | 线性回归(初步实现)
     - Logistic Regression (initial implementation) | 逻辑回归(初步实现)
 
 ## Vision | 愿景
@@ -47,16 +48,16 @@ While the library is in its early stages, Rust AI aims to evolve into a comprehe
 ## Dependencies | 依赖
 - [ndarray](https://crates.io/crates/ndarray) (0.16.1): N-dimensional array library for Rust | Rust的N维数组库
 
-## Getting Started | 开始使用
+## Getting Started | 开始使用(Not available right now)
 Add the library to your `Cargo.toml`:
 将库添加到您的`Cargo.toml`文件中：
 ``` toml
 [dependencies]
-rust_ai = "0.1.0"
+rustyml = "0.1.0"
 ```
 Example usage | 使用示例:
 ``` rust
-use rust_ai::math::{sum_of_squared_errors, r2_score};
+use rustyml::math::{sum_of_squared_errors, r2_score};
 
 // Example data | 示例数据
 let predicted = vec![2.1, 3.8, 5.2, 7.1];
@@ -85,5 +86,5 @@ MIT - License
 ## Authors | 作者
 - SomeB1oody (stanyin64@gmail.com)
 
-_Rust AI - Bringing the power and safety of Rust to machine learning and AI._
-_Rust AI - 将Rust的强大性能和安全特性引入机器学习和人工智能领域。_
+_RustyML - Bringing the power and safety of Rust to machine learning and AI._
+_RustyML - 将Rust的强大性能和安全特性引入机器学习和人工智能领域。_
