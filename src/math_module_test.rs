@@ -1,4 +1,4 @@
-use crate::math::{sum_of_square_total, sum_of_squared_errors, r2_score};
+use crate::math::*;
 use std::f64::EPSILON;
 
 #[test]
@@ -76,4 +76,65 @@ fn test_r2_score() {
     let same_actual = vec![7.0, 7.0, 7.0];
     let same_predicted = vec![6.0, 7.0, 8.0];
     assert!((r2_score(&same_predicted, &same_actual) - 0.0).abs() < EPSILON);
+}
+
+#[test]
+fn test_sigmoid() {
+    // Test the midpoint - sigmoid(0) should be exactly 0.5
+    assert!((sigmoid(0.0) - 0.5).abs() < EPSILON);
+
+    // Test extreme positive input - should approach 1.0
+    assert!((sigmoid(10.0) - 1.0).abs() < 0.0001);
+
+    // Test extreme negative input - should approach 0.0
+    assert!((sigmoid(-10.0) - 0.0).abs() < 0.0001);
+
+    // Test symmetry property: sigmoid(-z) = 1 - sigmoid(z)
+    let z = 2.5;
+    assert!((sigmoid(-z) - (1.0 - sigmoid(z))).abs() < EPSILON);
+
+    // Test a few known values
+    assert!((sigmoid(1.0) - 0.7310585786300049).abs() < EPSILON);
+    assert!((sigmoid(-1.0) - 0.2689414213699951).abs() < EPSILON);
+}
+
+#[test]
+fn test_logistic_loss() {
+    // Test case 1: Very good predictions
+    let predictions1 = vec![10.0, -10.0];  // Very confident predictions
+    let labels1 = vec![1.0, 0.0];          // Actual labels
+    let loss1 = logistic_loss(&predictions1, &labels1);
+    println!("Loss1: {}", loss1);
+    assert!(loss1 < 0.01);  // Loss should be small
+
+    // Test case 2: Completely wrong predictions
+    let predictions2 = vec![10.0, -10.0];
+    let labels2 = vec![0.0, 1.0];
+    let loss2 = logistic_loss(&predictions2, &labels2);
+    println!("Loss2: {}", loss2);
+    assert!(loss2 > 9.0);
+
+    // Test case 3: Uncertain predictions
+    let predictions3 = vec![0.1, -0.1, 0.0];
+    let labels3 = vec![1.0, 0.0, 1.0];
+    let loss3 = logistic_loss(&predictions3, &labels3);
+    println!("Loss3: {}", loss3);
+    assert!(loss3 > 0.5 && loss3 < 1.0);
+}
+
+#[test]
+#[should_panic(expected = "must be either 0 or 1")]
+fn test_logistic_loss_invalid_labels() {
+    let predictions = vec![1.0, 2.0];
+    let labels = vec![1.0, 0.5]; // Invalid label value
+    logistic_loss(&predictions, &labels); // Should panic
+}
+
+#[test]
+#[should_panic(expected = "Raw predictions and actual labels must have the same length")]
+fn test_logistic_loss_different_lengths() {
+    // Different length arrays should panic
+    let predictions = vec![0.1, 0.2, 0.3];
+    let labels = vec![0.0, 1.0];
+    logistic_loss(&predictions, &labels);
 }

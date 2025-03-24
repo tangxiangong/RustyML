@@ -5,3 +5,4 @@ edition = "2024"
 authors = ["SomeB1oody <stanyin64@gmail.com>"]
 
 [dependencies]
+ndarray = "0.16.1"

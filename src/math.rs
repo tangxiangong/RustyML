@@ -101,3 +101,70 @@ pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
 
     1.0 - (sse / sst)
 }
+
+/// Calculate the sigmoid function value for a given input
+///
+/// The sigmoid function transforms any real-valued number into the range (0, 1).
+/// It is defined as: σ(z) = 1 / (1 + e^(-z))
+///
+/// # Parameters
+/// * `z` - The input value (can be any real number)
+///
+/// # Returns
+/// * A value between 0 and 1, representing the sigmoid of the input
+///
+/// # Examples
+/// ```
+/// use rust_ai::math::sigmoid;
+///
+/// assert_eq!(sigmoid(0.0), 0.5);
+/// assert!(sigmoid(10.0) > 0.999);
+/// assert!(sigmoid(-10.0) < 0.001);
+/// ```
+///
+/// # Mathematical properties
+/// * sigmoid(0) = 0.5
+/// * As z approaches positive infinity, sigmoid(z) approaches 1
+/// * As z approaches negative infinity, sigmoid(z) approaches 0
+pub fn sigmoid(z: f64) -> f64 {
+    1.0 / (1.0 + (-z).exp())
+}
+
+/// Calculate logistic regression loss (log loss)
+///
+/// This function computes the average cross-entropy loss for logistic regression,
+/// applying sigmoid to raw predictions before calculating loss.
+///
+/// # Parameters
+/// * `raw_predictions` - Vector of raw model outputs (logits, before sigmoid)
+/// * `actual_labels` - Vector of actual binary labels (0 or 1)
+///
+/// # Returns
+/// * Average logistic regression loss
+///
+/// # Example
+/// ```
+/// use rust_ai::math::logistic_loss;
+///
+/// let raw_predictions = vec![1.2, -0.5, 2.1, -1.8];
+/// let actual_labels = vec![1.0, 0.0, 1.0, 0.0];
+///
+/// let loss = logistic_loss(&raw_predictions, &actual_labels);
+/// ```
+pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
+    assert_eq!(logits.len(), actual_labels.len(), 
+               "Raw predictions and actual labels must have the same length");
+
+    // Validate that all labels are either 0 or 1
+    for (i, &label) in actual_labels.iter().enumerate() {
+        assert!(label == 0.0 || label == 1.0,
+                "Label at index {} must be either 0 or 1, found: {}", i, label);
+    }
+
+    let mut total_loss = 0.0;
+    for (&x, &y) in logits.iter().zip(actual_labels.iter()) {
+        let loss = x.max(0.0) - x * y + (1.0 + (-x.abs()).exp()).ln();
+        total_loss += loss;
+    }
+    total_loss / logits.len() as f64
+}
