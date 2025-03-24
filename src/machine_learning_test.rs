@@ -1,0 +1,179 @@
+mod linear_regression_test{
+    use crate::{LinearRegression, ModelError};
+
+    /// Tests the default constructor of LinearRegression.
+    /// Verifies that:
+    /// - coefficients and intercept are initially None
+    /// - default parameters have expected values
+    #[test]
+    fn test_default_constructor() {
+        let model = LinearRegression::default();
+        assert!(model.coefficients.is_none());
+        assert!(model.intercept.is_none());
+        // Check if default values meet expectations
+        assert_eq!(model.fit_intercept(), true); // Assuming default is true
+        assert!(model.learning_rate() > 0.0);
+        assert!(model.max_iterations() > 0);
+        assert!(model.tolerance() > 0.0);
+    }
+    /// Tests the parametrized constructor of LinearRegression.
+
+    /// Ensures that the provided parameters are correctly assigned.
+    #[test]
+    fn test_new_constructor() {
+        let model = LinearRegression::new(false, 0.01, 1000, 1e-5);
+        assert!(!model.fit_intercept());
+        assert_eq!(model.learning_rate(), 0.01);
+        assert_eq!(model.max_iterations(), 1000);
+        assert_eq!(model.tolerance(), 1e-5);
+    }
+
+    /// Tests the setter methods of LinearRegression.
+    /// Verifies that:
+    /// - Each setter method works correctly
+    /// - Method chaining pattern works as expected
+    /// - Parameters are properly updated after setting
+    #[test]
+    fn test_setters() {
+        let mut model = LinearRegression::default();
+        model.set_fit_intercept(false)
+            .set_learning_rate(0.05)
+            .set_max_iterations(500)
+            .set_tolerance(1e-6);
+
+        assert!(!model.fit_intercept());
+        assert_eq!(model.learning_rate(), 0.05);
+        assert_eq!(model.max_iterations(), 500);
+        assert_eq!(model.tolerance(), 1e-6);
+    }
+
+    /// Tests error handling when model is not fitted.
+    /// Verifies that:
+    /// - Attempting to get coefficients before fitting returns NotFitted error
+    /// - Attempting to get intercept before fitting returns NotFitted error
+    #[test]
+    fn test_not_fitted_error() {
+        let model = LinearRegression::default();
+
+        // Try to get coefficients and intercept from an unfitted model
+        let coef_result = model.get_coefficients();
+        let intercept_result = model.get_intercept();
+
+        assert!(matches!(coef_result, Err(ModelError::NotFitted)));
+        assert!(matches!(intercept_result, Err(ModelError::NotFitted)));
+    }
+
+    /// Tests the basic fit and predict functionality.
+    /// Uses a simple linear relationship (y = 2x + 1) to:
+    /// - Test if the model can accurately learn coefficients
+    /// - Test if the model can accurately learn intercept
+    /// - Test if predictions on new data are accurate
+    #[test]
+    fn test_fit_and_predict() {
+        // Create a simple dataset: y = 2*x + 1
+        let x = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
+        let y = vec![3.0, 5.0, 7.0, 9.0];
+
+        let mut model = LinearRegression::new(true, 0.01, 10000, 1e-8);
+        model.fit(&x, &y);
+
+        // Check if coefficients and intercept are close to expected values
+        let coefficients = model.get_coefficients().unwrap();
+        let intercept = model.get_intercept().unwrap();
+
+        assert!((coefficients[0] - 2.0).abs() < 0.1);
+        assert!((intercept - 1.0).abs() < 0.1);
+
+        // Test predictions
+        let test_x = vec![vec![5.0], vec![6.0]];
+        let predictions = model.predict(&test_x);
+
+        assert!((predictions[0] - 11.0).abs() < 0.2);
+        assert!((predictions[1] - 13.0).abs() < 0.2);
+    }
+
+    /// Tests multivariate regression capabilities.
+    /// Uses a linear relationship with multiple features (y = 2*x1 + 3*x2 + 1) to:
+    /// - Verify model can handle multiple input features
+    /// - Check if coefficients are accurately learned for each feature
+    /// - Test predictions with multiple features
+    #[test]
+    fn test_multivariate_regression() {
+        // Create multivariate dataset: y = 2*x1 + 3*x2 + 1
+        // Using uncorrelated feature values to avoid multicollinearity issues
+        let x = vec![
+            vec![1.0, 2.0],  // Different values
+            vec![2.0, 1.0],  // Inverse relationship
+            vec![3.0, 4.0],
+            vec![4.0, 3.0],
+            vec![2.5, 3.5],  // Adding more samples
+            vec![3.5, 2.5],
+            vec![1.5, 3.0],
+            vec![3.0, 1.5],
+        ];
+
+        // Calculate y values based on y = 2*x1 + 3*x2 + 1
+        let mut y = Vec::new();
+        for sample in &x {
+            y.push(2.0 * sample[0] + 3.0 * sample[1] + 1.0);
+        }
+
+        // Create model and train
+        // Using smaller learning rate and more iterations
+        let mut model = LinearRegression::new(true, 0.005, 20000, 1e-10);
+        model.fit(&x, &y);
+
+        // Check if coefficients and intercept are close to expected values
+        let coefficients = model.get_coefficients().unwrap();
+        let intercept = model.get_intercept().unwrap();
+
+        println!("Learned coefficients: {:?}", coefficients);
+        println!("Learned intercept: {}", intercept);
+
+        // Allow for some margin of error
+        assert!((coefficients[0] - 2.0).abs() < 0.2,
+                "First coefficient {} differs too much from expected 2.0", coefficients[0]);
+        assert!((coefficients[1] - 3.0).abs() < 0.2,
+                "Second coefficient {} differs too much from expected 3.0", coefficients[1]);
+        assert!((intercept - 1.0).abs() < 0.2,
+                "Intercept {} differs too much from expected 1.0", intercept);
+
+        // Test predictions
+        let test_x = vec![
+            vec![5.0, 5.0],
+            vec![2.0, 4.0],
+        ];
+        let predictions = model.predict(&test_x);
+
+        // Expected: y1 = 2*5 + 3*5 + 1 = 26, y2 = 2*2 + 3*4 + 1 = 17
+        assert!((predictions[0] - 26.0).abs() < 0.5,
+                "Prediction {} differs too much from expected 26.0", predictions[0]);
+        assert!((predictions[1] - 17.0).abs() < 0.5,
+                "Prediction {} differs too much from expected 17.0", predictions[1]);
+    }
+
+    /// Tests regression without intercept.
+    /// Uses a relationship without intercept (y = 2*x) to:
+    /// - Verify model works correctly with fit_intercept=false
+    /// - Check if coefficient is learned correctly
+    /// - Verify intercept is close to zero when not fitted
+    #[test]
+    fn test_no_intercept() {
+        // Test without intercept: y = 2*x
+        let x = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
+        let y = vec![2.0, 4.0, 6.0, 8.0];
+
+        let mut model = LinearRegression::new(false, 0.01, 10000, 1e-8);
+        model.fit(&x, &y);
+
+        // Check if coefficient is close to expected value (around 2.0)
+        let coefficients = model.get_coefficients().unwrap();
+
+        assert!((coefficients[0] - 2.0).abs() < 0.1);
+
+        // Intercept should be close to 0 or not available
+        if let Ok(intercept) = model.get_intercept() {
+            assert!(intercept.abs() < 0.1);
+        }
+    }
+}
