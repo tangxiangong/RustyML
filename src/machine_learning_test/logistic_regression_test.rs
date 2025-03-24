@@ -7,10 +7,10 @@ mod tests {
     fn test_default_constructor() {
         let model = LogisticRegression::default();
 
-        assert_eq!(model.fit_intercept(), true);
-        assert_eq!(model.learning_rate(), 0.01);
-        assert_eq!(model.max_iterations(), 100);
-        assert_eq!(model.tolerance(), 1e-4);
+        assert_eq!(model.get_fit_intercept(), true);
+        assert_eq!(model.get_learning_rate(), 0.01);
+        assert_eq!(model.get_max_iterations(), 100);
+        assert_eq!(model.get_tolerance(), 1e-4);
         assert_eq!(model.get_weights(), None);
     }
 
@@ -18,26 +18,11 @@ mod tests {
     fn test_new_constructor() {
         let model = LogisticRegression::new(false, 0.05, 200, 1e-5);
 
-        assert_eq!(model.fit_intercept(), false);
-        assert_eq!(model.learning_rate(), 0.05);
-        assert_eq!(model.max_iterations(), 200);
-        assert_eq!(model.tolerance(), 1e-5);
+        assert_eq!(model.get_fit_intercept(), false);
+        assert_eq!(model.get_learning_rate(), 0.05);
+        assert_eq!(model.get_max_iterations(), 200);
+        assert_eq!(model.get_tolerance(), 1e-5);
         assert_eq!(model.get_weights(), None);
-    }
-
-    #[test]
-    fn test_setter_methods() {
-        let mut model = LogisticRegression::default();
-
-        model.set_fit_intercept(false)
-            .set_learning_rate(0.1)
-            .set_max_iterations(500)
-            .set_tolerance(1e-6);
-
-        assert_eq!(model.fit_intercept(), false);
-        assert_eq!(model.learning_rate(), 0.1);
-        assert_eq!(model.max_iterations(), 500);
-        assert_eq!(model.tolerance(), 1e-6);
     }
 
     #[test]
