@@ -29,7 +29,7 @@ impl std::error::Error for ModelError {}
 /// # Examples
 ///
 /// ```
-/// use rust_machine_learning::math::{sum_of_squared_errors, r2_score};
+/// use rust_ai::math::{sum_of_squared_errors, r2_score};
 ///
 /// // Example data
 /// let predicted = vec![2.1, 3.8, 5.2, 7.1];
@@ -50,7 +50,7 @@ pub mod math;
 /// # Examples
 ///
 /// ```
-/// use rust_machine_learning::LinearRegression;
+/// use rust_ai::LinearRegression;
 ///
 /// // Create a linear regression model
 /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-6);
@@ -65,6 +65,12 @@ pub mod math;
 /// // Make predictions
 /// let new_data = vec![vec![4.0, 5.0]];
 /// let predictions = model.predict(&new_data);
+///
+/// // Since Clone is implemented, the model can be easily cloned
+/// let model_copy = model.clone();
+///
+/// // Since Debug is implemented, detailed model information can be printed
+/// println!("{:?}", model);
 /// ```
 ///
 /// # Parameters
@@ -75,6 +81,7 @@ pub mod math;
 /// * `learning_rate` - Learning rate for gradient descent
 /// * `max_iterations` - Maximum number of iterations for gradient descent
 /// * `tolerance` - Convergence tolerance
+#[derive(Debug, Clone)]
 pub struct LinearRegression {
     /// Coefficients (slopes)
     coefficients: Option<Vec<f64>>,
@@ -367,7 +374,7 @@ impl LinearRegression {
     /// # Examples
     ///
     /// ```
-    /// use rust_machine_learning::LinearRegression;
+    /// use rust_ai::LinearRegression;
     ///
     /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
     /// // ... fit the model ...
@@ -390,7 +397,7 @@ impl LinearRegression {
     /// # Examples
     ///
     /// ```
-    /// use rust_machine_learning::LinearRegression;
+    /// use rust_ai::LinearRegression;
     ///
     /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
     /// // ... fit the model ...
