@@ -13,6 +13,8 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Logistic loss (log loss) for binary classification models | 逻辑损失函数(对数损失)，用于二元分类模型
     - Accuracy score for classification model evaluation | 准确率分数，用于分类模型评估
     - Calculate the squared Euclidean distance between two points | 计算两点之间的欧几里得距离平方
+    - Calculate the Manhattan distance between two points ｜ 计算两点间的曼哈顿距离
+    - Calculate the Minkowski distance between two points ｜ 计算两点间的闵可夫斯基距离
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
     - Regression | 回归问题:
