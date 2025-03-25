@@ -59,7 +59,6 @@ pub struct LinearRegression {
 }
 
 impl Default for LinearRegression {
-    /// implement `Default` trait, write `LinearRegression::default()` to use default arguments
     fn default() -> Self {
         Self {
             coefficients: None,

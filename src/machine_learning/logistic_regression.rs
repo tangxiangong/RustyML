@@ -43,7 +43,13 @@ use ndarray::{Array1, Array2, ArrayView2};
 /// // Make predictions
 /// let predictions = model.predict(&x_test);
 /// ```
-
+/// # Fields
+///
+/// * `k` - Number of neighbors to consider for classification
+/// * `x_train` - Training data features as a 2D array
+/// * `y_train` - Training data labels/targets
+/// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
+/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
 #[derive(Debug, Clone)]
 pub struct LogisticRegression {
     /// Model weights, None before training
@@ -189,11 +195,11 @@ impl LogisticRegression {
     pub fn get_weights(&self) -> Option<&Array1<f64>> {
         self.weights.as_ref()
     }
-    
+
     /// Get number of iterations the algorithm ran for after fitting
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// number of iterations the algorithm ran for after fitting
     pub fn get_n_iter(&self) -> Option<usize> { self.n_iter }
 
@@ -231,13 +237,13 @@ impl LogisticRegression {
         let mut weights = Array1::zeros(n_features);
 
         let mut prev_cost = f64::INFINITY;
-        
+
         let mut n_iter = 0;
 
         // Gradient descent optimization
         for _ in 0..self.max_iterations {
             n_iter += 1;
-            
+
             let predictions = x_train.dot(&weights);
             let mut sigmoid_preds = Array1::zeros(n_samples);
 

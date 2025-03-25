@@ -69,6 +69,10 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// * `x` - Training features as a 2D array (samples × features)
     /// * `y` - Training targets/labels as a 1D array
+    /// 
+    /// # Notes
+    /// 
+    /// KNN is a lazy learning algorithm, and the calculation is done in the prediction phase.
     pub fn fit(&mut self, x: Array2<f64>, y: Array1<T>) {
         self.x_train = Some(x);
         self.y_train = Some(y);

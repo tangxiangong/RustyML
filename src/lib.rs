@@ -26,6 +26,9 @@ impl std::error::Error for ModelError {}
 /// - Logistic loss (log loss) for binary classification models
 /// - Accuracy score for classification model evaluation
 /// - Calculate the squared Euclidean distance between two points
+/// - Calculate the Manhattan distance between two points
+/// - Calculate the Minkowski distance between two points
+/// 
 /// These functions are particularly useful for regression model evaluation and
 /// performance assessment in machine learning applications.
 ///
