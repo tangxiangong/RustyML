@@ -324,3 +324,20 @@ pub fn minkowski_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, p: f64) ->
     let sum: f64 = diff.iter().map(|&x| x.abs().powf(p)).sum();
     sum.powf(1.0 / p)
 }
+
+/// Calculates the Gaussian kernel (RBF kernel)
+///
+/// # Parameters
+/// * `x1` - View of the first input vector/matrix
+/// * `x2` - View of the second input vector/matrix
+/// * `gamma` - Kernel width parameter, controls the "width" of the Gaussian function
+///
+/// # Returns
+/// The Gaussian kernel value between the two points
+pub fn gaussian_kernel(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, gamma: f64) -> f64 {
+    // Calculate the squared Euclidean distance between the two points
+    let squared_distance = squared_euclidean_distance(x1, x2);
+
+    // Apply the Gaussian formula: K(x, y) = exp(-gamma * ||x - y||²)
+    (-gamma * squared_distance).exp()
+}
