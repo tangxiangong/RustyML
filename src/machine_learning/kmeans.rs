@@ -336,11 +336,10 @@ impl KMeans {
     /// # Returns
     ///
     /// An array of cluster indices for each input data point
-    ///
-    /// # Panics
-    ///
-    /// Panics if the model has not been fitted yet
-    pub fn predict(&self, data: &Array2<f64>) -> Array1<usize> {
+    pub fn predict(&self, data: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+        if self.centroids.is_none(){
+            return Err(ModelError::NotFitted);
+        }
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
         let mut labels = Array1::<usize>::zeros(n_samples);
@@ -353,7 +352,7 @@ impl KMeans {
             labels[idx] = closest_idx;
         }
 
-        labels
+        Ok(labels)
     }
 
     /// Fits the model and predicts cluster indices for the input data.

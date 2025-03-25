@@ -305,8 +305,10 @@ impl LinearRegression {
     ///
     /// # Return Value
     /// * Vector of predictions
-    pub fn predict(&self, x: &[Vec<f64>]) -> Vec<f64> {
-        assert!(self.coefficients.is_some(), "Model has not been trained yet");
+    pub fn predict(&self, x: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
+        if self.coefficients.is_none() {
+            return Err(ModelError::NotFitted);
+        }
 
         let coeffs = self.coefficients.as_ref().unwrap();
         let intercept = self.intercept.unwrap_or(0.0);
@@ -323,6 +325,6 @@ impl LinearRegression {
             predictions.push(prediction);
         }
 
-        predictions
+        Ok(predictions)
     }
 }

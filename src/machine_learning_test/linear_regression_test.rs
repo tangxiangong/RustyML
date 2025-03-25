@@ -55,7 +55,7 @@ fn test_fit_and_predict() {
 
     // Test predictions
     let test_x = vec![vec![5.0], vec![6.0]];
-    let predictions = model.predict(&test_x);
+    let predictions = model.predict(&test_x).unwrap();
 
     assert!((predictions[0] - 11.0).abs() < 0.2);
     assert!((predictions[1] - 13.0).abs() < 0.2);
@@ -107,7 +107,7 @@ fn test_multivariate_regression() {
         vec![5.0, 5.0],
         vec![2.0, 4.0],
     ];
-    let predictions = model.predict(&test_x);
+    let predictions = model.predict(&test_x).unwrap();
 
     // Expected: y1 = 2*5 + 3*5 + 1 = 26, y2 = 2*2 + 3*4 + 1 = 17
     assert!((predictions[0] - 26.0).abs() < 0.5,

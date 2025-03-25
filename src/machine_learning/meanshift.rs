@@ -395,7 +395,7 @@ impl MeanShift {
     ///
     /// # Returns
     /// An ndarray Array1<usize> containing the predicted cluster labels.
-    pub fn predict(&self, x: &Array2<f64>) -> Array1<usize> {
+    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
         if let Some(centers) = &self.cluster_centers {
             let n_samples = x.shape()[0];
             let n_clusters = centers.shape()[0];
@@ -424,9 +424,9 @@ impl MeanShift {
                 }
             }
 
-            labels
+            Ok(labels)
         } else {
-            panic!("Model not trained, call fit method first")
+            Err(ModelError::NotFitted)
         }
     }
 

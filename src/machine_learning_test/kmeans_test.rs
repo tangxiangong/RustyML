@@ -72,7 +72,7 @@ fn test_predict() {
     kmeans.fit(&data);
 
     // Test prediction
-    let predictions = kmeans.predict(&data);
+    let predictions = kmeans.predict(&data).unwrap();
 
     // Verify prediction results
     assert_eq!(predictions.len(), 20);

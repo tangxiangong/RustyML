@@ -129,21 +129,20 @@ impl LogisticRegression {
     ///
     /// A 1D array containing the probability of each sample belonging to the positive class
     ///
-    /// # Panics
-    ///
-    /// If the model hasn't been trained yet (weights is None), it will panic
-    fn predict_proba(&self, x: &ArrayView2<f64>) -> Array1<f64> {
+    fn predict_proba(&self, x: &ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         use crate::math::sigmoid;
-        let weights = self.weights.as_ref().expect("Model not trained yet");
+        if let Some(weights) = &self.weights {
+            let mut predictions = x.dot(weights);
 
-        let mut predictions = x.dot(weights);
+            // Apply sigmoid activation function
+            for val in predictions.iter_mut() {
+                *val = sigmoid(*val);
+            }
 
-        // Apply sigmoid activation function
-        for val in predictions.iter_mut() {
-            *val = sigmoid(*val);
+            Ok(predictions)
+        } else {
+            Err(ModelError::NotFitted)
         }
-
-        predictions
     }
 
     /// Gets the current setting for fitting the intercept term
@@ -325,7 +324,7 @@ impl LogisticRegression {
         let probs = self.predict_proba(&x_test.view());
 
         // Apply threshold (0.5) for classification
-        probs.mapv(|prob| if prob >= 0.5 { 1 } else { 0 })
+        probs.unwrap().mapv(|prob| if prob >= 0.5 { 1 } else { 0 })
     }
 }
 
