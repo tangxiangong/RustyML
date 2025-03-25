@@ -325,7 +325,7 @@ pub fn minkowski_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, p: f64) ->
     sum.powf(1.0 / p)
 }
 
-/// Calculates the Gaussian kernel (RBF kernel)
+/// Calculate the Gaussian kernel (RBF kernel)
 ///
 /// # Parameters
 /// * `x1` - View of the first input vector/matrix

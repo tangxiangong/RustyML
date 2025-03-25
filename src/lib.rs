@@ -30,6 +30,7 @@ impl std::error::Error for ModelError {}
 /// - Calculate the squared Euclidean distance between two points
 /// - Calculate the Manhattan distance between two points
 /// - Calculate the Minkowski distance between two points
+/// - Calculate the Gaussian kernel (RBF kernel)
 /// 
 /// These functions are particularly useful for regression model evaluation and
 /// performance assessment in machine learning applications.

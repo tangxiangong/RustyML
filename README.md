@@ -15,6 +15,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Calculate the squared Euclidean distance between two points | 计算两点之间的欧几里得距离平方
     - Calculate the Manhattan distance between two points ｜ 计算两点间的曼哈顿距离
     - Calculate the Minkowski distance between two points ｜ 计算两点间的闵可夫斯基距离
+    - Calculate the Gaussian kernel (RBF kernel) | 计算高斯核(RBF核)
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
     - Regression | 回归问题:
