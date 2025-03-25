@@ -1,5 +1,6 @@
 use ndarray::{Array1, Array2};
 use crate::machine_learning::knn::KNN;
+use crate::ModelError;
 
 // Test default initialization of KNN
 #[test]
@@ -8,8 +9,8 @@ fn test_knn_default() {
     assert_eq!(knn.get_k(), 5); // Default K value should be 5
     assert_eq!(knn.get_weights(), "uniform"); // Default weight strategy should be uniform
     assert_eq!(knn.get_metric(), "euclidean"); // Default metric should be euclidean
-    assert!(knn.get_x_train().is_none()); // Should not have training data by default
-    assert!(knn.get_y_train().is_none()); // Should not have training labels by default
+    assert!(matches!(knn.get_x_train(), Err(ModelError::NotFitted))); // Should not have training data by default
+    assert!(matches!(knn.get_y_train(), Err(ModelError::NotFitted))); // Should not have training labels by default
 }
 
 // Test custom initialization of KNN
@@ -39,8 +40,8 @@ fn test_knn_fit() {
     knn.fit(x_train.clone(), y_train.clone());
 
     // Verify training data is stored
-    assert!(knn.get_x_train().is_some());
-    assert!(knn.get_y_train().is_some());
+    assert!(matches!(knn.get_x_train(), Ok(_)));
+    assert!(matches!(knn.get_y_train(), Ok(_)));
 
     // Verify training data content is correct
     let stored_x = knn.get_x_train().unwrap();

@@ -2,6 +2,7 @@
 mod tests {
     use crate::machine_learning::logistic_regression::{LogisticRegression, generate_polynomial_features};
     use ndarray::{arr1, arr2};
+    use crate::ModelError;
 
     #[test]
     fn test_default_constructor() {
@@ -11,8 +12,8 @@ mod tests {
         assert_eq!(model.get_learning_rate(), 0.01);
         assert_eq!(model.get_max_iterations(), 100);
         assert_eq!(model.get_tolerance(), 1e-4);
-        assert_eq!(model.get_weights(), None);
-        assert_eq!(model.get_n_iter(), None);
+        assert!(matches!(model.get_n_iter(), Err(ModelError::NotFitted)));
+        assert!(matches!(model.get_weights(), Err(ModelError::NotFitted)));
     }
 
     #[test]
@@ -23,8 +24,8 @@ mod tests {
         assert_eq!(model.get_learning_rate(), 0.05);
         assert_eq!(model.get_max_iterations(), 200);
         assert_eq!(model.get_tolerance(), 1e-5);
-        assert_eq!(model.get_weights(), None);
-        assert_eq!(model.get_n_iter(), None);
+        assert!(matches!(model.get_n_iter(), Err(ModelError::NotFitted)));
+        assert!(matches!(model.get_weights(), Err(ModelError::NotFitted)));
     }
 
     #[test]
@@ -38,7 +39,7 @@ mod tests {
         model.fit(&x, &y);
 
         // Check if weights exist
-        assert!(model.get_weights().is_some());
+        assert!(matches!(model.get_weights(), Ok(_)));
 
         // Predict training data
         let predictions = model.predict(&x);

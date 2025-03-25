@@ -191,8 +191,11 @@ impl LinearRegression {
     ///
     /// * `Some(usize)` - The number of iterations if the model has been fitted
     /// * `None` - If the model has not been fitted yet
-    pub fn get_n_iter(&self) -> Option<usize> {
-        self.n_iter
+    pub fn get_n_iter(&self) -> Result<usize, ModelError> {
+        match self.n_iter {
+            Some(n_iter) => Ok(n_iter),
+            None => Err(ModelError::NotFitted),
+        }
     }
 
     /// Fits the linear regression model using gradient descent

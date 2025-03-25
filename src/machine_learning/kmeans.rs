@@ -2,6 +2,7 @@ use ndarray::{Array1, Array2, ArrayView2};
 use rand::Rng;
 use rand::SeedableRng;
 use std::ops::AddAssign;
+use crate::ModelError;
 
 /// KMeans clustering algorithm implementation.
 ///
@@ -80,7 +81,57 @@ impl KMeans {
         KMeans::new(8, 300, 1e-4, None)
     }
 
+    /// Returns the cluster centroids if the model has been fitted.
+    ///
+    /// # Returns
+    ///
+    /// An optional reference to the cluster centroids as a 2D array,
+    /// or None if the model has not been fitted
+    pub fn get_centroids(&self) -> Result<&Array2<f64>, ModelError> {
+        match self.centroids.as_ref() {
+            Some(centroids) => Ok(centroids),
+            None => Err(ModelError::NotFitted),
+        }
+    }
 
+    /// Returns the cluster assignments for the training data if the model has been fitted.
+    ///
+    /// # Returns
+    ///
+    /// An optional reference to the cluster assignments as a 1D array,
+    /// or None if the model has not been fitted
+    pub fn get_labels(&self) -> Result<&Array1<usize>, ModelError> {
+        match self.labels.as_ref() {
+            Some(labels) => Ok(labels),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the sum of squared distances of samples to their closest centroid.
+    ///
+    /// # Returns
+    ///
+    /// An optional float value representing the inertia,
+    /// or None if the model has not been fitted
+    pub fn get_inertia(&self) -> Result<f64, ModelError> {
+        match self.inertia {
+            Some(inertia) => Ok(inertia),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the number of iterations the algorithm ran for during fitting.
+    ///
+    /// # Returns
+    ///
+    /// An optional value representing the number of iterations,
+    /// or None if the model has not been fitted
+    pub fn get_n_iter(&self) -> Result<usize, ModelError> {
+        match self.n_iter {
+            Some(n_iter) => Ok(n_iter),
+            None => Err(ModelError::NotFitted),
+        }
+    }
 
     /// Finds the closest centroid to a given data point and returns its index and distance.
     ///
@@ -319,45 +370,5 @@ impl KMeans {
     pub fn fit_predict(&mut self, data: &Array2<f64>) -> Array1<usize> {
         self.fit(data);
         self.labels.clone().unwrap()
-    }
-
-    /// Returns the cluster centroids if the model has been fitted.
-    ///
-    /// # Returns
-    ///
-    /// An optional reference to the cluster centroids as a 2D array,
-    /// or None if the model has not been fitted
-    pub fn get_centroids(&self) -> Option<&Array2<f64>> {
-        self.centroids.as_ref()
-    }
-
-    /// Returns the cluster assignments for the training data if the model has been fitted.
-    ///
-    /// # Returns
-    ///
-    /// An optional reference to the cluster assignments as a 1D array,
-    /// or None if the model has not been fitted
-    pub fn get_labels(&self) -> Option<&Array1<usize>> {
-        self.labels.as_ref()
-    }
-
-    /// Returns the sum of squared distances of samples to their closest centroid.
-    ///
-    /// # Returns
-    ///
-    /// An optional float value representing the inertia,
-    /// or None if the model has not been fitted
-    pub fn get_inertia(&self) -> Option<f64> {
-        self.inertia
-    }
-
-    /// Returns the number of iterations the algorithm ran for during fitting.
-    ///
-    /// # Returns
-    ///
-    /// An optional value representing the number of iterations,
-    /// or None if the model has not been fitted
-    pub fn get_n_iter(&self) -> Option<usize> {
-        self.n_iter
     }
 }

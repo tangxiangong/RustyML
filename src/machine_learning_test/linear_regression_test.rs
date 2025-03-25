@@ -7,12 +7,12 @@ fn test_default_constructor() {
 
     assert!(matches!(model.get_coefficients(), Err(ModelError::NotFitted)));
     assert!(matches!(model.get_intercept(), Err(ModelError::NotFitted)));
+    assert!(matches!(model.get_n_iter(), Err(ModelError::NotFitted)));
     // Check if default values meet expectations
     assert_eq!(model.get_fit_intercept(), true); // Assuming default is true
     assert!(model.get_learning_rate() > 0.0);
     assert!(model.get_max_iterations() > 0);
     assert!(model.get_tolerance() > 0.0);
-    assert_eq!(model.get_n_iter(), None)
 }
 
 #[test]
@@ -22,7 +22,7 @@ fn test_new_constructor() {
     assert_eq!(model.get_learning_rate(), 0.01);
     assert_eq!(model.get_max_iterations(), 1000);
     assert_eq!(model.get_tolerance(), 1e-5);
-    assert_eq!(model.get_n_iter(), None)
+    assert!(matches!(model.get_n_iter(), Err(ModelError::NotFitted)));
 }
 
 #[test]

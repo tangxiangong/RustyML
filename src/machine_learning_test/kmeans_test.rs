@@ -2,6 +2,7 @@ use crate::machine_learning::kmeans::KMeans;
 use ndarray::{Array1, Array2};
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
+use crate::ModelError;
 
 // Helper function: Create a simple test dataset
 fn create_test_data() -> Array2<f64> {
@@ -31,20 +32,20 @@ fn test_new_and_default() {
     let kmeans = KMeans::new(3, 100, 0.0001, Some(42));
 
     // Verify parameters of instance created with new()
-    assert_eq!(kmeans.get_centroids(), None);
-    assert_eq!(kmeans.get_labels(), None);
-    assert_eq!(kmeans.get_inertia(), None);
-    assert_eq!(kmeans.get_n_iter(), None);
+    assert!(matches!(kmeans.get_centroids(), Err(ModelError::NotFitted)));
+    assert!(matches!(kmeans.get_labels(), Err(ModelError::NotFitted)));
+    assert!(matches!(kmeans.get_inertia(), Err(ModelError::NotFitted)));
+    assert!(matches!(kmeans.get_n_iter(), Err(ModelError::NotFitted)));
 
 
     // Test default method
     let default_kmeans = KMeans::default();
 
     // Verify default parameters
-    assert_eq!(default_kmeans.get_centroids(), None);
-    assert_eq!(default_kmeans.get_labels(), None);
-    assert_eq!(default_kmeans.get_inertia(), None);
-    assert_eq!(default_kmeans.get_n_iter(), None);
+    assert!(matches!(default_kmeans.get_centroids(), Err(ModelError::NotFitted)));
+    assert!(matches!(default_kmeans.get_labels(), Err(ModelError::NotFitted)));
+    assert!(matches!(default_kmeans.get_inertia(), Err(ModelError::NotFitted)));
+    assert!(matches!(default_kmeans.get_n_iter(), Err(ModelError::NotFitted)));
 }
 
 #[test]
@@ -56,10 +57,10 @@ fn test_fit() {
     kmeans.fit(&data);
 
     // Verify state after fitting
-    assert!(kmeans.get_centroids().is_some());
+    assert!(matches!(kmeans.get_centroids(), Ok(_)));
     assert_eq!(kmeans.get_centroids().unwrap().shape(), &[2, 2]);
-    assert!(kmeans.get_inertia().is_some());
-    assert!(kmeans.get_n_iter().is_some());
+    assert!(matches!(kmeans.get_inertia(), Ok(_)));
+    assert!(matches!(kmeans.get_n_iter(), Ok(_)));
 }
 
 #[test]
@@ -100,10 +101,10 @@ fn test_fit_predict() {
 
     // Verify results
     assert_eq!(predictions.len(), 20);
-    assert!(kmeans.get_centroids().is_some());
-    assert!(kmeans.get_labels().is_some());
-    assert!(kmeans.get_inertia().is_some());
-    assert!(kmeans.get_n_iter().is_some());
+    assert!(matches!(kmeans.get_centroids(), Ok(_)));
+    assert!(matches!(kmeans.get_labels(), Ok(_)));
+    assert!(matches!(kmeans.get_inertia(), Ok(_)));
+    assert!(matches!(kmeans.get_n_iter(), Ok(_)));
 
     // Verify labels are the same as predictions
     assert_eq!(predictions, *kmeans.get_labels().unwrap());
@@ -115,17 +116,17 @@ fn test_getters() {
     let data = create_test_data();
 
     // State before fitting
-    assert_eq!(kmeans.get_centroids(), None);
-    assert_eq!(kmeans.get_labels(), None);
-    assert_eq!(kmeans.get_inertia(), None);
-    assert_eq!(kmeans.get_n_iter(), None);
+    assert!(matches!(kmeans.get_centroids(), Err(ModelError::NotFitted)));
+    assert!(matches!(kmeans.get_labels(), Err(ModelError::NotFitted)));
+    assert!(matches!(kmeans.get_inertia(), Err(ModelError::NotFitted)));
+    assert!(matches!(kmeans.get_n_iter(), Err(ModelError::NotFitted)));
 
     // State after fitting
     kmeans.fit(&data);
-    assert!(kmeans.get_centroids().is_some());
-    assert!(kmeans.get_labels().is_some());
-    assert!(kmeans.get_inertia().is_some());
-    assert!(kmeans.get_n_iter().is_some());
+    assert!(matches!(kmeans.get_centroids(), Ok(_)));
+    assert!(matches!(kmeans.get_labels(), Ok(_)));
+    assert!(matches!(kmeans.get_inertia(), Ok(_)));
+    assert!(matches!(kmeans.get_n_iter(), Ok(_)));
 }
 
 #[test]

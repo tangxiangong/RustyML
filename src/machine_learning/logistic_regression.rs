@@ -1,4 +1,5 @@
 use ndarray::{Array1, Array2, ArrayView2};
+use crate::ModelError;
 
 /// Logistic Regression model implementation
 ///
@@ -192,8 +193,11 @@ impl LogisticRegression {
     /// # Returns
     ///
     /// A reference to the weight array if the model has been trained, or None otherwise
-    pub fn get_weights(&self) -> Option<&Array1<f64>> {
-        self.weights.as_ref()
+    pub fn get_weights(&self) -> Result<&Array1<f64>, ModelError> {
+        match &self.weights {
+            Some(weights) => Ok(weights),
+            None => Err(ModelError::NotFitted),
+        }
     }
 
     /// Get number of iterations the algorithm ran for after fitting
@@ -201,7 +205,12 @@ impl LogisticRegression {
     /// # Returns
     ///
     /// number of iterations the algorithm ran for after fitting
-    pub fn get_n_iter(&self) -> Option<usize> { self.n_iter }
+    pub fn get_n_iter(&self) -> Result<usize, ModelError> {
+        match self.n_iter {
+            Some(n_iter) => Ok(n_iter),
+            None => Err(ModelError::NotFitted),
+        }
+    }
 
     /// Trains the logistic regression model
     ///

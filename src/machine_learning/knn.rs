@@ -1,5 +1,6 @@
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use std::collections::HashMap;
+use crate::ModelError;
 
 /// # K-Nearest Neighbors (KNN) Classifier
 ///
@@ -240,8 +241,11 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// Some reference to the training data features if the model has been trained,
     /// or None if the model hasn't been trained yet
-    pub fn get_x_train(&self) -> Option<&Array2<f64>> {
-        self.x_train.as_ref()
+    pub fn get_x_train(&self) -> Result<&Array2<f64>, ModelError> {
+        match self.x_train {
+            Some(ref x) => Ok(x),
+            None => Err(ModelError::NotFitted),
+        }
     }
 
     /// Returns a reference to the training labels if available
@@ -250,7 +254,10 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// Some reference to the training data labels if the model has been trained,
     /// or None if the model hasn't been trained yet
-    pub fn get_y_train(&self) -> Option<&Array1<T>> {
-        self.y_train.as_ref()
+    pub fn get_y_train(&self) -> Result<&Array1<T>, ModelError> {
+        match self.y_train {
+            Some(ref y) => Ok(y),
+            None => Err(ModelError::NotFitted),
+        }
     }
 }
