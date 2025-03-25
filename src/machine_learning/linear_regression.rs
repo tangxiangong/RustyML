@@ -315,7 +315,11 @@ impl LinearRegression {
 
         let mut predictions = Vec::with_capacity(x.len());
         for sample in x {
-            assert_eq!(sample.len(), coeffs.len(), "Number of features does not match training data");
+            if sample.len() != coeffs.len() {
+                return Err(ModelError::InputValidationError(
+                    "Number of features does not match training data".to_string()
+                ));
+            }
 
             let mut prediction = intercept;
             for (i, &feature_val) in sample.iter().enumerate() {

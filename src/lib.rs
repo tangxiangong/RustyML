@@ -3,12 +3,14 @@
 pub enum ModelError {
     /// Indicates that the model has not been fitted yet
     NotFitted,
+    InputValidationError(String),
 }
 
 impl std::fmt::Display for ModelError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ModelError::NotFitted => write!(f, "Model has not been fitted. Parameters are unavailable."),
+            ModelError::InputValidationError(msg) => write!(f, "Input validation error: {}", msg),
         }
     }
 }
