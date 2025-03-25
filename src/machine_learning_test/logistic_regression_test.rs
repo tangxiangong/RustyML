@@ -12,6 +12,7 @@ mod tests {
         assert_eq!(model.get_max_iterations(), 100);
         assert_eq!(model.get_tolerance(), 1e-4);
         assert_eq!(model.get_weights(), None);
+        assert_eq!(model.get_n_iter(), None);
     }
 
     #[test]
@@ -23,6 +24,7 @@ mod tests {
         assert_eq!(model.get_max_iterations(), 200);
         assert_eq!(model.get_tolerance(), 1e-5);
         assert_eq!(model.get_weights(), None);
+        assert_eq!(model.get_n_iter(), None);
     }
 
     #[test]

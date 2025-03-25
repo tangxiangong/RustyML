@@ -56,6 +56,8 @@ pub struct LogisticRegression {
     max_iterations: usize,
     /// Convergence tolerance, stops iteration when loss change is smaller than this value
     tolerance: f64,
+    /// Number of iterations the algorithm ran for after fitting
+    n_iter: Option<usize>,
 }
 
 impl LogisticRegression {
@@ -82,6 +84,7 @@ impl LogisticRegression {
             learning_rate,
             max_iterations,
             tolerance,
+            n_iter: None,
         }
     }
 
@@ -103,6 +106,7 @@ impl LogisticRegression {
             learning_rate: 0.01,
             max_iterations: 100,
             tolerance: 1e-4,
+            n_iter: None,
         }
     }
 
@@ -177,6 +181,22 @@ impl LogisticRegression {
         self.tolerance
     }
 
+    /// Returns the model weights
+    ///
+    /// # Returns
+    ///
+    /// A reference to the weight array if the model has been trained, or None otherwise
+    pub fn get_weights(&self) -> Option<&Array1<f64>> {
+        self.weights.as_ref()
+    }
+    
+    /// Get number of iterations the algorithm ran for after fitting
+    /// 
+    /// # Returns
+    /// 
+    /// number of iterations the algorithm ran for after fitting
+    pub fn get_n_iter(&self) -> Option<usize> { self.n_iter }
+
     /// Trains the logistic regression model
     ///
     /// Uses gradient descent to minimize the logistic loss function.
@@ -211,9 +231,13 @@ impl LogisticRegression {
         let mut weights = Array1::zeros(n_features);
 
         let mut prev_cost = f64::INFINITY;
+        
+        let mut n_iter = 0;
 
         // Gradient descent optimization
         for _ in 0..self.max_iterations {
+            n_iter += 1;
+            
             let predictions = x_train.dot(&weights);
             let mut sigmoid_preds = Array1::zeros(n_samples);
 
@@ -248,6 +272,7 @@ impl LogisticRegression {
         }
 
         self.weights = Some(weights);
+        self.n_iter = Some(n_iter);
         self
     }
 
@@ -286,15 +311,6 @@ impl LogisticRegression {
 
         // Apply threshold (0.5) for classification
         probs.mapv(|prob| if prob >= 0.5 { 1 } else { 0 })
-    }
-
-    /// Returns the model weights
-    ///
-    /// # Returns
-    ///
-    /// A reference to the weight array if the model has been trained, or None otherwise
-    pub fn get_weights(&self) -> Option<&Array1<f64>> {
-        self.weights.as_ref()
     }
 }
 
