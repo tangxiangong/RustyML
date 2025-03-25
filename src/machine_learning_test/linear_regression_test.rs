@@ -12,6 +12,7 @@ fn test_default_constructor() {
     assert!(model.get_learning_rate() > 0.0);
     assert!(model.get_max_iterations() > 0);
     assert!(model.get_tolerance() > 0.0);
+    assert_eq!(model.get_n_iter(), None)
 }
 
 #[test]
@@ -21,6 +22,7 @@ fn test_new_constructor() {
     assert_eq!(model.get_learning_rate(), 0.01);
     assert_eq!(model.get_max_iterations(), 1000);
     assert_eq!(model.get_tolerance(), 1e-5);
+    assert_eq!(model.get_n_iter(), None)
 }
 
 #[test]

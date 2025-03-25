@@ -40,6 +40,7 @@ use crate::{math, ModelError};
 /// * `learning_rate` - Learning rate for gradient descent
 /// * `max_iterations` - Maximum number of iterations for gradient descent
 /// * `tolerance` - Convergence tolerance
+/// * `n_iter` - Number of iterations the algorithm ran for after fitting
 #[derive(Debug, Clone)]
 pub struct LinearRegression {
     /// Coefficients (slopes)
@@ -54,6 +55,7 @@ pub struct LinearRegression {
     max_iterations: usize,
     /// Convergence tolerance
     tolerance: f64,
+    n_iter: Option<usize>,
 }
 
 impl Default for LinearRegression {
@@ -66,6 +68,7 @@ impl Default for LinearRegression {
             learning_rate: 0.01,
             max_iterations: 1000,
             tolerance: 1e-5,
+            n_iter: None,
         }
     }
 }
@@ -85,6 +88,7 @@ impl LinearRegression {
             learning_rate,
             max_iterations,
             tolerance,
+            n_iter: None,
         }
     }
 
@@ -182,6 +186,16 @@ impl LinearRegression {
         }
     }
 
+    /// Returns the actual number of iterations performed during the last model fitting.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(usize)` - The number of iterations if the model has been fitted
+    /// * `None` - If the model has not been fitted yet
+    pub fn get_n_iter(&self) -> Option<usize> {
+        self.n_iter
+    }
+
     /// Fits the linear regression model using gradient descent
     ///
     /// # Parameters
@@ -204,9 +218,13 @@ impl LinearRegression {
         let mut intercept = 0.0;                 // Initialize intercept to zero
 
         let mut prev_cost = f64::INFINITY;
+        
+        let mut n_iter = 0;
 
         // Gradient descent iterations
         for iteration in 0..self.max_iterations {
+            n_iter += 1;
+            
             // Calculate predictions
             let mut predictions = Vec::with_capacity(n_samples);
             for i in 0..n_samples {
@@ -273,6 +291,7 @@ impl LinearRegression {
         // Save training results
         self.coefficients = Some(weights);
         self.intercept = Some(if self.fit_intercept { intercept } else { 0.0 });
+        self.n_iter = Some(n_iter);
 
         self
     }
