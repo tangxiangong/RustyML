@@ -1,17 +1,19 @@
 use ndarray::{Array1, Array2, ArrayView2};
 use crate::ModelError;
 
-/// Logistic Regression model implementation
+/// # Logistic Regression model implementation
 ///
 /// This model uses gradient descent to train a binary classification logistic regression model.
 ///
-/// # Features
+/// ## Fields
 ///
-/// * Supports adding an intercept term (bias)
-/// * Uses gradient descent to optimize weights
-/// * Provides probability predictions and class predictions
+/// * `k` - Number of neighbors to consider for classification
+/// * `x_train` - Training data features as a 2D array
+/// * `y_train` - Training data labels/targets
+/// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
+/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
 ///
-/// # Examples
+/// ## Examples
 ///
 /// ```
 /// use rust_ai::machine_learning::logistic_regression::LogisticRegression;
@@ -44,13 +46,6 @@ use crate::ModelError;
 /// // Make predictions
 /// let predictions = model.predict(&x_test);
 /// ```
-/// # Fields
-///
-/// * `k` - Number of neighbors to consider for classification
-/// * `x_train` - Training data features as a 2D array
-/// * `y_train` - Training data labels/targets
-/// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
-/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
 #[derive(Debug, Clone)]
 pub struct LogisticRegression {
     /// Model weights, None before training
@@ -79,7 +74,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// An untrained logistic regression model instance
+    /// * `Self` - An untrained logistic regression model instance
     pub fn new(fit_intercept: bool,
                learning_rate: f64,
                max_iterations: usize,
@@ -105,7 +100,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// An untrained logistic regression model with default parameters
+    /// * `Self` - An untrained logistic regression model with default parameters
     pub fn default() -> Self {
         LogisticRegression {
             weights: None,
@@ -127,8 +122,8 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// A 1D array containing the probability of each sample belonging to the positive class
-    ///
+    /// - `Ok(Array1<f64>)`A 1D array containing the probability of each sample belonging to the positive class
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     fn predict_proba(&self, x: &ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         use crate::math::sigmoid;
         if let Some(weights) = &self.weights {
@@ -149,7 +144,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// Returns `true` if the model includes an intercept term, `false` otherwise
+    /// * `bool` - Returns `true` if the model includes an intercept term, `false` otherwise
     pub fn get_fit_intercept(&self) -> bool {
         self.fit_intercept
     }
@@ -160,7 +155,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// The current learning rate value
+    /// * `f64` - The current learning rate value
     pub fn get_learning_rate(&self) -> f64 {
         self.learning_rate
     }
@@ -169,7 +164,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// The maximum number of iterations for the gradient descent algorithm
+    /// * `usize` - The maximum number of iterations for the gradient descent algorithm
     pub fn get_max_iter(&self) -> usize {
         self.max_iter
     }
@@ -182,7 +177,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// The current convergence tolerance value
+    /// * `f64` - The current convergence tolerance value
     pub fn get_tol(&self) -> f64 {
         self.tol
     }
@@ -191,7 +186,8 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// A reference to the weight array if the model has been trained, or None otherwise
+    /// - `Ok(&Array1<f64>)` - A reference to the weight array if the model has been trained, or None otherwise
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_weights(&self) -> Result<&Array1<f64>, ModelError> {
         match &self.weights {
             Some(weights) => Ok(weights),
@@ -203,7 +199,8 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// number of iterations the algorithm ran for after fitting
+    /// - `usize` - number of iterations the algorithm ran for after fitting
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_n_iter(&self) -> Result<usize, ModelError> {
         match self.n_iter {
             Some(n_iter) => Ok(n_iter),
@@ -222,7 +219,7 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// A mutable reference to the trained model, allowing for method chaining
+    /// * `&mut Self` - A mutable reference to the trained model, allowing for method chaining
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> &mut Self {
         use crate::math::sigmoid;
         let (n_samples, mut n_features) = x.dim();
@@ -308,12 +305,9 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// A 1D array containing predicted class labels (0 or 1) for each sample
-    ///
-    /// # Panics
-    ///
-    /// If the model hasn't been trained, `predict_proba` will panic
-    pub fn predict(&self, x: &Array2<f64>) -> Array1<i32> {
+    /// - `Ok(Array1<i32>)` - A 1D array containing predicted class labels (0 or 1) for each sample
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
         let (n_samples, n_features) = x.dim();
 
         // Handle intercept term
@@ -331,8 +325,11 @@ impl LogisticRegression {
 
         let probs = self.predict_proba(&x_test.view());
 
-        // Apply threshold (0.5) for classification
-        probs.unwrap().mapv(|prob| if prob >= 0.5 { 1 } else { 0 })
+        match probs {
+            // Apply threshold (0.5) for classification
+            Ok(probs) => Ok(probs.mapv(|prob| if prob >= 0.5 { 1 } else { 0 })),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -340,6 +337,11 @@ impl LogisticRegression {
 ///
 /// This function transforms the input feature matrix into a new feature matrix containing
 /// polynomial combinations of the input features up to the specified degree.
+///
+/// # Arguments
+///
+/// * `x` - Input feature matrix with shape (n_samples, n_features)
+/// * `degree` - The maximum degree of polynomial features to generate
 ///
 /// # Examples
 /// Following codes show how this function works with `LogisticRegression`:
@@ -360,15 +362,9 @@ impl LogisticRegression {
 /// model.fit(&poly_training_x, &training_y);
 /// ```
 ///
-/// # Arguments
-///
-/// * `x` - Input feature matrix with shape (n_samples, n_features)
-/// * `degree` - The maximum degree of polynomial features to generate
-///
 /// # Returns
 ///
-/// A new feature matrix containing polynomial combinations of the input features
-/// with shape (n_samples, n_output_features)
+/// * `Array2<f64>` - A new feature matrix containing polynomial combinations of the input features with shape (n_samples, n_output_features)
 pub fn generate_polynomial_features(x: &Array2<f64>, degree: usize) -> Array2<f64> {
     let (n_samples, n_features) = x.dim();
 

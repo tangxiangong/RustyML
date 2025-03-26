@@ -18,6 +18,46 @@ use crate::ModelError;
 /// * `y_train` - Training data labels/targets
 /// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
 /// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
+///
+/// ## Examples
+///
+/// ```rust
+/// use ndarray::{array, Array1, Array2};
+/// use rust_ai::machine_learning::knn::KNN;
+///
+/// // Create a simple dataset
+/// let x_train = array![
+///     [1.0, 2.0],
+///     [2.0, 3.0],
+///     [3.0, 4.0],
+///     [5.0, 6.0],
+///     [6.0, 7.0]
+/// ];
+///
+/// // Target values (classification)
+/// let y_train = array!["A", "A", "A", "B", "B"];
+///
+/// // Create KNN model with k=3 and default settings
+/// let mut knn = KNN::new(3, "uniform", "euclidean");
+///
+/// // Fit the model
+/// knn.fit(x_train, y_train);
+///
+/// // Predict new samples
+/// let x_test = array![
+///     [1.5, 2.5],  // Should be closer to class "A" points
+///     [5.5, 6.5]   // Should be closer to class "B" points
+/// ];
+///
+/// let predictions = knn.predict(x_test.view()).unwrap();
+/// println!("Predictions: {:?}", predictions);  // Should print ["A", "B"]
+///
+/// // Get model parameters
+/// println!("k value: {}", knn.get_k());
+/// println!("Weight strategy: {}", knn.get_weights());
+/// println!("Distance metric: {}", knn.get_metric());
+/// ```
+
 #[derive(Debug, Clone)]
 pub struct KNN<T> {
     k: usize,
@@ -54,7 +94,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// A new KNN classifier instance
+    /// * `Self` - A new KNN classifier instance
     pub fn new(k: usize, weights: &str, metric: &str) -> Self {
         KNN {
             k,
@@ -88,7 +128,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// A vector containing the predicted class labels
+    /// - `Vec<T>` - A vector containing the predicted class labels
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn predict(&self, x: ArrayView2<f64>) -> Result<Vec<T>, ModelError> {
         if self.x_train.is_none() || self.y_train.is_none() {
             return Err(ModelError::NotFitted);
@@ -116,7 +157,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// The calculated distance between points `a` and `b`
+    /// * `f64` - The calculated distance between points `a` and `b`
     fn calculate_distance(&self, a: ArrayView1<f64>, b: ArrayView1<f64>) -> f64 {
         use crate::math::{squared_euclidean_distance, manhattan_distance, minkowski_distance};
         let a = a.insert_axis(ndarray::Axis(0));
@@ -145,7 +186,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// The predicted class for the data point
+    /// * `T` - The predicted class for the data point
     fn predict_one(&self, x: ArrayView1<f64>, x_train: ArrayView2<f64>, y_train: &Array1<T>) -> T {
         let n_samples = x_train.nrows();
 
@@ -217,7 +258,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// The value of k, representing how many nearest neighbors are considered for predictions
+    /// * `usize` - The value of k, representing how many nearest neighbors are considered for predictions
     pub fn get_k(&self) -> usize {
         self.k
     }
@@ -226,7 +267,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// The weight function name, either "uniform" or "distance"
+    /// * `&str` - The weight function name, either "uniform" or "distance"
     pub fn get_weights(&self) -> &str {
         &self.weights
     }
@@ -235,7 +276,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// The metric name, such as "euclidean" or "manhattan"
+    /// * `&str` - The metric name, such as "euclidean" or "manhattan"
     pub fn get_metric(&self) -> &str {
         &self.metric
     }
@@ -244,8 +285,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// Some reference to the training data features if the model has been trained,
-    /// or None if the model hasn't been trained yet
+    /// - `Ok(&Array2<f64>)` - A reference to the training data features if the model has been trained
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_x_train(&self) -> Result<&Array2<f64>, ModelError> {
         match self.x_train {
             Some(ref x) => Ok(x),
@@ -257,8 +298,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// Some reference to the training data labels if the model has been trained,
-    /// or None if the model hasn't been trained yet
+    /// - `Ok(&Array2<T>)` - A reference to the training data labels if the model has been trained
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_y_train(&self) -> Result<&Array1<T>, ModelError> {
         match self.y_train {
             Some(ref y) => Ok(y),

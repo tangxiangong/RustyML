@@ -1,12 +1,22 @@
 use crate::{math, ModelError};
 
-/// Linear Regression model implementation
+/// # Linear Regression model implementation
 ///
 /// Trains a simple linear regression model using gradient descent algorithm. This implementation
 /// supports multivariate regression, optional intercept term, and allows adjustment of learning rate,
 /// maximum iterations, and convergence tolerance.
 ///
-/// # Examples
+/// ## Fields
+///
+/// * `coefficients` - Model coefficients (slopes), None before training
+/// * `intercept` - Model intercept, None before training
+/// * `fit_intercept` - Whether to include an intercept term in the model
+/// * `learning_rate` - Learning rate for gradient descent
+/// * `max_iter` - Maximum number of iterations for gradient descent
+/// * `tol` - Convergence tolerance
+/// * `n_iter` - Number of iterations the algorithm ran for after fitting
+///
+/// ## Examples
 ///
 /// ```
 /// use rust_ai::machine_learning::linear_regression::LinearRegression;
@@ -31,16 +41,6 @@ use crate::{math, ModelError};
 /// // Since Debug is implemented, detailed model information can be printed
 /// println!("{:?}", model);
 /// ```
-///
-/// # Parameters
-///
-/// * `coefficients` - Model coefficients (slopes), None before training
-/// * `intercept` - Model intercept, None before training
-/// * `fit_intercept` - Whether to include an intercept term in the model
-/// * `learning_rate` - Learning rate for gradient descent
-/// * `max_iter` - Maximum number of iterations for gradient descent
-/// * `tol` - Convergence tolerance
-/// * `n_iter` - Number of iterations the algorithm ran for after fitting
 #[derive(Debug, Clone)]
 pub struct LinearRegression {
     /// Coefficients (slopes)
@@ -138,21 +138,8 @@ impl LinearRegression {
     ///
     /// # Returns
     ///
-    /// * `Ok(Vec<f64>)` - A vector of model coefficients
-    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use rust_ai::machine_learning::linear_regression::LinearRegression;
-    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
-    /// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
-    /// let y = vec![6.0, 9.0, 12.0];
-    ///
-    /// // ... fit the model ...
-    /// model.fit(&x, &y);
-    /// let coefficients = model.get_coefficients().expect("Model should be fitted");
-    /// ```
+    /// - `Ok(Vec<f64>)` - A vector of model coefficients
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_coefficients(&self) -> Result<Vec<f64>, ModelError> {
         match &self.coefficients {
             Some(coeffs) => Ok(coeffs.clone()),
@@ -164,21 +151,8 @@ impl LinearRegression {
     ///
     /// # Returns
     ///
-    /// * `Ok(f64)` - The intercept value
-    /// * `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use rust_ai::machine_learning::linear_regression::LinearRegression;
-    /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-5);
-    /// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
-    /// let y = vec![6.0, 9.0, 12.0];
-    ///
-    /// // ... fit the model ...
-    /// model.fit(&x, &y);
-    /// let intercept = model.get_intercept().expect("Model should be fitted");
-    /// ```
+    /// - `Ok(f64)` - The intercept value
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_intercept(&self) -> Result<f64, ModelError> {
         match self.intercept {
             Some(intercept) => Ok(intercept),
@@ -190,8 +164,8 @@ impl LinearRegression {
     ///
     /// # Returns
     ///
-    /// * `Some(usize)` - The number of iterations if the model has been fitted
-    /// * `None` - If the model has not been fitted yet
+    /// - `Ok(usize)` - The number of iterations if the model has been fitted
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_n_iter(&self) -> Result<usize, ModelError> {
         match self.n_iter {
             Some(n_iter) => Ok(n_iter),
@@ -305,7 +279,9 @@ impl LinearRegression {
     /// * `x` - Prediction data, each row is a sample, each column is a feature
     ///
     /// # Return Value
-    /// * Vector of predictions
+    /// - `Ok(Vec<f64>)` - A vector of predictions
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    /// - `Err(ModelError::InputValidationError)` - If number of features does not match training data
     pub fn predict(&self, x: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
         if self.coefficients.is_none() {
             return Err(ModelError::NotFitted);

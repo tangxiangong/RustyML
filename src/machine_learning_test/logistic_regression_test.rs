@@ -42,7 +42,7 @@ mod tests {
         assert!(matches!(model.get_weights(), Ok(_)));
 
         // Predict training data
-        let predictions = model.predict(&x);
+        let predictions = model.predict(&x).unwrap();
 
         let correct_predictions = predictions.iter()
             .zip(y.iter())
@@ -66,7 +66,7 @@ mod tests {
         model.fit(&x, &y);
 
         // Check predictions
-        let predictions = model.predict(&x);
+        let predictions = model.predict(&x).unwrap();
         assert_eq!(predictions.len(), 4);
     }
 
@@ -113,7 +113,7 @@ mod tests {
         model_without_intercept.fit(&x, &y);
 
         // Check predictions from both models
-        let predictions_with_intercept = model_with_intercept.predict(&x);
+        let predictions_with_intercept = model_with_intercept.predict(&x).unwrap();
 
         // The model with intercept should fit this data better
         assert_eq!(predictions_with_intercept, arr1(&[0, 0, 1, 1]));

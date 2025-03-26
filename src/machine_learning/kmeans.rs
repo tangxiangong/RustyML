@@ -4,13 +4,13 @@ use rand::SeedableRng;
 use std::ops::AddAssign;
 use crate::ModelError;
 
-/// KMeans clustering algorithm implementation.
+/// # KMeans clustering algorithm implementation.
 ///
 /// This struct implements the K-Means clustering algorithm, which partitions
 /// n observations into k clusters where each observation belongs to the cluster
 /// with the nearest mean (centroid).
 ///
-/// # Fields
+/// ## Fields
 ///
 /// * `n_clusters` - Number of clusters to form
 /// * `max_iter` - Maximum number of iterations for a single run
@@ -20,6 +20,44 @@ use crate::ModelError;
 /// * `labels` - Cluster labels for training data after fitting
 /// * `inertia` - Sum of squared distances to closest centroid after fitting
 /// * `n_iter` - Number of iterations the algorithm ran for after fitting
+///
+/// ## Examples
+///
+/// ```
+/// use ndarray::{array, Array2};
+/// use rust_ai::machine_learning::kmeans::KMeans;
+///
+/// // Create a 2D dataset
+/// let data = array![
+///     [1.0, 2.0],
+///     [1.5, 1.8],
+///     [5.0, 6.0],
+///     [5.5, 6.2]
+/// ];
+///
+/// // Create KMeans model with 2 clusters
+/// let mut kmeans = KMeans::new(2, 100, 1e-4, Some(42));
+///
+/// // Fit the model
+/// kmeans.fit(&data);
+///
+/// // Get cluster labels
+/// let labels = kmeans.get_labels().unwrap();
+/// println!("Cluster labels: {:?}", labels);
+///
+/// // Get centroid positions
+/// let centroids = kmeans.get_centroids().unwrap();
+/// println!("Centroids: {:?}", centroids);
+///
+/// // Predict clusters for new data points
+/// let new_data = array![[1.2, 1.9], [5.2, 5.9]];
+/// let predictions = kmeans.predict(&new_data).unwrap();
+/// println!("Predictions: {:?}", predictions);
+///
+/// // Fit and predict in one step
+/// let labels = kmeans.fit_predict(&data);
+/// println!("Fit-predict results: {:?}", labels);
+/// ```
 #[derive(Debug, Clone)]
 pub struct KMeans {
     /// Number of clusters
@@ -58,7 +96,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// A new KMeans instance with the specified configuration
+    /// * `KMeans` - A new KMeans instance with the specified configuration
     pub fn new(n_clusters: usize,
                max_iterations: usize,
                tolerance: f64,
@@ -80,7 +118,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// The number of clusters as a `usize`.
+    /// * `usize` - The number of clusters.
     pub fn get_n_clusters(&self) -> usize {
         self.n_clusters
     }
@@ -89,7 +127,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// The maximum number of iterations as a `usize`.
+    /// * `usize` - The maximum number of iterations.
     pub fn get_max_iter(&self) -> usize {
         self.max_iter
     }
@@ -99,7 +137,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// The convergence tolerance as a `f64`.
+    /// * `f64` - The convergence tolerance.
     pub fn get_tol(&self) -> f64 {
         self.tol
     }
@@ -109,7 +147,7 @@ impl KMeans {
     /// # Returns
     ///
     /// - `Ok(seed)` - The random seed as a `u64` if it has been set.
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet and no seed is available.
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_random_seed(&self) -> Result<u64, ModelError> {
         match self.random_seed {
             Some(seed) => Ok(seed),
@@ -121,8 +159,8 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// An optional reference to the cluster centroids as a 2D array,
-    /// or None if the model has not been fitted
+    /// - `Ok(&Array2<f64>)` - A reference to the cluster centroids as a 2D array,
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_centroids(&self) -> Result<&Array2<f64>, ModelError> {
         match self.centroids.as_ref() {
             Some(centroids) => Ok(centroids),
@@ -134,8 +172,8 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// An optional reference to the cluster assignments as a 1D array,
-    /// or None if the model has not been fitted
+    /// - `Ok(&Array1<usize>)` - A reference to the cluster assignments as a 1D array,
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_labels(&self) -> Result<&Array1<usize>, ModelError> {
         match self.labels.as_ref() {
             Some(labels) => Ok(labels),
@@ -147,8 +185,8 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// An optional float value representing the inertia,
-    /// or None if the model has not been fitted
+    /// - `Ok(f64)` - A float value representing the inertia,
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_inertia(&self) -> Result<f64, ModelError> {
         match self.inertia {
             Some(inertia) => Ok(inertia),
@@ -160,8 +198,8 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// An optional value representing the number of iterations,
-    /// or None if the model has not been fitted
+    /// - `Ok(usize)` - A value representing the number of iterations,
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_n_iter(&self) -> Result<usize, ModelError> {
         match self.n_iter {
             Some(n_iter) => Ok(n_iter),
@@ -177,7 +215,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// A tuple containing the index of the closest centroid and the squared distance to it
+    /// * `(usize, f64)` - A tuple containing the index of the closest centroid and the squared distance to it
     fn closest_centroid(&self, x: &ArrayView2<f64>) -> (usize, f64) {
         use crate::math::squared_euclidean_distance;
         let centroids = self.centroids.as_ref().unwrap();
@@ -277,7 +315,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// A mutable reference to self for method chaining
+    /// * `&mut Self` - A mutable reference to self for method chaining
     pub fn fit(&mut self, data: &Array2<f64>) -> &mut Self {
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
@@ -375,7 +413,8 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// An array of cluster indices for each input data point
+    /// - `Array1<usize>` - An array of cluster indices for each input data point
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn predict(&self, data: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
         if self.centroids.is_none(){
             return Err(ModelError::NotFitted);
@@ -405,7 +444,7 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// An array of cluster indices for each input data point
+    /// * `Array1<usize>` - An array of cluster indices for each input data point
     pub fn fit_predict(&mut self, data: &Array2<f64>) -> Array1<usize> {
         self.fit(data);
         self.labels.clone().unwrap()

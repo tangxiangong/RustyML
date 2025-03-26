@@ -3,6 +3,7 @@
 pub enum ModelError {
     /// Indicates that the model has not been fitted yet
     NotFitted,
+    /// indicates the model has not been fitted yet
     InputValidationError(String),
 }
 
