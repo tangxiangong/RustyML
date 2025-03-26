@@ -81,6 +81,47 @@ impl KMeans {
         KMeans::new(8, 300, 1e-4, None)
     }
 
+    /// Returns the number of clusters (k) that the KMeans algorithm will use.
+    ///
+    /// # Returns
+    ///
+    /// The number of clusters as a `usize`.
+    pub fn get_n_clusters(&self) -> usize {
+        self.n_clusters
+    }
+
+    /// Returns the maximum number of iterations allowed for the KMeans algorithm.
+    ///
+    /// # Returns
+    ///
+    /// The maximum number of iterations as a `usize`.
+    pub fn get_max_iter(&self) -> usize {
+        self.max_iter
+    }
+
+    /// Returns the tolerance for declaring convergence in the KMeans algorithm.
+    /// Convergence is declared when the change in inertia is less than this value.
+    ///
+    /// # Returns
+    ///
+    /// The convergence tolerance as a `f64`.
+    pub fn get_tol(&self) -> f64 {
+        self.tol
+    }
+
+    /// Returns the random seed used for centroid initialization.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(seed)` - The random seed as a `u64` if it has been set.
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet and no seed is available.
+    pub fn get_random_seed(&self) -> Result<u64, ModelError> {
+        match self.random_seed {
+            Some(seed) => Ok(seed),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
     /// Returns the cluster centroids if the model has been fitted.
     ///
     /// # Returns
