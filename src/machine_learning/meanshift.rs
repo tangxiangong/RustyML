@@ -116,7 +116,7 @@ impl MeanShift {
     /// Gets the cluster centers found by the algorithm.
     ///
     /// # Returns
-    /// A Result containing the cluster centers as an ndarray Array2<f64> or an error
+    /// A Result containing the cluster centers as an ndarray `Array2<f64>` or an error
     /// if the model hasn't been fitted yet.
     pub fn get_cluster_centers(&self) -> Result<Array2<f64>, ModelError> {
         match self.cluster_centers.as_ref() {
@@ -128,7 +128,7 @@ impl MeanShift {
     /// Gets the cluster labels assigned to each data point.
     ///
     /// # Returns
-    /// A Result containing the cluster labels as an ndarray Array1<usize> or an error
+    /// A Result containing the cluster labels as an ndarray `Array1<usize>` or an error
     /// if the model hasn't been fitted yet.
     pub fn get_labels(&self) -> Result<Array1<usize>, ModelError> {
         match self.labels.as_ref() {
@@ -152,7 +152,7 @@ impl MeanShift {
     /// Gets the number of samples per cluster center.
     ///
     /// # Returns
-    /// A Result containing the number of samples per center as an ndarray Array1<usize> or an error
+    /// A Result containing the number of samples per center as an ndarray `Array1<usize>` or an error
     /// if the model hasn't been fitted yet.
     pub fn get_n_samples_per_center(&self) -> Result<Array1<usize>, ModelError> {
         match self.n_samples_per_center.as_ref() {
@@ -228,7 +228,7 @@ impl MeanShift {
     /// Fits the MeanShift clustering model to the input data.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray Array2<f64> where each row is a sample.
+    /// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
     ///
     /// # Returns
     /// A mutable reference to the fitted model.
@@ -391,10 +391,10 @@ impl MeanShift {
     /// Predicts cluster labels for the input data.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray Array2<f64> where each row is a sample.
+    /// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
     ///
     /// # Returns
-    /// An ndarray Array1<usize> containing the predicted cluster labels.
+    /// An ndarray `Array1<usize>` containing the predicted cluster labels.
     pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
         if let Some(centers) = &self.cluster_centers {
             let n_samples = x.shape()[0];
@@ -433,10 +433,10 @@ impl MeanShift {
     /// Fits the model to the input data and predicts cluster labels.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray Array2<f64> where each row is a sample.
+    /// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
     ///
     /// # Returns
-    /// An ndarray Array1<usize> containing the predicted cluster labels.
+    /// An ndarray `Array1<usize>` containing the predicted cluster labels.
     pub fn fit_predict(&mut self, x: &Array2<f64>) -> Array1<usize> {
         self.fit(x);
         self.labels.clone().unwrap()
@@ -498,7 +498,7 @@ impl MeanShift {
 /// The bandwidth is estimated based on the pairwise distances between a subset of points.
 ///
 /// # Parameters
-/// * `x` - The input data as an ndarray Array2<f64> where each row is a sample.
+/// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
 /// * `quantile` - The quantile of the pairwise distances to use as the bandwidth.
 /// * `n_samples` - The number of samples to use for the distance calculation.
 /// * `random_state` - Seed for random number generation.
