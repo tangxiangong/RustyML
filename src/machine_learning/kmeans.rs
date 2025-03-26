@@ -324,6 +324,10 @@ impl KMeans {
         self.inertia = Some(old_inertia);
         self.n_iter = Some(iter_count + 1);
 
+        // print training info
+        println!("KMeans model training finished at iteration {}, avg_cost: {}",
+                 iter_count + 1, old_inertia / n_samples as f64);
+
         self
     }
 

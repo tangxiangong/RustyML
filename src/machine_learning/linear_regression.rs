@@ -220,13 +220,14 @@ impl LinearRegression {
         let mut intercept = 0.0;                 // Initialize intercept to zero
 
         let mut prev_cost = f64::INFINITY;
-        
+        let mut final_cost = prev_cost;
+
         let mut n_iter = 0;
 
         // Gradient descent iterations
-        for iteration in 0..self.max_iterations {
+        while n_iter < self.max_iterations {
             n_iter += 1;
-            
+
             // Calculate predictions
             let mut predictions = Vec::with_capacity(n_samples);
             for i in 0..n_samples {
@@ -243,6 +244,7 @@ impl LinearRegression {
             // Calculate mean squared error
             let sse = math::sum_of_squared_errors(&predictions, y);
             let cost = sse / (2.0 * n_samples as f64); // Mean squared error divided by 2
+            final_cost = cost;
 
             // Calculate gradients
             let mut gradients = vec![0.0; n_features];
@@ -278,22 +280,20 @@ impl LinearRegression {
 
             // Check convergence
             if (prev_cost - cost).abs() < self.tolerance {
-                println!("Model converged at iteration {}, cost: {}", iteration, cost);
                 break;
             }
 
             prev_cost = cost;
-
-            // Optional: Print progress at intervals
-            if iteration % 100 == 0 {
-                println!("Iteration {}: cost = {}", iteration, cost);
-            }
         }
 
         // Save training results
         self.coefficients = Some(weights);
         self.intercept = Some(if self.fit_intercept { intercept } else { 0.0 });
         self.n_iter = Some(n_iter);
+
+        // print training info
+        println!("Linear regression model training finished at iteration {}, cost: {}",
+                 n_iter, final_cost);
 
         self
     }

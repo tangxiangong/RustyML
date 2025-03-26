@@ -246,10 +246,12 @@ impl LogisticRegression {
 
         let mut prev_cost = f64::INFINITY;
 
+        let mut final_cost = prev_cost;
+
         let mut n_iter = 0;
 
         // Gradient descent optimization
-        for _ in 0..self.max_iterations {
+        while n_iter < self.max_iterations {
             n_iter += 1;
 
             let predictions = x_train.dot(&weights);
@@ -276,6 +278,7 @@ impl LogisticRegression {
 
             let y_vec: Vec<f64> = y.iter().copied().collect();
             let cost = crate::math::logistic_loss(&raw_preds, &y_vec);
+            final_cost = cost;
 
             // Check convergence
             if (prev_cost - cost).abs() < self.tolerance {
@@ -287,6 +290,11 @@ impl LogisticRegression {
 
         self.weights = Some(weights);
         self.n_iter = Some(n_iter);
+
+        // print training info
+        println!("Logistic regression training finished at iteration {}, cost: {}",
+                 n_iter, final_cost);
+
         self
     }
 

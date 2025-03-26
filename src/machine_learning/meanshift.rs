@@ -266,7 +266,6 @@ impl MeanShift {
                 let mut distances = Vec::with_capacity(n_samples);
                 for i in 0..n_samples {
                     let point = x.row(i).to_owned();
-                    // 使用我们的新方法计算距离
                     let dist = self.calculate_distance(&center, &point);
                     distances.push(dist);
                 }
@@ -384,6 +383,10 @@ impl MeanShift {
         self.cluster_centers = Some(cluster_centers);
         self.labels = Some(labels);
         self.n_samples_per_center = Some(Array1::from(center_counts));
+
+        // print training info
+        println!("Mean shift model training finished at iteration {}, number of clusters: {}",
+                self.n_iter.unwrap_or(0), n_clusters);
 
         self
     }
