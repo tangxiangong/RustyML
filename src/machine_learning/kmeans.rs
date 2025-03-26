@@ -59,11 +59,15 @@ impl KMeans {
     /// # Returns
     ///
     /// A new KMeans instance with the specified configuration
-    pub fn new(n_clusters: usize, max_iter: usize, tol: f64, random_seed: Option<u64>) -> Self {
+    pub fn new(n_clusters: usize,
+               max_iterations: usize,
+               tolerance: f64,
+               random_seed: Option<u64>
+    ) -> Self {
         KMeans {
             n_clusters,
-            max_iter,
-            tol,
+            max_iter: max_iterations,
+            tol: tolerance,
             random_seed,
             centroids: None,
             labels: None,
