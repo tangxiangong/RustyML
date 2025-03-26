@@ -55,6 +55,7 @@ pub struct LinearRegression {
     max_iter: usize,
     /// Convergence tolerance
     tol: f64,
+    /// Number of iterations the algorithm ran for after fitting
     n_iter: Option<usize>,
 }
 
