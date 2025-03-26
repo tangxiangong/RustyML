@@ -18,6 +18,7 @@ use crate::ModelError;
 /// * `y_train` - Training data labels/targets
 /// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
 /// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
+#[derive(Clone, Debug)]
 pub struct KNN<T> {
     k: usize,
     x_train: Option<Array2<f64>>,
