@@ -78,12 +78,12 @@ fn test_knn_predict_euclidean_uniform() {
 
     // Test data: should be classified as class 0
     let x_test1 = Array2::<f64>::from_shape_vec((1, 2), vec![1.5, 1.5]).unwrap();
-    let predictions1 = knn.predict(x_test1.view());
+    let predictions1 = knn.predict(x_test1.view()).unwrap();
     assert_eq!(predictions1, vec![0]);
 
     // Test data: should be classified as class 1
     let x_test2 = Array2::<f64>::from_shape_vec((1, 2), vec![5.5, 5.5]).unwrap();
-    let predictions2 = knn.predict(x_test2.view());
+    let predictions2 = knn.predict(x_test2.view()).unwrap();
     assert_eq!(predictions2, vec![1]);
 }
 
@@ -106,7 +106,7 @@ fn test_knn_predict_manhattan() {
 
     // Test data: should still be classified as class 0 with manhattan distance
     let x_test1 = Array2::<f64>::from_shape_vec((1, 2), vec![1.5, 1.5]).unwrap();
-    let predictions1 = knn.predict(x_test1.view());
+    let predictions1 = knn.predict(x_test1.view()).unwrap();
     assert_eq!(predictions1, vec![0]);
 }
 
@@ -131,7 +131,7 @@ fn test_knn_with_k3() {
     // With k=3, this point has 2 nearest neighbors of class 0 and 1 of class 1
     // So it should predict class 0
     let x_test = Array2::<f64>::from_shape_vec((1, 2), vec![3.0, 3.0]).unwrap();
-    let predictions = knn.predict(x_test.view());
+    let predictions = knn.predict(x_test.view()).unwrap();
     assert_eq!(predictions, vec![0]);
 }
 
@@ -157,21 +157,17 @@ fn test_knn_distance_weights() {
     // With distance weights, this point should be predicted as class 1
     // because the nearest neighbors are of class 1
     let x_test = Array2::<f64>::from_shape_vec((1, 2), vec![4.0, 4.0]).unwrap();
-    let predictions = knn.predict(x_test.view());
+    let predictions = knn.predict(x_test.view()).unwrap();
     assert_eq!(predictions, vec![1]);
 }
 
 // Test case with empty training set
 #[test]
-#[should_panic]
 fn test_knn_empty_train() {
     let knn: KNN<i32> = KNN::default();
 
-    // Don't call fit method
-
-    // This should panic because there's no training data
     let x_test = Array2::<f64>::from_shape_vec((1, 2), vec![1.0, 1.0]).unwrap();
-    knn.predict(x_test.view());
+    assert!(matches!(knn.predict(x_test.view()), Err(ModelError::NotFitted)));
 }
 
 // Test with string labels instead of integers
@@ -202,6 +198,6 @@ fn test_knn_string_labels() {
         5.5, 5.5,  // Should be "dog"
     ]).unwrap();
 
-    let predictions = knn.predict(x_test.view());
+    let predictions = knn.predict(x_test.view()).unwrap();
     assert_eq!(predictions, vec!["cat".to_string(), "dog".to_string()]);
 }

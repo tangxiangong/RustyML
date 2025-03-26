@@ -89,9 +89,13 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     /// # Returns
     ///
     /// A vector containing the predicted class labels
-    pub fn predict(&self, x: ArrayView2<f64>) -> Vec<T> {
-        let x_train = self.x_train.as_ref().expect("Model not trained");
-        let y_train = self.y_train.as_ref().expect("Model not trained");
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Vec<T>, ModelError> {
+        if self.x_train.is_none() || self.y_train.is_none() {
+            return Err(ModelError::NotFitted);
+        }
+
+        let x_train = self.x_train.as_ref().unwrap();
+        let y_train = self.y_train.as_ref().unwrap();
 
         let mut predictions = Vec::with_capacity(x.nrows());
 
@@ -100,7 +104,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
             predictions.push(self.predict_one(sample, x_train.view(), y_train));
         }
 
-        predictions
+        Ok(predictions)
     }
 
     /// Calculates the distance between two points based on the selected metric
