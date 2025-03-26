@@ -40,6 +40,12 @@ pub struct KMeans {
     n_iter: Option<usize>,
 }
 
+impl Default for KMeans {
+    fn default() -> Self {
+        KMeans::new(8, 300, 1e-4, None)
+    }
+}
+
 impl KMeans {
     /// Creates a new KMeans instance with the specified parameters.
     ///
@@ -64,21 +70,6 @@ impl KMeans {
             inertia: None,
             n_iter: None,
         }
-    }
-
-    /// Creates a new KMeans instance with default parameters.
-    ///
-    /// Default values:
-    /// - n_clusters: 8
-    /// - max_iter: 300
-    /// - tol: 1e-4
-    /// - random_seed: None
-    ///
-    /// # Returns
-    ///
-    /// A new KMeans instance with default configuration
-    pub fn default() -> Self {
-        KMeans::new(8, 300, 1e-4, None)
     }
 
     /// Returns the number of clusters (k) that the KMeans algorithm will use.
