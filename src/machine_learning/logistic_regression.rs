@@ -60,9 +60,9 @@ pub struct LogisticRegression {
     /// Learning rate, controls gradient descent step size
     learning_rate: f64,
     /// Maximum number of iterations
-    max_iterations: usize,
+    max_iter: usize,
     /// Convergence tolerance, stops iteration when loss change is smaller than this value
-    tolerance: f64,
+    tol: f64,
     /// Number of iterations the algorithm ran for after fitting
     n_iter: Option<usize>,
 }
@@ -89,8 +89,8 @@ impl LogisticRegression {
             weights: None,
             fit_intercept,
             learning_rate,
-            max_iterations,
-            tolerance,
+            max_iter: max_iterations,
+            tol : tolerance,
             n_iter: None,
         }
     }
@@ -111,8 +111,8 @@ impl LogisticRegression {
             weights: None,
             fit_intercept: true,
             learning_rate: 0.01,
-            max_iterations: 100,
-            tolerance: 1e-4,
+            max_iter: 100,
+            tol: 1e-4,
             n_iter: None,
         }
     }
@@ -170,8 +170,8 @@ impl LogisticRegression {
     /// # Returns
     ///
     /// The maximum number of iterations for the gradient descent algorithm
-    pub fn get_max_iterations(&self) -> usize {
-        self.max_iterations
+    pub fn get_max_iter(&self) -> usize {
+        self.max_iter
     }
 
     /// Gets the convergence tolerance threshold
@@ -183,8 +183,8 @@ impl LogisticRegression {
     /// # Returns
     ///
     /// The current convergence tolerance value
-    pub fn get_tolerance(&self) -> f64 {
-        self.tolerance
+    pub fn get_tol(&self) -> f64 {
+        self.tol
     }
 
     /// Returns the model weights
@@ -251,7 +251,7 @@ impl LogisticRegression {
         let mut n_iter = 0;
 
         // Gradient descent optimization
-        while n_iter < self.max_iterations {
+        while n_iter < self.max_iter {
             n_iter += 1;
 
             let predictions = x_train.dot(&weights);
@@ -281,7 +281,7 @@ impl LogisticRegression {
             final_cost = cost;
 
             // Check convergence
-            if (prev_cost - cost).abs() < self.tolerance {
+            if (prev_cost - cost).abs() < self.tol {
                 break;
             }
 
