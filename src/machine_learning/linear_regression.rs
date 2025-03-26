@@ -38,8 +38,8 @@ use crate::{math, ModelError};
 /// * `intercept` - Model intercept, None before training
 /// * `fit_intercept` - Whether to include an intercept term in the model
 /// * `learning_rate` - Learning rate for gradient descent
-/// * `max_iterations` - Maximum number of iterations for gradient descent
-/// * `tolerance` - Convergence tolerance
+/// * `max_iter` - Maximum number of iterations for gradient descent
+/// * `tol` - Convergence tolerance
 /// * `n_iter` - Number of iterations the algorithm ran for after fitting
 #[derive(Debug, Clone)]
 pub struct LinearRegression {
@@ -52,9 +52,9 @@ pub struct LinearRegression {
     /// Learning rate
     learning_rate: f64,
     /// Maximum number of iterations
-    max_iterations: usize,
+    max_iter: usize,
     /// Convergence tolerance
-    tolerance: f64,
+    tol: f64,
     n_iter: Option<usize>,
 }
 
@@ -65,8 +65,8 @@ impl Default for LinearRegression {
             intercept: None,
             fit_intercept: true,
             learning_rate: 0.01,
-            max_iterations: 1000,
-            tolerance: 1e-5,
+            max_iter: 1000,
+            tol: 1e-5,
             n_iter: None,
         }
     }
@@ -85,8 +85,8 @@ impl LinearRegression {
             intercept: None,
             fit_intercept,
             learning_rate,
-            max_iterations,
-            tolerance,
+            max_iter: max_iterations,
+            tol: tolerance,
             n_iter: None,
         }
     }
@@ -116,8 +116,8 @@ impl LinearRegression {
     /// # Returns
     ///
     /// The maximum number of iterations for the gradient descent algorithm
-    pub fn get_max_iterations(&self) -> usize {
-        self.max_iterations
+    pub fn get_max_iter(&self) -> usize {
+        self.max_iter
     }
 
     /// Gets the convergence tolerance threshold
@@ -129,8 +129,8 @@ impl LinearRegression {
     /// # Returns
     ///
     /// The current convergence tolerance value
-    pub fn get_tolerance(&self) -> f64 {
-        self.tolerance
+    pub fn get_tol(&self) -> f64 {
+        self.tol
     }
 
     /// Returns the model coefficients if the model has been fitted
@@ -225,7 +225,7 @@ impl LinearRegression {
         let mut n_iter = 0;
 
         // Gradient descent iterations
-        while n_iter < self.max_iterations {
+        while n_iter < self.max_iter {
             n_iter += 1;
 
             // Calculate predictions
@@ -279,7 +279,7 @@ impl LinearRegression {
             }
 
             // Check convergence
-            if (prev_cost - cost).abs() < self.tolerance {
+            if (prev_cost - cost).abs() < self.tol {
                 break;
             }
 
