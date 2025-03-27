@@ -103,28 +103,6 @@ impl LogisticRegression {
         }
     }
 
-    /// Creates a logistic regression model with default parameters
-    ///
-    /// Default parameters:
-    /// * `fit_intercept`: true - Add intercept term
-    /// * `learning_rate`: 0.01 - Learning rate
-    /// * `max_iterations`: 100 - Maximum iterations
-    /// * `tolerance`: 1e-4 - Convergence tolerance
-    ///
-    /// # Returns
-    ///
-    /// * `Self` - An untrained logistic regression model with default parameters
-    pub fn default() -> Self {
-        LogisticRegression {
-            weights: None,
-            fit_intercept: true,
-            learning_rate: 0.01,
-            max_iter: 100,
-            tol: 1e-4,
-            n_iter: None,
-        }
-    }
-
     /// Predicts probability scores for samples
     ///
     /// Uses the sigmoid function to convert linear predictions to probabilities between 0-1.
