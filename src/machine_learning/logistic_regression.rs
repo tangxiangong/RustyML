@@ -62,6 +62,19 @@ pub struct LogisticRegression {
     n_iter: Option<usize>,
 }
 
+impl Default for LogisticRegression {
+    fn default() -> Self {
+        LogisticRegression {
+            weights: None,
+            fit_intercept: true,
+            learning_rate: 0.01,
+            max_iter: 100,
+            tol: 1e-4,
+            n_iter: None,
+        }
+    }
+}
+
 impl LogisticRegression {
     /// Creates a new logistic regression model with specified parameters
     ///
