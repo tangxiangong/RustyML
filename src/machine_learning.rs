@@ -4,3 +4,4 @@ pub mod kmeans;
 pub mod knn;
 pub mod meanshift;
 pub mod dbscan;
+pub mod decision_tree;

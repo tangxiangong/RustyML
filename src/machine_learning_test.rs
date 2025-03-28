@@ -4,3 +4,4 @@ mod kmeans_test;
 mod knn_test;
 mod meanshift_test;
 mod dbscan_test;
+mod decision_tree_test;

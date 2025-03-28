@@ -4,7 +4,9 @@ pub enum ModelError {
     /// Indicates that the model has not been fitted yet
     NotFitted,
     /// indicates the input data provided  does not meet the expected format, type, or validation rules.
-    InputValidationError(String),
+    InputValidationError(&'static str),
+    /// indicates that there is something wrong with decision tree
+    TreeError(&'static str),
 }
 
 impl std::fmt::Display for ModelError {
@@ -12,6 +14,7 @@ impl std::fmt::Display for ModelError {
         match self {
             ModelError::NotFitted => write!(f, "Model has not been fitted. Parameters are unavailable."),
             ModelError::InputValidationError(msg) => write!(f, "Input validation error: {}", msg),
+            ModelError::TreeError(msg) => write!(f, "Tree structure error: {}", msg),
         }
     }
 }

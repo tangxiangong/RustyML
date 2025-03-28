@@ -1,0 +1,983 @@
+use ndarray::{Array1, Array2, s, Axis};
+use std::collections::{HashMap, HashSet};
+use crate::ModelError;
+
+/// # Decision Tree
+///
+/// A machine learning model that makes predictions by recursively partitioning the feature space.
+/// Supports both classification and regression tasks using various algorithms (ID3, C4.5, CART).
+///
+/// The decision tree builds a hierarchical structure of nodes during training, where:
+/// - Internal nodes represent decision rules based on feature values
+/// - Leaf nodes contain predictions (class labels or regression values)
+///
+/// ## Fields
+/// * `algorithm` - The splitting algorithm used (e.g., "ID3", "C4.5", "CART")
+/// * `root` - The root node of the decision tree, if trained
+/// * `n_features` - Number of input features the model was trained on
+/// * `n_classes` - Number of target classes for classification tasks, None for regression
+/// * `params` - Hyperparameters controlling the tree's structure and training process
+/// * `is_classifier` - Boolean flag indicating whether this is a classification tree (true) or regression tree (false)
+///
+/// ## Features
+/// - Supports multiple splitting algorithms (ID3, C4.5, CART)
+/// - Handles both classification and regression tasks
+/// - Provides probability estimates for classification
+/// - Customizable via hyperparameters to control tree complexity
+#[derive(Debug, Clone)]
+pub struct DecisionTree {
+    algorithm: String,
+    root: Option<Box<Node>>,
+    n_features: usize,
+    n_classes: Option<usize>,
+    params: DecisionTreeParams,
+    is_classifier: bool,
+}
+
+/// # Decision Tree Parameters
+///
+/// Hyperparameters that control the training and structure of the decision tree.
+/// These parameters help prevent overfitting and optimize the model's performance.
+///
+/// # Fields
+/// * `max_depth` - Maximum depth of the tree. If None, nodes are expanded until all leaves are pure or contain less than min_samples_split samples. Controls model complexity and helps prevent overfitting.
+///
+/// * `min_samples_split` - Minimum number of samples required to split an internal node. Higher values prevent learning patterns from small subsets that may be noise.
+///
+/// * `min_samples_leaf` - Minimum number of samples required at each leaf node. Ensures terminal nodes have enough observations for stable predictions.
+///
+/// * `min_impurity_decrease` - Minimum impurity decrease required for a split to happen. Prevents splits that don't significantly improve the model.
+///
+/// * `random_state` - Seed for the random number generator, used for reproducibility when selecting features or splitting points.
+#[derive(Debug, Clone)]
+pub struct DecisionTreeParams {
+    pub max_depth: Option<usize>,
+    pub min_samples_split: usize,
+    pub min_samples_leaf: usize,
+    pub min_impurity_decrease: f64,
+    pub random_state: Option<u64>,
+}
+
+/// # Decision Tree Node Type
+///
+/// Represents the two possible types of nodes in a decision tree: internal decision nodes
+/// and terminal leaf nodes.
+///
+/// # Variants
+/// - `Internal`: A decision node that splits the data based on a feature value comparison. For numerical features, uses a threshold comparison. For categorical features, may use multi-way splits based on category values.
+/// - `Leaf`: A terminal node that provides the prediction output. For regression trees, this is typically the mean value of samples in the node. For classification trees, it contains the majority class and probability distribution across all classes.
+#[derive(Debug, Clone)]
+pub enum NodeType {
+    /// Internal decision node that routes samples based on feature comparisons
+    Internal {
+        feature_index: usize,
+        threshold: f64,
+        categories: Option<Vec<String>>,
+    },
+    /// Terminal leaf node containing the prediction information
+    Leaf {
+        value: f64,
+        class: Option<usize>,
+        probabilities: Option<Vec<f64>>,
+    },
+}
+
+/// # Decision Tree Node
+///
+/// Represents a node in the decision tree hierarchy.
+/// Each node either makes a decision based on a feature (internal node)
+/// or provides a final prediction (leaf node).
+///
+/// # Fields
+/// * `node_type` - The type of the node (Internal or Leaf) which determines its behavior and what information it contains
+/// * `left` - Left child node for binary splits (samples where feature value ≤ threshold)
+/// * `right` - Right child node for binary splits (samples where feature value > threshold)
+/// * `children` - HashMap of child nodes for categorical features, where keys are category values and values are the corresponding child nodes for each category
+///
+/// # Notes
+///
+/// During prediction, samples are routed from the root node through internal nodes
+/// based on feature comparisons until reaching a leaf node that provides the final prediction.
+#[derive(Debug, Clone)]
+pub struct Node {
+    pub node_type: NodeType,
+    pub left: Option<Box<Node>>,
+    pub right: Option<Box<Node>>,
+    pub children: Option<HashMap<String, Box<Node>>>,
+}
+
+impl Node {
+    /// Creates a new leaf node for the decision tree
+    ///
+    /// A leaf node represents a terminal prediction point in the decision tree.
+    /// It contains the prediction value and, for classification tasks, the predicted class
+    /// and probability distribution across classes.
+    ///
+    /// # Parameters
+    /// * `value` - The prediction value (mean target for regression trees or weighted majority class for classification)
+    /// * `class` - The predicted class index for classification trees (None for regression trees)
+    /// * `probabilities` - Optional vector of class probabilities for classification trees
+    ///                    (proportion of each class in this leaf node)
+    ///
+    /// # Returns
+    /// * `Self` - A new Node configured as a leaf node with the specified prediction information
+    pub fn new_leaf(value: f64, class: Option<usize>, probabilities: Option<Vec<f64>>) -> Self {
+        Self {
+            node_type: NodeType::Leaf {
+                value,
+                class,
+                probabilities,
+            },
+            left: None,
+            right: None,
+            children: None,
+        }
+    }
+
+    /// Creates a new internal node for numerical feature splits
+    ///
+    /// An internal node represents a decision point in the tree, where samples are routed
+    /// to either the left or right child based on comparing a feature value with a threshold.
+    ///
+    /// # Parameters
+    /// * `feature_index` - The index of the feature to use for the split decision
+    /// * `threshold` - The threshold value for the split (samples with feature value ≤ threshold go left)
+    ///
+    /// # Returns
+    /// * `Self` - A new Node configured as an internal node for binary splitting on a numerical feature
+    pub fn new_internal(feature_index: usize, threshold: f64) -> Self {
+        Self {
+            node_type: NodeType::Internal {
+                feature_index,
+                threshold,
+                categories: None,
+            },
+            left: None,
+            right: None,
+            children: None,
+        }
+    }
+
+    /// Creates a new internal node for categorical feature splits
+    ///
+    /// This type of internal node is specialized for handling categorical features,
+    /// allowing multi-way splits based on different category values instead of binary splits.
+    ///
+    /// # Parameters
+    /// * `feature_index` - The index of the categorical feature to use for the split decision
+    /// * `categories` - Vector of category values that this node will handle
+    ///
+    /// # Returns
+    /// * `Self` - A new Node configured as an internal node for multi-way splitting on a categorical feature, with an initialized empty HashMap for child nodes corresponding to different categories
+    pub fn new_categorical(feature_index: usize, categories: Vec<String>) -> Self {
+        Self {
+            node_type: NodeType::Internal {
+                feature_index,
+                threshold: 0.0,
+                categories: Some(categories),
+            },
+            left: None,
+            right: None,
+            children: Some(HashMap::new()),
+        }
+    }
+}
+
+/// Provides default values for the `DecisionTreeParams` structure.
+///
+/// This implementation sets sensible default values that work well for many datasets:
+/// * No maximum depth limit (tree can grow until other stopping criteria are met)
+/// * Minimum of 2 samples required to consider splitting a node
+/// * Minimum of 1 sample required in each leaf node
+/// * No minimum impurity decrease requirement for splitting
+/// * No specific random seed (results may vary between runs)
+///
+/// # Returns
+/// * `Self` - A new `DecisionTreeParams` instance with default values
+impl Default for DecisionTreeParams {
+    fn default() -> Self {
+        DecisionTreeParams {
+            max_depth: None,
+            min_samples_split: 2,
+            min_samples_leaf: 1,
+            min_impurity_decrease: 0.0,
+            random_state: None,
+        }
+    }
+}
+
+impl DecisionTree {
+    /// Creates a new Decision Tree model with specified parameters
+    ///
+    /// Initializes a Decision Tree model for either classification or regression tasks.
+    /// The tree is not trained yet; the `fit` method must be called separately with training data.
+    ///
+    /// # Parameters
+    /// * `algorithm` - Optional splitting algorithm to use. If None, defaults to "CART" for both
+    ///                 classification and regression tasks
+    /// * `is_classifier` - Boolean flag indicating whether this is a classification tree (true) or
+    ///                    regression tree (false)
+    /// * `params` - Optional hyperparameters for the tree. If None, uses default parameter values
+    ///
+    /// # Returns
+    /// * `Self` - A new, untrained DecisionTree instance configured with the specified settings
+    pub fn new(algorithm: Option<String>, is_classifier: bool, params: Option<DecisionTreeParams>) -> Self {
+        let algorithm = algorithm.unwrap_or_else(|| {
+            if is_classifier {
+                "CART".to_string()
+            } else {
+                "CART".to_string()
+            }
+        });
+
+        Self {
+            algorithm,
+            root: None,
+            n_features: 0,
+            n_classes: None,
+            params: params.unwrap_or_default(),
+            is_classifier,
+        }
+    }
+
+    /// Returns the hyperparameters of this decision tree
+    ///
+    /// Provides read-only access to the internal hyperparameters that control the tree's structure and training process.
+    ///
+    /// # Returns
+    /// * `&DecisionTreeParams` - Reference to the decision tree's hyperparameters
+    pub fn get_params(&self) -> &DecisionTreeParams {
+        &self.params
+    }
+
+    /// Returns the splitting algorithm used by this decision tree
+    ///
+    /// # Returns
+    /// * `&str` - String slice representing the algorithm name (e.g., "CART", "ID3", "C4.5")
+    pub fn get_algorithm(&self) -> &str {
+        &self.algorithm
+    }
+
+    /// Returns whether this tree is a classifier or regressor
+    ///
+    /// # Returns
+    /// * `bool` - `true` if this is a classification tree, `false` if it's a regression tree
+    pub fn get_is_classifier(&self) -> bool {
+        self.is_classifier
+    }
+
+    /// Returns the number of input features this model was trained on
+    ///
+    /// # Returns
+    /// The number of features the model expects for predictions
+    ///
+    /// # Note
+    /// * `usize` - Returns 0 if the model hasn't been trained yet
+    pub fn get_n_features(&self) -> usize {
+        self.n_features
+    }
+
+    /// Returns the number of target classes for a classification tree
+    ///
+    /// # Returns
+    /// - `Ok(usize)` - The number of target classes if the model is trained
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_n_classes(&self) -> Result<usize, ModelError> {
+        match self.n_classes {
+            Some(n_classes) => Ok(n_classes),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns a reference to the root node of the decision tree
+    ///
+    /// # Returns
+    /// - `Ok(&Box<Node>)` - Reference to the root node if the model is trained
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_root(&self) -> Result<&Box<Node>, ModelError> {
+        match &self.root {
+            Some(root) => Ok(root),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Trains the decision tree on the provided dataset
+    ///
+    /// Fits this decision tree to the input feature matrix and target values.
+    /// After calling this method, the tree is built and ready for predictions.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix where each row is a sample and each column is a feature
+    /// * `y` - Target values (class labels for classification, continuous values for regression)
+    ///
+    /// # Returns
+    /// * `&mut Self` - Mutable reference to self, enabling method chaining
+    ///
+    /// # Note
+    /// * For classification tasks, the class labels in `y` should be integers starting from 0
+    /// * The algorithm used for building the tree is determined by the `algorithm` field set during initialization
+    /// * Model hyperparameters like max_depth, min_samples_split etc. control the training process
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> &mut Self {
+        self.n_features = x.ncols();
+
+        if self.is_classifier {
+            // Calculate number of classes
+            let unique_classes = y.iter().map(|&val| val as usize).collect::<HashSet<_>>();
+            self.n_classes = Some(unique_classes.len());
+        }
+
+        // Build decision tree based on specified algorithm
+        self.root = Some(match self.algorithm.as_str() {
+            "ID3" => self.build_id3_tree(x, y, 0),
+            "C4.5" => self.build_c45_tree(x, y, 0),
+            "CART" => self.build_cart_tree(x, y, 0),
+            _ => self.build_cart_tree(x, y, 0), // Default to CART
+        });
+
+        let actual_depth = self.calculate_tree_depth(self.root.as_ref().unwrap());
+        println!("Finish building decision tree, algorithm: {}, depth: {}", &self.algorithm, actual_depth);
+
+        self
+    }
+
+    /// Core decision tree building function used by ID3 and C4.5 algorithms
+    ///
+    /// This is an internal method that implements the recursive tree building logic
+    /// for information gain based algorithms.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix for the current node's samples
+    /// * `y` - Target values for the current node's samples
+    /// * `depth` - Current depth in the tree
+    /// * `algorithm` - Algorithm type string ("ID3" or "C4.5")
+    /// * `build_child_tree` - Function pointer for recursive building of child nodes
+    ///
+    /// # Returns
+    /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
+    ///
+    /// # Implementation details
+    /// * Implements early stopping based on max_depth, min_samples_split, and pure node detection
+    /// * Uses the specified algorithm to find the best feature and threshold for splitting
+    /// * Recursively builds left and right subtrees using the provided build_child_tree function
+    /// * Creates leaf nodes when stopping criteria are met
+    fn build_tree(&self,
+                  x: &Array2<f64>,
+                  y: &Array1<f64>,
+                  depth: usize,
+                  algorithm: &str,
+                  build_child_tree: fn(&Self, &Array2<f64>, &Array1<f64>, usize, &str) -> Box<Node>
+    ) -> Box<Node> {
+        let y_slice = y.as_slice().unwrap();
+
+        // Termination conditions
+        if y_slice.is_empty() ||
+            (self.params.max_depth.is_some() && depth >= self.params.max_depth.unwrap()) ||
+            y_slice.len() < self.params.min_samples_split {
+            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            return Box::new(Node::new_leaf(value, class, None));
+        }
+
+        // Check if all samples belong to the same class
+        let first_val = y_slice[0];
+        if y_slice.iter().all(|&val| val == first_val) {
+            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            return Box::new(Node::new_leaf(value, class, None));
+        }
+
+        // Find the best split point, passing algorithm type
+        let (feature_idx, threshold, left_indices, right_indices) = find_best_split(x, y_slice, self.is_classifier, algorithm);
+
+        // If no good split was found
+        if left_indices.is_empty() || right_indices.is_empty() {
+            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            return Box::new(Node::new_leaf(value, class, None));
+        }
+
+        // Create data for left and right subtrees
+        let left_x = x.select(Axis(0), &left_indices);
+        let left_y = y.select(Axis(0), &left_indices);
+        let right_x = x.select(Axis(0), &right_indices);
+        let right_y = y.select(Axis(0), &right_indices);
+
+        // Create internal node
+        let mut node = Node::new_internal(feature_idx, threshold);
+
+        // Build subtrees using the provided function, and pass algorithm type
+        node.left = Some(build_child_tree(self, &left_x, &left_y, depth + 1, algorithm));
+        node.right = Some(build_child_tree(self, &right_x, &right_y, depth + 1, algorithm));
+
+        Box::new(node)
+    }
+
+    /// Builds a decision tree using the ID3 (Iterative Dichotomiser 3) algorithm
+    ///
+    /// ID3 uses information gain as the splitting criterion and is primarily designed
+    /// for categorical features, though this implementation handles numerical features as well.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix for the current node's samples
+    /// * `y` - Target values for the current node's samples
+    /// * `depth` - Current depth in the tree
+    ///
+    /// # Returns
+    /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
+    fn build_id3_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
+        self.build_tree(x, y, depth, "ID3", Self::build_id3_tree_with_algorithm)
+    }
+
+    /// Helper function for recursive ID3 tree building
+    ///
+    /// This function is passed as a function pointer to build_tree to enable
+    /// recursive construction of the tree while maintaining the algorithm type.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix for the current node's samples
+    /// * `y` - Target values for the current node's samples
+    /// * `depth` - Current depth in the tree
+    /// * `algorithm` - Algorithm type string (always "ID3" in this context)
+    ///
+    /// # Returns
+    /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
+    fn build_id3_tree_with_algorithm(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize, algorithm: &str) -> Box<Node> {
+        self.build_tree(x, y, depth, algorithm, Self::build_id3_tree_with_algorithm)
+    }
+
+    /// Builds a decision tree using the C4.5 algorithm
+    ///
+    /// C4.5 is an extension of ID3 that uses gain ratio instead of information gain as the
+    /// splitting criterion, which helps address the bias toward features with many values.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix for the current node's samples
+    /// * `y` - Target values for the current node's samples
+    /// * `depth` - Current depth in the tree
+    ///
+    /// # Returns
+    /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
+    fn build_c45_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
+        self.build_tree(x, y, depth, "C4.5", Self::build_c45_tree_with_algorithm)
+    }
+
+    /// Helper function for recursive C4.5 tree building
+    ///
+    /// This function is passed as a function pointer to build_tree to enable
+    /// recursive construction of the tree while maintaining the algorithm type.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix for the current node's samples
+    /// * `y` - Target values for the current node's samples
+    /// * `depth` - Current depth in the tree
+    /// * `algorithm` - Algorithm type string (always "C4.5" in this context)
+    ///
+    /// # Returns
+    /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
+    fn build_c45_tree_with_algorithm(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize, algorithm: &str) -> Box<Node> {
+        self.build_tree(x, y, depth, algorithm, Self::build_c45_tree_with_algorithm)
+    }
+
+    /// Builds a decision tree using the CART (Classification and Regression Tree) algorithm
+    ///
+    /// CART uses Gini impurity for classification or MSE for regression as the splitting criterion.
+    /// It builds binary trees and handles both categorical and numerical features naturally.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix for the current node's samples
+    /// * `y` - Target values for the current node's samples
+    /// * `depth` - Current depth in the tree
+    ///
+    /// # Returns
+    /// A boxed Node representing the root of the constructed (sub)tree
+    fn build_cart_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
+        let y_slice = y.as_slice().unwrap();
+
+        // Termination conditions
+        if y_slice.is_empty() ||
+            (self.params.max_depth.is_some() && depth >= self.params.max_depth.unwrap()) ||
+            y_slice.len() < self.params.min_samples_split {
+            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            let probabilities = if self.is_classifier && self.n_classes.is_some() {
+                Some(calculate_class_probabilities(y_slice, self.n_classes.unwrap()))
+            } else {
+                None
+            };
+            return Box::new(Node::new_leaf(value, class, probabilities));
+        }
+
+        // Check if all samples belong to the same value
+        let first_val = y_slice[0];
+        if y_slice.iter().all(|&val| val == first_val) {
+            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            let probabilities = if self.is_classifier && self.n_classes.is_some() {
+                Some(calculate_class_probabilities(y_slice, self.n_classes.unwrap()))
+            } else {
+                None
+            };
+            return Box::new(Node::new_leaf(value, class, probabilities));
+        }
+
+        // Find the best split point, explicitly specifying CART algorithm
+        let (feature_idx, threshold, left_indices, right_indices) = find_best_split(x, y_slice, self.is_classifier, "CART");
+
+        // If no good split was found
+        if left_indices.is_empty() || right_indices.is_empty() ||
+            left_indices.len() < self.params.min_samples_leaf ||
+            right_indices.len() < self.params.min_samples_leaf {
+            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            let probabilities = if self.is_classifier && self.n_classes.is_some() {
+                Some(calculate_class_probabilities(y_slice, self.n_classes.unwrap()))
+            } else {
+                None
+            };
+            return Box::new(Node::new_leaf(value, class, probabilities));
+        }
+
+        // Create data for left and right subtrees
+        let left_x = x.select(Axis(0), &left_indices);
+        let left_y = y.select(Axis(0), &left_indices);
+        let right_x = x.select(Axis(0), &right_indices);
+        let right_y = y.select(Axis(0), &right_indices);
+
+        // Create internal node
+        let mut node = Node::new_internal(feature_idx, threshold);
+        node.left = Some(self.build_cart_tree(&left_x, &left_y, depth + 1));
+        node.right = Some(self.build_cart_tree(&right_x, &right_y, depth + 1));
+
+        Box::new(node)
+    }
+
+    /// Predicts the target value for a single sample
+    ///
+    /// # Parameters
+    /// * `x` - Feature vector for a single sample
+    ///
+    /// # Returns
+    /// - `Ok(f64)` - The predicted value
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
+    pub fn predict_one(&self, x: &[f64]) -> Result<f64, ModelError> {
+        match &self.root {
+            Some(root) => self.predict_sample(root, x),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Predicts target values for multiple samples in a feature matrix
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix where each row is a sample and each column is a feature
+    ///
+    /// # Returns
+    /// * `Ok(Array1<f64>)` - Array of predictions
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
+    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+        let mut predictions = Vec::with_capacity(x.nrows());
+
+        for i in 0..x.nrows() {
+            let row = x.slice(s![i, ..]).to_vec();
+            match self.predict_one(&row) {
+                Ok(prediction) => predictions.push(prediction),
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(Array1::from(predictions))
+    }
+
+    /// Predicts the target value for a single sample by traversing the decision tree
+    ///
+    /// This method recursively navigates through the decision tree from the root to a leaf
+    /// based on the feature values of the sample.
+    ///
+    /// # Parameters
+    /// * `node` - Current node in the decision tree
+    /// * `x` - Feature vector for a single sample
+    ///
+    /// # Returns
+    /// - `Ok(f64)` - Predicted value
+    /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
+    fn predict_sample(&self, node: &Node, x: &[f64]) -> Result<f64, ModelError> {
+        match &node.node_type {
+            NodeType::Leaf { value, .. } => Ok(*value),
+            NodeType::Internal { feature_index, threshold, categories } => {
+                if let Some(_) = categories {
+                    // Handle categorical features
+                    if let Some(children) = &node.children {
+                        let feature_val = x[*feature_index].to_string();
+                        if let Some(child) = children.get(&feature_val) {
+                            self.predict_sample(child, x)
+                        } else {
+                            // If the category is not found, use default direction
+                            if let Some(left) = &node.left {
+                                self.predict_sample(left, x)
+                            } else {
+                                Err(ModelError::TreeError("The classification node is missing a default branch"))
+                            }
+                        }
+                    } else {
+                        Err(ModelError::TreeError("The classification node is missing mappings to its child nodes"))
+                    }
+                } else {
+                    // Handle numerical features
+                    let feature_val = x[*feature_index];
+                    if feature_val <= *threshold {
+                        if let Some(left) = &node.left {
+                            self.predict_sample(left, x)
+                        } else {
+                            // This should not happen in a correctly built tree
+                            Err(ModelError::TreeError("Left child node is missing for the internal node"))
+                        }
+                    } else {
+                        if let Some(right) = &node.right {
+                            self.predict_sample(right, x)
+                        } else {
+                            // This should not happen in a correctly built tree
+                            Err(ModelError::TreeError("Right child node is missing for the internal node"))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Predicts class probabilities for multiple samples in a feature matrix
+    ///
+    /// This method is only applicable for classification trees and returns
+    /// the probability distribution over all possible classes for each input sample.
+    ///
+    /// # Parameters
+    /// * `x` - Feature matrix where each row is a sample and each column is a feature
+    ///
+    /// # Returns
+    /// - `Ok(Array2<f64>)` - Matrix of class probabilities
+    /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
+    pub fn predict_proba(&self, x: &Array2<f64>) -> Result<Array2<f64>, ModelError> {
+        if !self.is_classifier {
+            return Err(ModelError::TreeError("Probabilistic prediction is only applicable to classification problems"));
+        }
+
+        let n_samples = x.nrows();
+        let n_classes = match self.n_classes {
+            Some(n_classes) => n_classes,
+            None => return Err(ModelError::TreeError("The model is not trained correctly and the number of classes is missing")),
+        };
+        let mut probas = Array2::<f64>::zeros((n_samples, n_classes));
+
+        for i in 0..n_samples {
+            let row = x.slice(s![i, ..]).to_vec();
+            match self.predict_proba_one(&row) {
+                Ok(sample_probas) => {
+                    for (j, &p) in sample_probas.iter().enumerate() {
+                        if j < n_classes {
+                            probas[[i, j]] = p;
+                        }
+                    }
+                },
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(probas)
+    }
+
+    /// Predicts class probabilities for a single sample
+    ///
+    /// # Parameters
+    /// * `x` - Feature vector for a single sample
+    ///
+    /// # Returns
+    /// - `Ok(Vec<f64>)` - Vector of class probabilities
+    /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn predict_proba_one(&self, x: &[f64]) -> Result<Vec<f64>, ModelError> {
+        match &self.root {
+            Some(root) => match self.predict_proba_sample(root, x) {
+                Ok(probabilities) => Ok(probabilities),
+                Err(e) => Err(e),
+            },
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Predicts class probabilities for a single sample by traversing the decision tree
+    ///
+    /// This method recursively navigates through the decision tree from the root to a leaf node
+    /// to retrieve the class probability distribution for the given sample.
+    ///
+    /// # Parameters
+    /// * `node` - Current node in the decision tree
+    /// * `x` - Feature vector for a single sample
+    ///
+    /// # Returns
+    /// - `Ok(Vec<f64>)` - Vector of class probabilities
+    /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
+    fn predict_proba_sample(&self, node: &Node, x: &[f64]) -> Result<Vec<f64>, ModelError> {
+        match &node.node_type {
+            NodeType::Leaf { probabilities, .. } => {
+                match probabilities {
+                    Some(proba) => Ok(proba.clone()),
+                    None => Err(ModelError::TreeError("The leaf node lacks probability information")),
+                }
+            }
+            NodeType::Internal { feature_index, threshold, categories } => {
+                if let Some(_) = categories {
+                    // Handle categorical features
+                    if let Some(children) = &node.children {
+                        let feature_val = x[*feature_index].to_string();
+                        if let Some(child) = children.get(&feature_val) {
+                            self.predict_proba_sample(child, x)
+                        } else {
+                            // If category is not found, use default direction
+                            if let Some(left) = &node.left {
+                                self.predict_proba_sample(left, x)
+                            } else {
+                                Err(ModelError::TreeError("The classification node is missing a default branch"))
+                            }
+                        }
+                    } else {
+                        Err(ModelError::TreeError("The classification node is missing mappings to its child nodes"))
+                    }
+                } else {
+                    // Handle numerical features
+                    let feature_val = x[*feature_index];
+                    if feature_val <= *threshold {
+                        if let Some(left) = &node.left {
+                            self.predict_proba_sample(left, x)
+                        } else {
+                            Err(ModelError::TreeError("Left child node is missing for the internal node"))
+                        }
+                    } else {
+                        if let Some(right) = &node.right {
+                            self.predict_proba_sample(right, x)
+                        } else {
+                            Err(ModelError::TreeError("Right child node is missing for the internal node"))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Calculates the maximum depth of the decision tree starting from the given node
+    ///
+    /// This function recursively traverses the tree structure to determine its depth.
+    /// The depth is defined as the maximum number of nodes from the given node to any leaf node.
+    ///
+    /// # Parameters
+    /// * `node` - A reference to the node from which to start the depth calculation
+    ///
+    /// # Returns
+    /// * `usize` - The maximum depth of the tree from the given node
+    ///
+    /// # Algorithm Details
+    /// - For leaf nodes, the depth is always 1
+    /// - For internal nodes, the depth is calculated as:
+    ///   1 + max(depth of left subtree, depth of right subtree, depth of categorical children)
+    /// - If a child does not exist, its depth contribution is 0
+    fn calculate_tree_depth(&self, node: &Node) -> usize {
+        match node.node_type {
+            NodeType::Leaf { .. } => 1,
+            NodeType::Internal { .. } => {
+                let left_depth = match &node.left {
+                    Some(left_node) => self.calculate_tree_depth(left_node),
+                    None => 0,
+                };
+                let right_depth = match &node.right {
+                    Some(right_node) => self.calculate_tree_depth(right_node),
+                    None => 0,
+                };
+
+                // For categorical features, we also need to check children
+                let children_depth = match &node.children {
+                    Some(children_map) => {
+                        if children_map.is_empty() {
+                            0
+                        } else {
+                            children_map.values()
+                                .map(|child| self.calculate_tree_depth(child))
+                                .max()
+                                .unwrap_or(0)
+                        }
+                    },
+                    None => 0,
+                };
+
+                1 + left_depth.max(right_depth).max(children_depth)
+            }
+        }
+    }
+}
+
+/// Finds the best feature and threshold to split the data based on the specified algorithm
+///
+/// This function evaluates all features and possible threshold values to determine
+/// the optimal split according to the selected decision tree algorithm (CART, ID3, or C4.5).
+///
+/// # Parameters
+/// * `x` - Feature matrix of the input data
+/// * `y` - Target values array
+/// * `is_classifier` - Boolean flag indicating whether this is a classification task
+/// * `algorithm` - String specifying the algorithm to use ("CART", "ID3", or "C4.5")
+///
+/// # Returns
+/// A tuple containing:
+/// * `usize` - The index of the best feature to split on
+/// * `f64` - The threshold value for the split
+/// * `Vec<usize>` - Indices of samples going to the left child node
+/// * `Vec<usize>` - Indices of samples going to the right child node
+fn find_best_split(x: &Array2<f64>, y: &[f64], is_classifier: bool, algorithm: &str) -> (usize, f64, Vec<usize>, Vec<usize>) {
+    use crate::math::{gini, information_gain, gain_ratio, mean_squared_error};
+
+    let n_features = x.ncols();
+    let mut best_feature = 0;
+    let mut best_threshold = 0.0;
+    let mut best_left_indices = Vec::new();
+    let mut best_right_indices = Vec::new();
+    let mut best_criterion = f64::NEG_INFINITY;
+
+    for feature_idx in 0..n_features {
+        // Get all unique values for this feature
+        let mut feature_values = Vec::with_capacity(x.nrows());
+        for i in 0..x.nrows() {
+            feature_values.push(x[[i, feature_idx]]);
+        }
+        feature_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        // Find potential thresholds (midpoints between adjacent values)
+        let thresholds: Vec<f64> = feature_values.windows(2)
+            .map(|w| (w[0] + w[1]) / 2.0)
+            .collect();
+
+        for &threshold in &thresholds {
+            let mut left_indices = Vec::new();
+            let mut right_indices = Vec::new();
+
+            // Split samples based on threshold
+            for i in 0..x.nrows() {
+                if x[[i, feature_idx]] <= threshold {
+                    left_indices.push(i);
+                } else {
+                    right_indices.push(i);
+                }
+            }
+
+            // Check if split is valid
+            if left_indices.is_empty() || right_indices.is_empty() {
+                continue;
+            }
+
+            // Extract labels for left and right subsets
+            let left_y: Vec<f64> = left_indices.iter().map(|&i| y[i]).collect();
+            let right_y: Vec<f64> = right_indices.iter().map(|&i| y[i]).collect();
+
+            // Calculate split quality based on the selected algorithm
+            let criterion = if is_classifier {
+                match algorithm {
+                    "ID3" => information_gain(y, &left_y, &right_y),
+                    "C4.5" => gain_ratio(y, &left_y, &right_y),
+                    _ => {
+                        // CART algorithm uses Gini impurity
+                        gini(y) - (left_y.len() as f64 / y.len() as f64) * gini(&left_y) -
+                            (right_y.len() as f64 / y.len() as f64) * gini(&right_y)
+                    }
+                }
+            } else {
+                // Regression uses MSE reduction
+                let total_mse = mean_squared_error(y);
+                let weighted_child_mse = (left_y.len() as f64 / y.len() as f64) * mean_squared_error(&left_y) +
+                    (right_y.len() as f64 / y.len() as f64) * mean_squared_error(&right_y);
+                total_mse - weighted_child_mse
+            };
+
+            // Update best split
+            if criterion > best_criterion {
+                best_criterion = criterion;
+                best_feature = feature_idx;
+                best_threshold = threshold;
+                best_left_indices = left_indices;
+                best_right_indices = right_indices;
+            }
+        }
+    }
+
+    (best_feature, best_threshold, best_left_indices, best_right_indices)
+}
+
+
+/// Calculates the appropriate leaf node value based on target values
+///
+/// For classification problems, this selects the most frequent class.
+/// For regression problems, this returns the mean of target values.
+///
+/// # Parameters
+/// * `y` - Array of target values at this leaf node
+/// * `is_classifier` - Boolean flag indicating whether this is a classification task
+///
+/// # Returns
+/// A tuple containing:
+/// * `f64` - The prediction value for this leaf node
+/// * `Option<usize>` - For classification tasks, the class index as `Some(usize)`; for regression, `None`
+fn calculate_leaf_value(y: &[f64], is_classifier: bool) -> (f64, Option<usize>) {
+    if y.is_empty() {
+        return (0.0, None);
+    }
+
+    if is_classifier {
+        // Select the most frequent class as the prediction value
+        let mut class_counts = HashMap::new();
+        for &value in y {
+            // Convert floating point to integer representation
+            let key = (value * 1000.0).round() as i64; // Preserve 3 decimal places of precision
+            *class_counts.entry(key).or_insert(0) += 1;
+        }
+
+        // Find the most common class
+        let (most_common_class_key, _) = class_counts.iter()
+            .max_by_key(|&(_, count)| count)
+            .unwrap_or((&0, &0));
+
+        // Convert integer key back to floating point
+        let most_common_class = *most_common_class_key as f64 / 1000.0;
+
+        (most_common_class, Some(most_common_class as usize))
+    } else {
+        // Regression problem: return the mean value
+        let mean = y.iter().sum::<f64>() / y.len() as f64;
+        (mean, None)
+    }
+}
+
+/// Calculates class probability distribution for a set of target values
+///
+/// This function computes the frequency-based probability for each class
+/// by counting occurrences and dividing by the total number of samples.
+///
+/// # Parameters
+/// * `y` - Array of target values (assumed to be class indices as floating point values)
+/// * `n_classes` - Total number of classes in the classification problem
+///
+/// # Returns
+/// `Vec<f64>` - A vector of probabilities for each class, summing to 1.0
+fn calculate_class_probabilities(y: &[f64], n_classes: usize) -> Vec<f64> {
+    let mut probas = vec![0.0; n_classes];
+    let total = y.len() as f64;
+
+    if total == 0.0 {
+        return probas;
+    }
+
+    // Count occurrences of each class
+    for &val in y {
+        let class_idx = val as usize;
+        if class_idx < n_classes {
+            probas[class_idx] += 1.0;
+        }
+    }
+
+    // Convert counts to probabilities
+    for p in &mut probas {
+        *p /= total;
+    }
+
+    probas
+}

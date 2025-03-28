@@ -294,7 +294,7 @@ impl LinearRegression {
         for sample in x {
             if sample.len() != coeffs.len() {
                 return Err(ModelError::InputValidationError(
-                    "Number of features does not match training data".to_string()
+                    "Number of features does not match training data"
                 ));
             }
 
