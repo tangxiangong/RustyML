@@ -7,6 +7,9 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ## [v0.1.0] - 2025-3-27
 ### Added
 - Add changelog.md to record updates
+- Add DBSCAN model
+- Add function `fit_predict` to fit and predict in one step
+- Add doc comments to tell user `p` value of function `minkowski_distance` in model is always 3
 
 ## [v0.1.0] - 2025-3-26
 ### Added
