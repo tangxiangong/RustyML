@@ -3,3 +3,4 @@ mod logistic_regression_test;
 mod kmeans_test;
 mod knn_test;
 mod meanshift_test;
+mod dbscan_test;

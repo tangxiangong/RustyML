@@ -3,3 +3,4 @@ pub mod logistic_regression;
 pub mod kmeans;
 pub mod knn;
 pub mod meanshift;
+pub mod dbscan;
