@@ -6,6 +6,16 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 
 ## [v0.1.0] - 2025-3-27
 ### Added
+- Add Decision Tree model
+- Add following functions to math.rs:
+    - `entropy`: Calculates the entropy of a label set
+    - `gini`: Calculates the Gini impurity of a label set
+    - `information_gain`: Calculates the information gain when splitting a dataset
+    - `gain_ratio`: Calculates the gain ratio for a dataset split
+    - `mean_squared_error`: Calculates the Mean Squared Error (MSE) of a set of values
+
+## [v0.1.0] - 2025-3-27
+### Added
 - Add changelog.md to record updates
 - Add DBSCAN model
 - Add function `fit_predict` to fit and predict in one step
