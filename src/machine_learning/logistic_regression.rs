@@ -7,11 +7,12 @@ use crate::ModelError;
 ///
 /// ## Fields
 ///
-/// * `k` - Number of neighbors to consider for classification
-/// * `x_train` - Training data features as a 2D array
-/// * `y_train` - Training data labels/targets
-/// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
-/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
+/// * `weights` - Model weights vector, None before training
+/// * `fit_intercept` - Whether to use intercept term (bias)
+/// * `learning_rate` - Controls gradient descent step size
+/// * `max_iter` - Maximum number of iterations for gradient descent
+/// * `tol` - Convergence tolerance, stops iteration when loss change is smaller than this value
+/// * `n_iter` - Actual number of iterations the algorithm ran for after fitting, None before training
 ///
 /// ## Examples
 ///
