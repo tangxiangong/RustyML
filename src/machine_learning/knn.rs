@@ -17,7 +17,7 @@ use crate::ModelError;
 /// * `x_train` - Training data features as a 2D array
 /// * `y_train` - Training data labels/targets
 /// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
-/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"
+/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"(p=3)
 ///
 /// ## Examples
 ///
@@ -211,6 +211,9 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     /// # Returns
     ///
     /// * `f64` - The calculated distance between points `a` and `b`
+    /// 
+    /// # Notes
+    /// Minkowski distance with p=3
     fn calculate_distance(&self, a: ArrayView1<f64>, b: ArrayView1<f64>) -> f64 {
         use crate::math::{squared_euclidean_distance, manhattan_distance, minkowski_distance};
         let a = a.insert_axis(ndarray::Axis(0));
