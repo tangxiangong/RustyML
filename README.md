@@ -19,11 +19,14 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
     - Regression | 回归问题:
-      - Linear Regression (initial implementation) | 线性回归(初步实现)
-      - Logistic Regression (initial implementation) | 逻辑回归(初步实现) 
+      - Linear Regression | 线性回归
+      - Logistic Regression | 逻辑回归
 
     - Clustering | 聚类问题:
-      - KMeans (initial implementation) | K均值聚类(初步实现)
+      - KMeans | K均值聚类
+      - KNN | K邻近值聚类
+      - MeanShift | MeanShift聚类
+      - DBSCAN | DBSCAN聚类
 
 ## Vision | 愿景
 While the library is in its early stages, Rust AI aims to evolve into a comprehensive crate that includes:
