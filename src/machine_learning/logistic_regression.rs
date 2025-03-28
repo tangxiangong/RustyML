@@ -322,6 +322,29 @@ impl LogisticRegression {
             Err(e) => Err(e),
         }
     }
+
+    /// Fits the logistic regression model to the training data and then makes predictions.
+    ///
+    /// This is a convenience method that combines `fit` and `predict` operations in a single call.
+    ///
+    /// # Arguments
+    ///
+    /// * `train_x` - Training features as a 2D array where each row represents a sample
+    ///               and each column represents a feature
+    /// * `train_y` - Target values as a 1D array corresponding to the training samples
+    /// * `test_x` - Test features for which predictions are to be made
+    ///
+    /// # Returns
+    ///
+    /// * `Array1<i32>` - Predicted class labels for the test samples
+    pub fn fit_predict(&mut self, 
+                       train_x: &Array2<f64>, 
+                       train_y: &Array1<f64>, 
+                       test_x: &Array2<f64>
+    ) -> Array1<i32> {
+        self.fit(train_x, train_y);
+        self.predict(test_x).unwrap()
+    }
 }
 
 /// Generates polynomial features from input features.

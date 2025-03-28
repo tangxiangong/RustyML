@@ -1,4 +1,4 @@
-use crate::machine_learning::kmeans::KMeans;
+use crate::machine_learning::kmeans::*;
 use ndarray::{Array1, Array2};
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;

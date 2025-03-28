@@ -7,7 +7,7 @@ use crate::ModelError;
 /// DBSCAN is a popular density-based clustering algorithm that can discover clusters of arbitrary shapes
 /// without requiring the number of clusters to be specified beforehand.
 ///
-/// # Parameters
+/// # Fields
 /// * `eps` - Neighborhood radius used to find neighbors
 /// * `min_samples` - Minimum number of neighbors required to form a core point
 /// * `metric` - Distance metric, options: "euclidean"(default), "manhattan", "minkowski"(p=3)
@@ -26,8 +26,9 @@ use crate::ModelError;
 /// ]).unwrap();
 ///
 /// let mut dbscan = DBSCAN::new(0.5, 2, "euclidean");
-/// let labels = dbscan.fit_predict(&data).unwrap();
+/// let labels = dbscan.fit_predict(&data);
 /// ```
+#[derive(Debug, Clone)]
 pub struct DBSCAN {
     eps: f64,
     min_samples: usize,
@@ -228,6 +229,8 @@ impl DBSCAN {
             // Increment cluster ID
             cluster_id += 1;
         }
+        
+        println!("DBSCAN model computing finished");
 
         self.labels_ = Some(labels);
         self.core_sample_indices_ = Some(core_samples.into_iter().collect());
@@ -240,7 +243,7 @@ impl DBSCAN {
     /// * `new_data` - New data points to classify
     ///
     /// # Returns
-    /// - `Ok(Vec<i32>)` - Vector of predicted cluster labels 
+    /// - `Ok(Vec<i32>)` - Vector of predicted cluster labels
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     ///
     /// # Notes
@@ -296,18 +299,13 @@ impl DBSCAN {
     /// * `data` - Input data as a 2D array where each row is a sample
     ///
     /// # Returns
-    /// - `Ok(Vec<i32>)` - Vector of cluster labels for each sample
-    /// - `Err(ModelError::NotFitted)` - Should not occur in this method
-    ///  
+    /// * `Vec<i32>` - Vector of cluster labels for each sample
+    ///
     /// # Notes
     /// This is equivalent to calling `fit()` followed by `get_labels()`,
     /// but more convenient when you don't need to reuse the model.
-    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
+    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Vec<i32> {
         self.fit(data);
-        if let Some(labels) = &self.labels_ {
-            Ok(labels.clone())
-        } else {
-            Err(ModelError::NotFitted)
-        }
+        self.labels_.as_ref().unwrap().clone()
     }
 }

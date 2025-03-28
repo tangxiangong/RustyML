@@ -105,6 +105,59 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
         }
     }
 
+    /// Returns the number of neighbors (k) used in the KNN algorithm
+    ///
+    /// # Returns
+    ///
+    /// * `usize` - The value of k, representing how many nearest neighbors are considered for predictions
+    pub fn get_k(&self) -> usize {
+        self.k
+    }
+
+    /// Returns the weighting strategy used in the KNN algorithm
+    ///
+    /// # Returns
+    ///
+    /// * `&str` - The weight function name, either "uniform" or "distance"
+    pub fn get_weights(&self) -> &str {
+        &self.weights
+    }
+
+    /// Returns the distance metric used for calculating point similarities
+    ///
+    /// # Returns
+    ///
+    /// * `&str` - The metric name, such as "euclidean" or "manhattan"
+    pub fn get_metric(&self) -> &str {
+        &self.metric
+    }
+
+    /// Returns a reference to the training features if available
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(&Array2<f64>)` - A reference to the training data features if the model has been trained
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_x_train(&self) -> Result<&Array2<f64>, ModelError> {
+        match self.x_train {
+            Some(ref x) => Ok(x),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns a reference to the training labels if available
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(&Array2<T>)` - A reference to the training data labels if the model has been trained
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_y_train(&self) -> Result<&Array1<T>, ModelError> {
+        match self.y_train {
+            Some(ref y) => Ok(y),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
     /// Fits the KNN classifier to the training data
     ///
     /// # Arguments
@@ -254,56 +307,23 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
         }
     }
 
-    /// Returns the number of neighbors (k) used in the KNN algorithm
+    /// Fits the model with the training data and immediately predicts on the given test data.
+    ///
+    /// This is a convenience method that combines the `fit` and `predict` steps into one operation.
+    ///
+    /// # Parameters
+    /// * `x_train` - The training feature matrix with shape (n_samples, n_features)
+    /// * `y_train` - The training target values
+    /// * `x_test` - The test feature matrix with shape (n_samples, n_features)
     ///
     /// # Returns
-    ///
-    /// * `usize` - The value of k, representing how many nearest neighbors are considered for predictions
-    pub fn get_k(&self) -> usize {
-        self.k
-    }
-
-    /// Returns the weighting strategy used in the KNN algorithm
-    ///
-    /// # Returns
-    ///
-    /// * `&str` - The weight function name, either "uniform" or "distance"
-    pub fn get_weights(&self) -> &str {
-        &self.weights
-    }
-
-    /// Returns the distance metric used for calculating point similarities
-    ///
-    /// # Returns
-    ///
-    /// * `&str` - The metric name, such as "euclidean" or "manhattan"
-    pub fn get_metric(&self) -> &str {
-        &self.metric
-    }
-
-    /// Returns a reference to the training features if available
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(&Array2<f64>)` - A reference to the training data features if the model has been trained
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_x_train(&self) -> Result<&Array2<f64>, ModelError> {
-        match self.x_train {
-            Some(ref x) => Ok(x),
-            None => Err(ModelError::NotFitted),
-        }
-    }
-
-    /// Returns a reference to the training labels if available
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(&Array2<T>)` - A reference to the training data labels if the model has been trained
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_y_train(&self) -> Result<&Array1<T>, ModelError> {
-        match self.y_train {
-            Some(ref y) => Ok(y),
-            None => Err(ModelError::NotFitted),
-        }
+    /// * `Ok(Vec<T>)` - Vector of predicted values
+    pub fn fit_predict(&mut self, 
+                       x_train: Array2<f64>, 
+                       y_train: Array1<T>, 
+                       x_test: ArrayView2<f64>
+    ) -> Vec<T> {
+        self.fit(x_train, y_train);
+        self.predict(x_test).unwrap()
     }
 }

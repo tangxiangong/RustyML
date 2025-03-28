@@ -1,4 +1,4 @@
-use crate::machine_learning::dbscan::DBSCAN;
+use crate::machine_learning::dbscan::*;
 use ndarray::{arr2, Array2};
 use crate::ModelError;
 
@@ -120,7 +120,7 @@ fn test_fit_predict() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 2, "euclidean");
-    let labels = dbscan.fit_predict(&data).unwrap();
+    let labels = dbscan.fit_predict(&data);
 
     // Verify fit_predict results match fit+get_labels
     assert_eq!(labels, *dbscan.get_labels().unwrap());

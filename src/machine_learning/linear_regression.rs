@@ -308,4 +308,22 @@ impl LinearRegression {
 
         Ok(predictions)
     }
+
+    /// Fits the model to the training data and then makes predictions on the same data.
+    ///
+    /// This is a convenience method that combines the `fit` and `predict` methods into one call.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The input features matrix where each inner vector represents a training example
+    /// * `y` - The target values corresponding to each training example
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// * `Vec<f64>` - The predicted values for the input data
+    pub fn fit_predict(&mut self, x: &[Vec<f64>], y: &[f64]) -> Vec<f64> {
+        self.fit(x, y);
+        self.predict(x).unwrap()
+    }
 }

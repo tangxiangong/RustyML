@@ -1,5 +1,5 @@
 use crate::ModelError;
-use crate::machine_learning::linear_regression::LinearRegression;
+use crate::machine_learning::linear_regression::*;
 
 #[test]
 fn test_default_constructor() {
@@ -134,4 +134,39 @@ fn test_no_intercept() {
     if let Ok(intercept) = model.get_intercept() {
         assert!(intercept.abs() < 0.1);
     }
+}
+
+#[test]
+fn test_linear_regression_fit_predict() {
+    // Create a simple linear regression model instance
+    let mut model = LinearRegression::new(true, 0.01, 1000, 1e-6);
+
+    // Create simple training data
+    // Data points following y = 2x + 3
+    let x = vec![
+        vec![1.0], vec![2.0], vec![3.0], vec![4.0], vec![5.0]
+    ];
+    let y = vec![5.0, 7.0, 9.0, 11.0, 13.0];
+
+    // Use the fit_predict method
+    let predictions = model.fit_predict(&x, &y);
+
+    // Verify predictions are close to actual values
+    assert_eq!(predictions.len(), y.len());
+
+    for i in 0..y.len() {
+        // Allow for some margin of error
+        assert!((predictions[i] - y[i]).abs() < 0.5,
+                "Prediction {} differs too much from actual value {}", predictions[i], y[i]);
+    }
+
+    // Additional check for model parameters
+    let coefficients = model.get_coefficients().unwrap();
+    let intercept = model.get_intercept().unwrap();
+
+    // Verify coefficient is close to 2 and intercept is close to 3
+    assert!((coefficients[0] - 2.0).abs() < 0.5,
+            "Coefficient {} differs too much from expected value 2.0", coefficients[0]);
+    assert!((intercept - 3.0).abs() < 0.5,
+            "Intercept {} differs too much from expected value 3.0", intercept);
 }

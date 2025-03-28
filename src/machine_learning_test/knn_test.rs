@@ -1,5 +1,5 @@
-use ndarray::{Array1, Array2};
-use crate::machine_learning::knn::KNN;
+use ndarray::{Array1, Array2, array};
+use crate::machine_learning::knn::*;
 use crate::ModelError;
 
 // Test default initialization of KNN
@@ -200,4 +200,61 @@ fn test_knn_string_labels() {
 
     let predictions = knn.predict(x_test.view()).unwrap();
     assert_eq!(predictions, vec!["cat".to_string(), "dog".to_string()]);
+}
+
+#[test]
+fn test_fit_predict() {
+    // Create a new KNN model with k=3, uniform weights and euclidean metric
+    let mut knn = KNN::<i32>::new(3, "uniform", "euclidean");
+
+    // Create training data
+    // Features: 2D points
+    let x_train = array![
+            [1.0, 2.0],
+            [2.0, 3.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+            [6.0, 7.0]
+        ];
+
+    // Labels: classes 0 and 1
+    let y_train = array![0, 0, 0, 1, 1];
+
+    // Test data
+    let x_test = array![
+            [1.5, 2.5],  // Should be classified as 0 (closer to first 3 points)
+            [5.5, 6.5]   // Should be classified as 1 (closer to last 2 points)
+        ];
+
+    // Use fit_predict to get predictions
+    let predictions = knn.fit_predict(x_train, y_train, x_test.view());
+
+    // Verify predictions
+    assert_eq!(predictions.len(), 2);
+    assert_eq!(predictions[0], 0);
+    assert_eq!(predictions[1], 1);
+
+    // Verify the model has been fitted
+    assert!(knn.get_x_train().is_ok());
+    assert!(knn.get_y_train().is_ok());
+}
+
+#[test]
+fn test_fit_predict_empty_data() {
+    // Test with empty test data
+    let mut knn = KNN::<i32>::new(3, "uniform", "euclidean");
+
+    let x_train = array![
+            [1.0, 2.0],
+            [2.0, 3.0],
+            [3.0, 4.0]
+        ];
+    let y_train = array![0, 0, 1];
+
+    // Empty test data
+    let x_test = Array2::<f64>::zeros((0, 2));
+
+    // Should return empty predictions vector
+    let predictions = knn.fit_predict(x_train, y_train, x_test.view());
+    assert_eq!(predictions.len(), 0);
 }
