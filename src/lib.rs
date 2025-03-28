@@ -35,6 +35,11 @@ impl std::error::Error for ModelError {}
 /// - Calculate the Manhattan distance between two points
 /// - Calculate the Minkowski distance between two points
 /// - Calculate the Gaussian kernel (RBF kernel)
+/// - Calculates the entropy of a label set
+/// - Calculates the Gini impurity of a label set
+/// - Calculates the information gain when splitting a dataset
+/// - Calculates the gain ratio for a dataset split
+/// - Calculates the Mean Squared Error (MSE) of a set of values
 /// 
 /// These functions are particularly useful for regression model evaluation and
 /// performance assessment in machine learning applications.

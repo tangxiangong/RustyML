@@ -237,7 +237,7 @@ fn test_minkowski_distance() {
 
     // p=2 should be equivalent to Euclidean distance
     let dist_p2 = minkowski_distance(&a.view(), &b.view(), 2.0);
-    let expected = ((3.0f64.powi(2) + 3.0f64.powi(2) + 3.0f64.powi(2)) as f64).sqrt();
+    let expected = (3.0f64.powi(2) + 3.0f64.powi(2) + 3.0f64.powi(2)).sqrt();
     assert!((dist_p2 - expected).abs() < 1e-10);
     assert!((dist_p2 - 5.196152).abs() < 1e-6);
 
@@ -265,4 +265,157 @@ fn test_minkowski_distance_invalid_p() {
 
     // p < 1.0 should panic
     minkowski_distance(&a.view(), &b.view(), 0.5);
+}
+
+#[test]
+fn test_entropy_empty() {
+    let empty: Vec<f64> = vec![];
+    assert_eq!(entropy(&empty), 0.0);
+}
+
+#[test]
+fn test_entropy_homogeneous() {
+    // Dataset with only one class, entropy should be 0
+    let homogeneous = vec![1.0, 1.0, 1.0, 1.0, 1.0];
+    assert!(entropy(&homogeneous).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_entropy_balanced_binary() {
+    // Balanced binary dataset, entropy should be 1
+    let balanced = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+    assert!((entropy(&balanced) - 1.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_entropy_unbalanced() {
+    // Unbalanced dataset
+    let unbalanced = vec![0.0, 1.0, 1.0, 1.0];
+    // Probabilities: 0.0 -> 1/4, 1.0 -> 3/4
+    // Entropy = -(0.25*log2(0.25) + 0.75*log2(0.75))
+    let expected = -(0.25 * 0.25f64.log2() + 0.75 * 0.75f64.log2());
+    assert!((entropy(&unbalanced) - expected).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_entropy_multiclass() {
+    // Multi-class dataset
+    let multiclass = vec![0.0, 1.0, 2.0, 3.0];
+    // Each class has probability 0.25
+    // Entropy = -(4 * 0.25*log2(0.25))
+    let expected = -(4.0 * 0.25 * 0.25f64.log2());
+    assert!((entropy(&multiclass) - expected).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_gini_empty() {
+    let empty: Vec<f64> = vec![];
+    assert_eq!(gini(&empty), 0.0);
+}
+
+#[test]
+fn test_gini_homogeneous() {
+    // Homogeneous dataset, Gini impurity should be 0
+    let homogeneous = vec![1.0, 1.0, 1.0, 1.0];
+    assert!(gini(&homogeneous).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_gini_balanced_binary() {
+    // Balanced binary dataset, Gini impurity should be 0.5
+    let balanced = vec![0.0, 0.0, 1.0, 1.0];
+    // Gini = 1 - (0.5^2 + 0.5^2) = 0.5
+    assert!((gini(&balanced) - 0.5).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_gini_unbalanced() {
+    // Unbalanced dataset
+    let unbalanced = vec![0.0, 1.0, 1.0, 1.0];
+    // Probabilities: 0.0 -> 1/4, 1.0 -> 3/4
+    // Gini = 1 - (0.25^2 + 0.75^2) = 1 - (0.0625 + 0.5625) = 0.375
+    let expected = 1.0 - (0.25f64.powi(2) + 0.75f64.powi(2));
+    assert!((gini(&unbalanced) - expected).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_information_gain() {
+    let parent = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];  // 3 zeros, 3 ones
+    let left = vec![0.0, 0.0, 0.0];                   // 3 zeros
+    let right = vec![1.0, 1.0, 1.0];                  // 3 ones
+
+    // Parent entropy = 1.0
+    // Left child entropy = 0.0
+    // Right child entropy = 0.0
+    // Information gain = 1.0 - (3/6)*0.0 - (3/6)*0.0 = 1.0
+    assert!((information_gain(&parent, &left, &right) - 1.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_information_gain_no_improvement() {
+    let parent = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];  // 3 zeros, 3 ones
+    let left = vec![0.0, 0.0, 1.0];                   // 2 zeros, 1 one
+    let right = vec![0.0, 1.0, 1.0];                  // 1 zero, 2 ones
+
+    // Left and right child nodes have similar entropy distribution to parent
+    // So information gain should be close to 0
+    let gain = information_gain(&parent, &left, &right);
+    assert!(gain < 0.1);  // Allow for small error
+}
+
+#[test]
+fn test_gain_ratio() {
+    let parent = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];  // 3 zeros, 3 ones
+    let left = vec![0.0, 0.0, 0.0];                   // 3 zeros
+    let right = vec![1.0, 1.0, 1.0];                  // 3 ones
+
+    // Information gain = 1.0
+    // Split info = -(0.5*log2(0.5) + 0.5*log2(0.5)) = 1.0
+    // Gain ratio = 1.0/1.0 = 1.0
+    assert!((gain_ratio(&parent, &left, &right) - 1.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_gain_ratio_zero_split_info() {
+    // Test case where split info is zero
+    let parent = vec![0.0, 0.0, 1.0, 1.0];
+    let left = vec![0.0, 0.0, 1.0, 1.0];  // All samples in left node
+    let right: Vec<f64> = vec![];         // Right node empty
+
+    // Split info should be 0, function should return 0
+    assert_eq!(gain_ratio(&parent, &left, &right), 0.0);
+}
+
+#[test]
+fn test_mse_empty() {
+    let empty: Vec<f64> = vec![];
+    assert_eq!(mean_squared_error(&empty), 0.0);
+}
+
+#[test]
+fn test_mse_constant() {
+    // All values are the same, MSE should be 0
+    let constant = vec![5.0, 5.0, 5.0, 5.0];
+    assert!(mean_squared_error(&constant).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_mse_simple() {
+    // Simple case: [1, 2, 3]
+    // Mean = 2
+    // MSE = ((1-2)^2 + (2-2)^2 + (3-2)^2) / 3 = (1 + 0 + 1) / 3 = 2/3
+    let values = vec![1.0, 2.0, 3.0];
+    let expected = 2.0 / 3.0;
+    assert!((mean_squared_error(&values) - expected).abs() < f64::EPSILON);
+}
+
+#[test]
+fn test_mse_with_variance() {
+    // Case with larger variance
+    let values = vec![10.0, 20.0, 30.0, 40.0, 50.0];
+    // Mean = 30
+    // MSE = ((10-30)^2 + (20-30)^2 + (30-30)^2 + (40-30)^2 + (50-30)^2) / 5
+    //     = (400 + 100 + 0 + 100 + 400) / 5 = 1000 / 5 = 200
+    let expected = 200.0;
+    assert!((mean_squared_error(&values) - expected).abs() < f64::EPSILON);
 }

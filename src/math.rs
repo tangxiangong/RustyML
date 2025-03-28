@@ -372,6 +372,10 @@ pub fn information_gain(y: &[f64], left_y: &[f64], right_y: &[f64]) -> f64 {
 /// * Returns 0.0 if the split information is zero to avoid division by zero.
 /// * This function uses the information_gain function as part of its calculation.
 pub fn gain_ratio(y: &[f64], left_y: &[f64], right_y: &[f64]) -> f64 {
+    if left_y.is_empty() || right_y.is_empty() {
+        return 0.0;
+    }
+
     let info_gain = information_gain(y, left_y, right_y);
     let n = y.len() as f64;
     let n_left = left_y.len() as f64;
