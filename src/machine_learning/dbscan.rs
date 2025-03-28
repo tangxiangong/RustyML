@@ -2,17 +2,17 @@ use ndarray::{Array2};
 use std::collections::{HashSet, VecDeque};
 use crate::ModelError;
 
-/// DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm implementation
+/// # DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm implementation
 ///
 /// DBSCAN is a popular density-based clustering algorithm that can discover clusters of arbitrary shapes
 /// without requiring the number of clusters to be specified beforehand.
 ///
-/// # Fields
+/// ## Fields
 /// * `eps` - Neighborhood radius used to find neighbors
 /// * `min_samples` - Minimum number of neighbors required to form a core point
 /// * `metric` - Distance metric, options: "euclidean"(default), "manhattan", "minkowski"(p=3)
 ///
-/// # Examples
+/// ## Examples
 /// ```
 /// use rust_ai::machine_learning::dbscan::DBSCAN;
 /// use ndarray::Array2;
