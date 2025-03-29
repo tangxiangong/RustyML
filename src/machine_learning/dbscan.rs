@@ -11,7 +11,7 @@ use super::DistanceCalculationMetric as Metric;
 /// ## Fields
 /// * `eps` - Neighborhood radius used to find neighbors
 /// * `min_samples` - Minimum number of neighbors required to form a core point
-/// * `metric` - Distance metric, options: Euclidean, Manhattan, Minkowski(p=3), Default(Euclidean)
+/// * `metric` - Distance metric, options: Euclidean, Manhattan, Minkowski(p=3)
 ///
 /// ## Examples
 /// ```
@@ -48,7 +48,7 @@ impl Default for DBSCAN {
         DBSCAN {
             eps: 0.5,
             min_samples: 5,
-            metric: Metric::Default,
+            metric: Metric::Euclidean,
             labels_: None,
             core_sample_indices_: None,
         }
@@ -61,7 +61,7 @@ impl DBSCAN {
     /// # Parameters
     /// * `eps` - Neighborhood radius used to find neighbors
     /// * `min_samples` - Minimum number of neighbors required to form a core point
-    /// * `metric` - Distance metric to use (Euclidean, Manhattan, Minkowski, Default)
+    /// * `metric` - Distance metric to use (Euclidean, Manhattan, Minkowski)
     ///
     /// # Returns
     /// * `Self` - A new DBSCAN instance with the specified parameters
@@ -163,7 +163,6 @@ impl DBSCAN {
                     Metric::Euclidean => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt(),
                     Metric::Manhattan => manhattan_distance(&p_row.view(), &q_row.view()),
                     Metric::Minkowski => minkowski_distance(&p_row.view(), &q_row.view(), 3.0), // Default p=3
-                    Metric::Default => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt(),
                 };
 
                 if dist <= dbscan.eps {

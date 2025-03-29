@@ -2,6 +2,20 @@ use ndarray::{Array1, Array2, s, Axis};
 use std::collections::{HashMap, HashSet};
 use crate::ModelError;
 
+/// Represents different decision tree algorithms that can be used for tree construction.
+///
+/// # Variants
+///
+/// * `ID3` - Iterative Dichotomiser 3 algorithm, which uses information gain for feature selection. Works best with categorical features.
+/// * `C45` - An extension of ID3 that handles both continuous and discrete attributes, uses gain ratio instead of information gain to reduce bias towards features with many values.
+/// * `CART` - Classification And Regression Trees algorithm, which builds binary trees using the feature and threshold that yield the largest information gain at each node. Works with both classification and regression problems.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Algorithm {
+    ID3,
+    C45,
+    CART,
+}
+
 /// # Decision Tree
 ///
 /// A machine learning model that makes predictions by recursively partitioning the feature space.
@@ -12,7 +26,7 @@ use crate::ModelError;
 /// - Leaf nodes contain predictions (class labels or regression values)
 ///
 /// ## Fields
-/// * `algorithm` - The splitting algorithm used (e.g., "ID3", "C4.5", "CART")
+/// * `algorithm` - The splitting algorithm used (ID3, C45, CART)
 /// * `root` - The root node of the decision tree, if trained
 /// * `n_features` - Number of input features the model was trained on
 /// * `n_classes` - Number of target classes for classification tasks, None for regression
@@ -26,7 +40,7 @@ use crate::ModelError;
 /// - Customizable via hyperparameters to control tree complexity
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
-    algorithm: String,
+    algorithm: Algorithm,
     root: Option<Box<Node>>,
     n_features: usize,
     n_classes: Option<usize>,
@@ -41,13 +55,9 @@ pub struct DecisionTree {
 ///
 /// # Fields
 /// * `max_depth` - Maximum depth of the tree. If None, nodes are expanded until all leaves are pure or contain less than min_samples_split samples. Controls model complexity and helps prevent overfitting.
-///
 /// * `min_samples_split` - Minimum number of samples required to split an internal node. Higher values prevent learning patterns from small subsets that may be noise.
-///
 /// * `min_samples_leaf` - Minimum number of samples required at each leaf node. Ensures terminal nodes have enough observations for stable predictions.
-///
 /// * `min_impurity_decrease` - Minimum impurity decrease required for a split to happen. Prevents splits that don't significantly improve the model.
-///
 /// * `random_state` - Seed for the random number generator, used for reproducibility when selecting features or splitting points.
 #[derive(Debug, Clone)]
 pub struct DecisionTreeParams {
@@ -116,8 +126,7 @@ impl Node {
     /// # Parameters
     /// * `value` - The prediction value (mean target for regression trees or weighted majority class for classification)
     /// * `class` - The predicted class index for classification trees (None for regression trees)
-    /// * `probabilities` - Optional vector of class probabilities for classification trees
-    ///                    (proportion of each class in this leaf node)
+    /// * `probabilities` - Optional vector of class probabilities for classification trees (proportion of each class in this leaf node)
     ///
     /// # Returns
     /// * `Self` - A new Node configured as a leaf node with the specified prediction information
@@ -213,23 +222,17 @@ impl DecisionTree {
     /// The tree is not trained yet; the `fit` method must be called separately with training data.
     ///
     /// # Parameters
-    /// * `algorithm` - Optional splitting algorithm to use. If None, defaults to "CART" for both
-    ///                 classification and regression tasks
-    /// * `is_classifier` - Boolean flag indicating whether this is a classification tree (true) or
-    ///                    regression tree (false)
+    /// * `algorithm` - Algorithm to use for tree construction. If specified, uses the selected algorithm, otherwise defaults to "CART" for both classification and regression tasks.
+    /// * `is_classifier` - Boolean flag indicating whether this is a classification tree (true) or regression tree (false)
     /// * `params` - Optional hyperparameters for the tree. If None, uses default parameter values
     ///
     /// # Returns
     /// * `Self` - A new, untrained DecisionTree instance configured with the specified settings
-    pub fn new(algorithm: Option<String>, is_classifier: bool, params: Option<DecisionTreeParams>) -> Self {
-        let algorithm = algorithm.unwrap_or_else(|| {
-            if is_classifier {
-                "CART".to_string()
-            } else {
-                "CART".to_string()
-            }
-        });
-
+    pub fn new(algorithm: Algorithm, is_classifier: bool, params: Option<DecisionTreeParams>) -> Self {
+        if is_classifier == false && algorithm != Algorithm::CART {
+            panic!("Algorithm must be CART for non-classification tasks");
+        }
+        
         Self {
             algorithm,
             root: None,
@@ -253,8 +256,8 @@ impl DecisionTree {
     /// Returns the splitting algorithm used by this decision tree
     ///
     /// # Returns
-    /// * `&str` - String slice representing the algorithm name (e.g., "CART", "ID3", "C4.5")
-    pub fn get_algorithm(&self) -> &str {
+    /// * `&Algorithm` - A reference to the `&Algorithm` enum used by this instance
+    pub fn get_algorithm(&self) -> &Algorithm {
         &self.algorithm
     }
 
@@ -327,15 +330,14 @@ impl DecisionTree {
         }
 
         // Build decision tree based on specified algorithm
-        self.root = Some(match self.algorithm.as_str() {
-            "ID3" => self.build_id3_tree(x, y, 0),
-            "C4.5" => self.build_c45_tree(x, y, 0),
-            "CART" => self.build_cart_tree(x, y, 0),
-            _ => self.build_cart_tree(x, y, 0), // Default to CART
+        self.root = Some(match self.algorithm {
+            Algorithm::ID3 => self.build_id3_tree(x, y, 0),
+            Algorithm::C45 => self.build_c45_tree(x, y, 0),
+            Algorithm::CART => self.build_cart_tree(x, y, 0),
         });
 
         let actual_depth = self.calculate_tree_depth(self.root.as_ref().unwrap());
-        println!("Finish building decision tree, algorithm: {}, depth: {}", &self.algorithm, actual_depth);
+        println!("Finish building decision tree, depth: {}", actual_depth);
 
         self
     }

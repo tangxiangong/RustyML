@@ -1,11 +1,11 @@
-use crate::machine_learning::decision_tree::{DecisionTree, DecisionTreeParams, Node, NodeType};
+use crate::machine_learning::decision_tree::*;
 use ndarray::{arr1, arr2};
 
 #[test]
 fn test_decision_tree_new() {
     // Test creating a decision tree with default parameters
-    let dt = DecisionTree::new(None, true, None);
-    assert_eq!(dt.get_algorithm(), "CART");
+    let dt = DecisionTree::new(Algorithm::CART, true, None);
+    assert!(matches!(dt.get_algorithm(), Algorithm::CART));
     assert!(dt.get_is_classifier());
 
     // Test creating a decision tree with custom parameters
@@ -16,8 +16,8 @@ fn test_decision_tree_new() {
         min_impurity_decrease: 0.1,
         random_state: Some(42),
     };
-    let dt = DecisionTree::new(Some("ID3".to_string()), false, Some(params));
-    assert_eq!(dt.get_algorithm(), "ID3");
+    let dt = DecisionTree::new(Algorithm::CART, false, Some(params));
+    assert!(matches!(dt.get_algorithm(), Algorithm::CART));
     assert!(!dt.get_is_classifier());
     assert_eq!(dt.get_params().max_depth, Some(5));
     assert_eq!(dt.get_params().min_samples_split, 10);
@@ -50,7 +50,7 @@ fn test_fit_predict_classifier() {
     let y = arr1(&[0.0, 0.0, 0.0, 0.0, 1.0, 1.0]);
 
     // Create classifier
-    let mut dt = DecisionTree::new(None, true, None);
+    let mut dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Train the model
     dt.fit(&x, &y);
@@ -87,7 +87,7 @@ fn test_fit_predict_regressor() {
     let y = arr1(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
     // Create regressor
-    let mut dt = DecisionTree::new(None, false, None);
+    let mut dt = DecisionTree::new(Algorithm::CART, false, None);
 
     // Train the model
     dt.fit(&x, &y);
@@ -120,7 +120,7 @@ fn test_predict_proba() {
     let y = arr1(&[0.0, 0.0, 1.0, 1.0, 2.0, 2.0]);
 
     // Create classifier
-    let mut dt = DecisionTree::new(None, true, None);
+    let mut dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Train the model
     dt.fit(&x, &y);
@@ -153,17 +153,17 @@ fn test_different_algorithms() {
     let y = arr1(&[0.0, 0.0, 1.0, 1.0]);
 
     // Test ID3 algorithm
-    let mut dt_id3 = DecisionTree::new(Some("ID3".to_string()), true, None);
+    let mut dt_id3 = DecisionTree::new(Algorithm::ID3, true, None);
     dt_id3.fit(&x, &y);
     let pred_id3 = dt_id3.predict(&x).unwrap();
 
     // Test C4.5 algorithm
-    let mut dt_c45 = DecisionTree::new(Some("C45".to_string()), true, None);
+    let mut dt_c45 = DecisionTree::new(Algorithm::C45, true, None);
     dt_c45.fit(&x, &y);
     let pred_c45 = dt_c45.predict(&x).unwrap();
 
     // Test CART algorithm
-    let mut dt_cart = DecisionTree::new(Some("CART".to_string()), true, None);
+    let mut dt_cart = DecisionTree::new(Algorithm::CART, true, None);
     dt_cart.fit(&x, &y);
     let pred_cart = dt_cart.predict(&x).unwrap();
 
@@ -188,7 +188,7 @@ fn test_max_depth_parameter() {
         ..DecisionTreeParams::default()
     };
 
-    let mut dt_limited = DecisionTree::new(None, true, Some(params_depth1));
+    let mut dt_limited = DecisionTree::new(Algorithm::CART, true, Some(params_depth1));
     dt_limited.fit(&x, &y);
 
     // Check if tree depth is limited
@@ -198,7 +198,7 @@ fn test_max_depth_parameter() {
     let _predictions = dt_limited.predict(&x).unwrap();
 
     // Create an unlimited depth tree for comparison
-    let mut dt_unlimited = DecisionTree::new(None, true, None);
+    let mut dt_unlimited = DecisionTree::new(Algorithm::CART, true, None);
     dt_unlimited.fit(&x, &y);
 
     let predictions_unlimited = dt_unlimited.predict(&x).unwrap();
@@ -212,7 +212,7 @@ fn test_max_depth_parameter() {
 #[test]
 fn test_error_handling() {
     // Create an untrained tree
-    let dt = DecisionTree::new(None, true, None);
+    let dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Trying to get the root node should fail
     assert!(dt.get_root().is_err());

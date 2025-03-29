@@ -9,7 +9,7 @@ use super::DistanceCalculationMetric as Metric;
 /// 
 /// * `Uniform` - Each neighbor is weighted equally
 /// * `Distance` - Neighbors are weighted by the inverse of their distance (closer neighbors have greater influence)
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone, PartialEq)]
 pub enum WeightingStrategy {
     /// All neighbors are weighted equally regardless of their distance to the query point.
     Uniform,
@@ -31,8 +31,8 @@ pub enum WeightingStrategy {
 /// * `k` - Number of neighbors to consider for classification
 /// * `x_train` - Training data features as a 2D array
 /// * `y_train` - Training data labels/targets
-/// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
-/// * `metric` - Distance metric used for finding neighbors. Options: Euclidean, Manhattan, Minkowski(p=3), Default(Euclidean)
+/// * `weights` - Weight function for neighbor votes. Options: Uniform, Distance
+/// * `metric` - Distance metric used for finding neighbors. Options: Euclidean, Manhattan, Minkowski(p=3)
 ///
 /// ## Examples
 ///
@@ -80,7 +80,7 @@ pub struct KNN<T> {
 impl<T: Clone + std::hash::Hash + Eq> Default for KNN<T> {
     /// Creates a new KNN classifier with default parameters:
     /// * k = 5
-    /// * weights = "uniform"
+    /// * weights = Uniform
     /// * metric = Euclidean
     fn default() -> Self {
         KNN {
@@ -99,8 +99,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     /// # Arguments
     ///
     /// * `k` - Number of neighbors to use for classification
-    /// * `weights` - Weighting strategy for neighbor votes ("uniform" or "distance")
-    /// * `metric` - Distance metric to use (Euclidean, Manhattan, Minkowski, Default)
+    /// * `weights` - Weighting strategy for neighbor votes (Uniform or Distance)
+    /// * `metric` - Distance metric to use (Euclidean, Manhattan, Minkowski)
     ///
     /// # Returns
     ///
@@ -232,7 +232,6 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
             Metric::Euclidean => squared_euclidean_distance(&a, &b).sqrt(),
             Metric::Manhattan => manhattan_distance(&a, &b),
             Metric::Minkowski => minkowski_distance(&a, &b, 3.0),
-            Metric::Default => squared_euclidean_distance(&a, &b).sqrt(),
         }
     }
 
