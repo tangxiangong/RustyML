@@ -14,6 +14,11 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
     - `gain_ratio`: Calculates the gain ratio for a dataset split
     - `mean_squared_error`: Calculates the Mean Squared Error (MSE) of a set of values
 
+### Changed
+- Replaced string-based distance calculation method options with an enum `crate::machine_learning::DistanceCalculation`
+- For KNN model: replaced string-based weight function options with an enum `crate::machine_learning::knn::WeightingStrategy`
+- For decision tree: replaced string-based algorithm options with an enum `crate::machine_learning::decision_tree::Algorithm`
+
 ## [v0.1.0] - 2025-3-27
 ### Added
 - Add changelog.md to record updates

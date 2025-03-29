@@ -18,13 +18,14 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Calculate the Gaussian kernel (RBF kernel) | 计算高斯核(RBF核)
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
-    - Regression | 回归问题:
+    - Supervised Learning | 监督式学习:
       - Linear Regression | 线性回归
       - Logistic Regression | 逻辑回归
-
-    - Clustering | 聚类问题:
-      - KMeans | K均值聚类
       - KNN | K邻近值聚类
+      - Decision Tree | 决策树
+
+    - Unsupervised Learning | 无监督学习:
+      - KMeans | K均值聚类
       - MeanShift | MeanShift聚类
       - DBSCAN | DBSCAN聚类
 
