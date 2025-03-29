@@ -808,6 +808,77 @@ impl DecisionTree {
             }
         }
     }
+
+    /// Prints the decision tree structure using ASCII symbols.
+    ///
+    /// If the tree has been trained, it recursively prints each node from the root,
+    /// using symbols such as "├──", "└──", and "│" to show the hierarchy.
+    /// If the tree is not trained, it prints an appropriate message.
+    ///
+    /// # Returns
+    /// - `Ok(String)` - Tree structure as string
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn generate_tree_structure(&self) -> Result<String, ModelError> {
+        /// Recursively builds and returns a String representing the tree structure using ASCII symbols.
+        ///
+        /// # Parameters
+        /// - `node`: The current node in the tree.
+        /// - `prefix`: The current indentation string.
+        /// - `is_last`: A flag indicating whether this node is the last child of its parent.
+        ///
+        /// # Returns
+        /// * `String` - Tree structure as string
+        fn build_ascii(node: &Node, prefix: &str, is_last: bool) -> String {
+            let mut output = String::new();
+            let connector = if is_last { "└── " } else { "├── " };
+
+            match &node.node_type {
+                NodeType::Leaf { value, class, probabilities } => {
+                    output.push_str(&format!("{}{}Leaf: value: {}, class: {:?}, probabilities: {:?}\n",
+                                             prefix, connector, value, class, probabilities));
+                },
+                NodeType::Internal { feature_index, threshold, categories } => {
+                    if let Some(categories) = categories {
+                        // For categorical features.
+                        output.push_str(&format!("{}{}Internal (categorical): feature index: {}, categories: {:?}\n",
+                                                 prefix, connector, feature_index, categories));
+                        if let Some(children) = &node.children {
+                            let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
+                            // Sort keys for consistent output.
+                            let mut keys: Vec<&String> = children.keys().collect();
+                            keys.sort();
+                            let child_count = keys.len();
+                            for (i, key) in keys.into_iter().enumerate() {
+                                let child = &children[key];
+                                let child_connector = if i == child_count - 1 { "└── " } else { "├── " };
+                                output.push_str(&format!("{}{}Category: {}\n", new_prefix, child_connector, key));
+                                let child_prefix = format!("{}{}", new_prefix, if i == child_count - 1 { "    " } else { "│   " });
+                                output.push_str(&build_ascii(child, &child_prefix, true));
+                            }
+                        }
+                    } else {
+                        // For numerical features.
+                        output.push_str(&format!("{}{}Internal (numerical): feature index: {}, threshold: {}\n",
+                                                 prefix, connector, feature_index, threshold));
+                        let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
+                        if let Some(left) = &node.left {
+                            output.push_str(&build_ascii(left, &new_prefix, false));
+                        }
+                        if let Some(right) = &node.right {
+                            output.push_str(&build_ascii(right, &new_prefix, true));
+                        }
+                    }
+                },
+            }
+            output
+        }
+        
+        let root = match self.root.as_ref(){
+            Some(root) => root,
+            None => return Err(ModelError::NotFitted),
+        };
+        Ok(build_ascii(root, "", true))
+    }
 }
 
 /// Finds the best feature and threshold to split the data based on the specified algorithm

@@ -76,6 +76,9 @@ fn test_fit_predict_classifier() {
     let sample = &[1.0, 1.0];
     let pred = dt.predict_one(sample).unwrap();
     assert_eq!(pred, 1.0);
+    
+    // print tree
+    println!("{}", dt.generate_tree_structure().unwrap());
 }
 
 #[test]
@@ -104,6 +107,9 @@ fn test_fit_predict_regressor() {
     for i in 0..6 {
         assert!((predictions[i] - y[i]).abs() < 0.5);
     }
+
+    // print tree
+    println!("{}", dt.generate_tree_structure().unwrap());
 }
 
 #[test]
