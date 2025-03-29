@@ -16,6 +16,11 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Calculate the Manhattan distance between two points ｜ 计算两点间的曼哈顿距离
     - Calculate the Minkowski distance between two points ｜ 计算两点间的闵可夫斯基距离
     - Calculate the Gaussian kernel (RBF kernel) | 计算高斯核(RBF核)
+    - Calculates the entropy of a label set | 计算标签集的熵
+    - Calculates the Gini impurity of a label set | 计算标签集的基尼不纯度
+    - Calculates the information gain when splitting a dataset | 计算数据集分割时的信息增益
+    - Calculates the gain ratio for a dataset split | 计算数据集分割的增益率
+    - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
     - Supervised Learning | 监督式学习:
