@@ -1,6 +1,21 @@
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use std::collections::HashMap;
 use crate::ModelError;
+use super::DistanceCalculationMetric as Metric;
+
+/// Represents the strategy used for weighting neighbors in KNN algorithm.
+///
+/// # Variants
+/// 
+/// * `Uniform` - Each neighbor is weighted equally
+/// * `Distance` - Neighbors are weighted by the inverse of their distance (closer neighbors have greater influence)
+#[derive(Debug,Clone)]
+pub enum WeightingStrategy {
+    /// All neighbors are weighted equally regardless of their distance to the query point.
+    Uniform,
+    /// Neighbors are weighted by the inverse of their distance, giving closer neighbors more influence on the prediction.
+    Distance,
+}
 
 /// # K-Nearest Neighbors (KNN) Classifier
 ///
@@ -17,13 +32,14 @@ use crate::ModelError;
 /// * `x_train` - Training data features as a 2D array
 /// * `y_train` - Training data labels/targets
 /// * `weights` - Weight function for neighbor votes. Options: "uniform"(default), "distance"
-/// * `metric` - Distance metric used for finding neighbors. Options: "euclidean"(default), "manhattan", "minkowski"(p=3)
+/// * `metric` - Distance metric used for finding neighbors. Options: Euclidean, Manhattan, Minkowski(p=3), Default(Euclidean)
 ///
 /// ## Examples
 ///
 /// ```rust
 /// use ndarray::{array, Array1, Array2};
-/// use rust_ai::machine_learning::knn::KNN;
+/// use rust_ai::machine_learning::knn::{KNN, WeightingStrategy};
+/// use rust_ai::machine_learning::DistanceCalculationMetric as Metric;
 ///
 /// // Create a simple dataset
 /// let x_train = array![
@@ -38,7 +54,7 @@ use crate::ModelError;
 /// let y_train = array!["A", "A", "A", "B", "B"];
 ///
 /// // Create KNN model with k=3 and default settings
-/// let mut knn = KNN::new(3, "uniform", "euclidean");
+/// let mut knn = KNN::new(3, WeightingStrategy::Uniform, Metric::Euclidean);
 ///
 /// // Fit the model
 /// knn.fit(x_train, y_train);
@@ -51,34 +67,28 @@ use crate::ModelError;
 ///
 /// let predictions = knn.predict(x_test.view()).unwrap();
 /// println!("Predictions: {:?}", predictions);  // Should print ["A", "B"]
-///
-/// // Get model parameters
-/// println!("k value: {}", knn.get_k());
-/// println!("Weight strategy: {}", knn.get_weights());
-/// println!("Distance metric: {}", knn.get_metric());
 /// ```
-
 #[derive(Debug, Clone)]
 pub struct KNN<T> {
     k: usize,
     x_train: Option<Array2<f64>>,
     y_train: Option<Array1<T>>,
-    weights: String,
-    metric: String,
+    weights: WeightingStrategy,
+    metric: Metric,
 }
 
 impl<T: Clone + std::hash::Hash + Eq> Default for KNN<T> {
     /// Creates a new KNN classifier with default parameters:
     /// * k = 5
     /// * weights = "uniform"
-    /// * metric = "euclidean"
+    /// * metric = Euclidean
     fn default() -> Self {
         KNN {
             k: 5,
             x_train: None,
             y_train: None,
-            weights: "uniform".to_string(),
-            metric: "euclidean".to_string(),
+            weights: WeightingStrategy::Uniform,
+            metric: Metric::Euclidean,
         }
     }
 }
@@ -90,18 +100,18 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// * `k` - Number of neighbors to use for classification
     /// * `weights` - Weighting strategy for neighbor votes ("uniform" or "distance")
-    /// * `metric` - Distance metric to use ("euclidean", "manhattan" or "minkowski")
+    /// * `metric` - Distance metric to use (Euclidean, Manhattan, Minkowski, Default)
     ///
     /// # Returns
     ///
     /// * `Self` - A new KNN classifier instance
-    pub fn new(k: usize, weights: &str, metric: &str) -> Self {
+    pub fn new(k: usize, weights: WeightingStrategy, metric: Metric) -> Self {
         KNN {
             k,
             x_train: None,
             y_train: None,
-            weights: weights.to_string(),
-            metric: metric.to_string(),
+            weights,
+            metric,
         }
     }
 
@@ -118,8 +128,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// * `&str` - The weight function name, either "uniform" or "distance"
-    pub fn get_weights(&self) -> &str {
+    /// * `&WeightingStrategy` - A reference to the `WeightingStrategy` enum used by this instance
+    pub fn get_weights(&self) -> &WeightingStrategy {
         &self.weights
     }
 
@@ -127,8 +137,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     ///
-    /// * `&str` - The metric name, such as "euclidean" or "manhattan"
-    pub fn get_metric(&self) -> &str {
+    /// * `&Metric` - A reference to the Metric enum used by this instance
+    pub fn get_metric(&self) -> &Metric {
         &self.metric
     }
 
@@ -218,17 +228,11 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
         use crate::math::{squared_euclidean_distance, manhattan_distance, minkowski_distance};
         let a = a.insert_axis(ndarray::Axis(0));
         let b = b.insert_axis(ndarray::Axis(0));
-        match self.metric.as_str() {
-            "euclidean" => {
-                squared_euclidean_distance(&a, &b).sqrt()
-            },
-
-            "manhattan" => manhattan_distance(&a, &b),
-            "minkowski" => minkowski_distance(&a, &b, 3.0),
-            _ => {
-                // Default to Euclidean distance
-                squared_euclidean_distance(&a, &b).sqrt()
-            }
+        match self.metric {
+            Metric::Euclidean => squared_euclidean_distance(&a, &b).sqrt(),
+            Metric::Manhattan => manhattan_distance(&a, &b),
+            Metric::Minkowski => minkowski_distance(&a, &b, 3.0),
+            Metric::Default => squared_euclidean_distance(&a, &b).sqrt(),
         }
     }
 
@@ -260,8 +264,8 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
         let k_neighbors: Vec<_> = distances.iter().take(self.k).collect();
 
         // Calculate based on weight strategy
-        match self.weights.as_str() {
-            "uniform" => {
+        match self.weights {
+            WeightingStrategy::Uniform => {
                 // Count class occurrences
                 let mut class_counts: HashMap<&T, usize> = HashMap::new();
                 for &(_, idx) in k_neighbors {
@@ -276,7 +280,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
                     .map(|(class, _)| (*class).clone())
                     .unwrap()
             },
-            "distance" => {
+            WeightingStrategy::Distance => {
                 // Weight by inverse distance
                 let mut class_weights: HashMap<&T, f64> = HashMap::new();
                 for &(distance, idx) in k_neighbors {
@@ -293,20 +297,6 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
                     .map(|(class, _)| (*class).clone())
                     .unwrap()
             },
-            _ => {
-                // Default to uniform weights
-                let mut class_counts: HashMap<&T, usize> = HashMap::new();
-                for &(_, idx) in k_neighbors {
-                    let class = &y_train[idx];
-                    *class_counts.entry(class).or_insert(0) += 1;
-                }
-
-                class_counts
-                    .iter()
-                    .max_by_key(|&(_, &count)| count)
-                    .map(|(class, _)| (*class).clone())
-                    .unwrap()
-            }
         }
     }
 

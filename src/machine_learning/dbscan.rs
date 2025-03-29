@@ -1,6 +1,7 @@
 use ndarray::{Array2};
 use std::collections::{HashSet, VecDeque};
 use crate::ModelError;
+use super::DistanceCalculationMetric as Metric;
 
 /// # DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm implementation
 ///
@@ -10,12 +11,13 @@ use crate::ModelError;
 /// ## Fields
 /// * `eps` - Neighborhood radius used to find neighbors
 /// * `min_samples` - Minimum number of neighbors required to form a core point
-/// * `metric` - Distance metric, options: "euclidean"(default), "manhattan", "minkowski"(p=3)
+/// * `metric` - Distance metric, options: Euclidean, Manhattan, Minkowski(p=3), Default(Euclidean)
 ///
 /// ## Examples
 /// ```
 /// use rust_ai::machine_learning::dbscan::DBSCAN;
 /// use ndarray::Array2;
+/// use rust_ai::machine_learning::DistanceCalculationMetric;
 ///
 /// let data = Array2::from_shape_vec((5, 2), vec![
 ///     0.0, 0.0,
@@ -25,14 +27,14 @@ use crate::ModelError;
 ///     2.0, 2.0,
 /// ]).unwrap();
 ///
-/// let mut dbscan = DBSCAN::new(0.5, 2, "euclidean");
+/// let mut dbscan = DBSCAN::new(0.5, 2, DistanceCalculationMetric::Euclidean);
 /// let labels = dbscan.fit_predict(&data);
 /// ```
 #[derive(Debug, Clone)]
 pub struct DBSCAN {
     eps: f64,
     min_samples: usize,
-    metric: String,
+    metric: Metric,
     labels_: Option<Vec<i32>>,
     core_sample_indices_: Option<Vec<usize>>,
 }
@@ -41,12 +43,12 @@ impl Default for DBSCAN {
     /// Creates a DBSCAN instance with default parameters:
     /// * eps = 0.5
     /// * min_samples = 5
-    /// * metric = "euclidean"
+    /// * metric = Euclidean
     fn default() -> Self {
         DBSCAN {
             eps: 0.5,
             min_samples: 5,
-            metric: "euclidean".to_string(),
+            metric: Metric::Default,
             labels_: None,
             core_sample_indices_: None,
         }
@@ -59,15 +61,15 @@ impl DBSCAN {
     /// # Parameters
     /// * `eps` - Neighborhood radius used to find neighbors
     /// * `min_samples` - Minimum number of neighbors required to form a core point
-    /// * `metric` - Distance metric to use ("euclidean", "manhattan", or "minkowski")
+    /// * `metric` - Distance metric to use (Euclidean, Manhattan, Minkowski, Default)
     ///
     /// # Returns
     /// * `Self` - A new DBSCAN instance with the specified parameters
-    pub fn new(eps: f64, min_samples: usize, metric: &str) -> Self {
+    pub fn new(eps: f64, min_samples: usize, metric: Metric) -> Self {
         DBSCAN {
             eps,
             min_samples,
-            metric: metric.to_string(),
+            metric,
             labels_: None,
             core_sample_indices_: None,
         }
@@ -92,9 +94,10 @@ impl DBSCAN {
     /// Returns the distance metric being used
     ///
     /// # Returns
-    /// The name of the distance metric as a string slice
-    pub fn get_metric(&self) -> &str {
-        self.metric.as_str()
+    /// 
+    /// * `&Metric` - A reference to the Metric enum used by this instance
+    pub fn get_metric(&self) -> &Metric {
+        &self.metric
     }
 
     /// Returns the cluster labels assigned to each sample
@@ -145,7 +148,7 @@ impl DBSCAN {
         ///
         /// # Returns
         /// * `Vec<usize>` - Vector of indices of all neighbors of point p
-        fn region_query(dbscan: &DBSCAN, data: &Array2<f64>, p: usize, metric: String) -> Vec<usize> {
+        fn region_query(dbscan: &DBSCAN, data: &Array2<f64>, p: usize, metric: Metric) -> Vec<usize> {
             use crate::math::{squared_euclidean_distance, manhattan_distance, minkowski_distance};
 
             let mut neighbors = Vec::new();
@@ -156,11 +159,11 @@ impl DBSCAN {
                 let q_row = data.row(q).insert_axis(ndarray::Axis(0));
 
                 // Choose distance formula based on metric
-                let dist = match metric.as_str() {
-                    "euclidean" => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt(),
-                    "manhattan" => manhattan_distance(&p_row.view(), &q_row.view()),
-                    "minkowski" => minkowski_distance(&p_row.view(), &q_row.view(), 3.0), // Default p=3
-                    _ => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt() // Default to Euclidean
+                let dist = match metric {
+                    Metric::Euclidean => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt(),
+                    Metric::Manhattan => manhattan_distance(&p_row.view(), &q_row.view()),
+                    Metric::Minkowski => minkowski_distance(&p_row.view(), &q_row.view(), 3.0), // Default p=3
+                    Metric::Default => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt(),
                 };
 
                 if dist <= dbscan.eps {

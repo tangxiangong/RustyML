@@ -1,13 +1,14 @@
 use crate::machine_learning::dbscan::*;
 use ndarray::{arr2, Array2};
 use crate::ModelError;
+use crate::machine_learning::DistanceCalculationMetric as Metric;
 
 #[test]
 fn test_new() {
-    let dbscan = DBSCAN::new(0.5, 5, "euclidean");
+    let dbscan = DBSCAN::new(0.5, 5, Metric::Euclidean);
     assert_eq!(dbscan.get_eps(), 0.5);
     assert_eq!(dbscan.get_min_samples(), 5);
-    assert_eq!(dbscan.get_metric(), "euclidean");
+    assert!(matches!(dbscan.get_metric(), Metric::Euclidean));
 }
 
 #[test]
@@ -20,15 +21,15 @@ fn test_default() {
 
 #[test]
 fn test_getters() {
-    let dbscan = DBSCAN::new(0.7, 10, "manhattan");
+    let dbscan = DBSCAN::new(0.7, 10, Metric::Manhattan);
     assert_eq!(dbscan.get_eps(), 0.7);
     assert_eq!(dbscan.get_min_samples(), 10);
-    assert_eq!(dbscan.get_metric(), "manhattan");
+    assert!(matches!(dbscan.get_metric(), Metric::Manhattan));
 }
 
 #[test]
 fn test_get_labels_before_fit() {
-    let dbscan = DBSCAN::new(0.5, 5, "euclidean");
+    let dbscan = DBSCAN::new(0.5, 5, Metric::Euclidean);
     match dbscan.get_labels() {
         Err(ModelError::NotFitted) => assert!(true),
         _ => panic!("Expected NotFitted error"),
@@ -37,7 +38,7 @@ fn test_get_labels_before_fit() {
 
 #[test]
 fn test_get_core_sample_indices_before_fit() {
-    let dbscan = DBSCAN::new(0.5, 5, "euclidean");
+    let dbscan = DBSCAN::new(0.5, 5, Metric::Euclidean);
     match dbscan.get_core_sample_indices() {
         Err(ModelError::NotFitted) => assert!(true),
         _ => panic!("Expected NotFitted error"),
@@ -59,7 +60,7 @@ fn test_fit_simple_data() {
         [5.0, 5.0],
     ]);
 
-    let mut dbscan = DBSCAN::new(0.5, 3, "euclidean");
+    let mut dbscan = DBSCAN::new(0.5, 3, Metric::Euclidean);
     dbscan.fit(&data);
 
     let labels = dbscan.get_labels().unwrap();
@@ -101,7 +102,7 @@ fn test_predict() {
         [5.0, 5.0],  // Should be noise
     ]);
 
-    let mut dbscan = DBSCAN::new(0.5, 2, "euclidean");
+    let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
     dbscan.fit(&train_data);
 
     let predictions = dbscan.predict(&train_data, &new_data).unwrap();
@@ -119,7 +120,7 @@ fn test_fit_predict() {
         [5.0, 5.0],
     ]);
 
-    let mut dbscan = DBSCAN::new(0.5, 2, "euclidean");
+    let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
     let labels = dbscan.fit_predict(&data);
 
     // Verify fit_predict results match fit+get_labels
@@ -138,7 +139,7 @@ fn test_predict_before_fit() {
         [1.0, 2.1],
     ]);
 
-    let dbscan = DBSCAN::new(0.5, 2, "euclidean");
+    let dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
     match dbscan.predict(&data, &new_data) {
         Err(ModelError::NotFitted) => assert!(true),
         _ => panic!("Expected NotFitted error"),
@@ -148,7 +149,7 @@ fn test_predict_before_fit() {
 #[test]
 fn test_empty_data() {
     let data = Array2::<f64>::zeros((0, 2));
-    let mut dbscan = DBSCAN::new(0.5, 2, "euclidean");
+    let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
 
     // Test with empty dataset
     dbscan.fit(&data);
@@ -167,11 +168,11 @@ fn test_different_metrics() {
     ]);
 
     // Test with different distance metrics
-    let mut euclidean_dbscan = DBSCAN::new(0.5, 2, "euclidean");
+    let mut euclidean_dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
     euclidean_dbscan.fit(&data);
     let euclidean_labels = euclidean_dbscan.get_labels().unwrap();
 
-    let mut manhattan_dbscan = DBSCAN::new(0.5, 2, "manhattan");
+    let mut manhattan_dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
     manhattan_dbscan.fit(&data);
     let manhattan_labels = manhattan_dbscan.get_labels().unwrap();
 
