@@ -37,7 +37,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
       - DBSCAN | DBSCAN聚类
       - Isolation Forest | 隔离森林
 
-- **Others | 其他**:
+- **Utility | 工具**:
   - PCA(Principal Component Analysis)
 
 ## Vision | 愿景
