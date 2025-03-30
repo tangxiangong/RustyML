@@ -5,6 +5,19 @@ This change log records updates after 2025-3-24.
 
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
+## [v0.1.0] - 2025-3-30
+### Added
+- Add function `fit_predict` for some models
+- Add examples for functions in math.rs
+- Add input validation
+- Add doc comments for machine learning modules
+- Add prelude module(all re-exports are there)
+
+### Changed
+- Change input types of function `fit`, `predict` and `fit_predict` to `Array1` and `Array2`
+- Rename the crate from `rust_ai` to `rustyml`
+- Change the output of function `fit` from `&mut Self` to `Result<&mut Self, ModelError>` or `Result<&mut Self, Box<dyn std::error::Error>>`
+
 ## [v0.1.0] - 2025-3-29
 ### Added
 - Add function `generate_tree_structure` for `DecisionTree` to generate tree structure as string
