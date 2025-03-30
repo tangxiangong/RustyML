@@ -1,4 +1,5 @@
 use crate::{math, ModelError};
+use ndarray::{Array1, Array2};
 
 /// # Linear Regression model implementation
 ///
@@ -20,19 +21,24 @@ use crate::{math, ModelError};
 ///
 /// ```
 /// use rust_ai::machine_learning::linear_regression::LinearRegression;
+/// use ndarray::{Array1, Array2, array};
 ///
 /// // Create a linear regression model
 /// let mut model = LinearRegression::new(true, 0.01, 1000, 1e-6);
 ///
 /// // Prepare training data
-/// let x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
-/// let y = vec![6.0, 9.0, 12.0];
+/// let raw_x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
+/// let raw_y = vec![6.0, 9.0, 12.0];
+///
+/// // Convert Vec to ndarray types
+/// let x = Array2::from_shape_vec((3, 2), raw_x.into_iter().flatten().collect()).unwrap();
+/// let y = Array1::from_vec(raw_y);
 ///
 /// // Train the model
 /// model.fit(&x, &y);
 ///
 /// // Make predictions
-/// let new_data = vec![vec![4.0, 5.0]];
+/// let new_data = Array2::from_shape_vec((1, 2), vec![4.0, 5.0]).unwrap();
 /// let predictions = model.predict(&new_data);
 ///
 /// // Since Clone is implemented, the model can be easily cloned
@@ -181,17 +187,17 @@ impl LinearRegression {
     ///
     /// # Return Value
     /// * `&mut self` - Returns mutable reference to self for method chaining
-    pub fn fit(&mut self, x: &[Vec<f64>], y: &[f64]) -> &mut Self {
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> &mut Self {
         // Ensure x and y have the same number of samples
-        assert!(!x.is_empty(), "x cannot be empty");
-        assert!(!y.is_empty(), "y cannot be empty");
-        assert_eq!(x.len(), y.len(), "x and y must have the same number of samples");
+        assert!(x.nrows() > 0, "x cannot be empty");
+        assert!(y.len() > 0, "y cannot be empty");
+        assert_eq!(x.nrows(), y.len(), "x and y must have the same number of samples");
 
-        let n_samples = x.len();
-        let n_features = x[0].len();
+        let n_samples = x.nrows();
+        let n_features = x.ncols();
 
         // Initialize parameters
-        let mut weights = vec![0.0; n_features]; // Initialize weights to zero
+        let mut weights = Array1::<f64>::zeros(n_features); // Initialize weights to zero
         let mut intercept = 0.0;                 // Initialize intercept to zero
 
         let mut prev_cost = f64::INFINITY;
@@ -204,25 +210,29 @@ impl LinearRegression {
             n_iter += 1;
 
             // Calculate predictions
-            let mut predictions = Vec::with_capacity(n_samples);
+            let mut predictions = Array1::<f64>::zeros(n_samples);
             for i in 0..n_samples {
                 let mut pred = 0.0;
                 for j in 0..n_features {
-                    pred += x[i][j] * weights[j];
+                    pred += x[[i, j]] * weights[j];
                 }
                 if self.fit_intercept {
                     pred += intercept;
                 }
-                predictions.push(pred);
+                predictions[i] = pred;
             }
 
             // Calculate mean squared error
-            let sse = math::sum_of_squared_errors(&predictions, y);
+            let sse = math::sum_of_squared_errors(
+                predictions.as_slice().expect("predictions should be contiguous"),
+                y.as_slice().expect("y should be contiguous")
+            );
+
             let cost = sse / (2.0 * n_samples as f64); // Mean squared error divided by 2
             final_cost = cost;
 
             // Calculate gradients
-            let mut gradients = vec![0.0; n_features];
+            let mut gradients = Array1::<f64>::zeros(n_features);
             let mut intercept_gradient = 0.0;
 
             for i in 0..n_samples {
@@ -230,7 +240,7 @@ impl LinearRegression {
 
                 // Update gradients for weights
                 for j in 0..n_features {
-                    gradients[j] += error * x[i][j];
+                    gradients[j] += error * x[[i, j]];
                 }
 
                 // Update gradient for intercept
@@ -262,7 +272,7 @@ impl LinearRegression {
         }
 
         // Save training results
-        self.coefficients = Some(weights);
+        self.coefficients = Some(weights.to_vec());
         self.intercept = Some(if self.fit_intercept { intercept } else { 0.0 });
         self.n_iter = Some(n_iter);
 
@@ -282,7 +292,7 @@ impl LinearRegression {
     /// - `Ok(Vec<f64>)` - A vector of predictions
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::InputValidationError)` - If number of features does not match training data
-    pub fn predict(&self, x: &[Vec<f64>]) -> Result<Vec<f64>, ModelError> {
+    pub fn predict(&self, x: &Array2<f64>) -> Result<Vec<f64>, ModelError> {
         if self.coefficients.is_none() {
             return Err(ModelError::NotFitted);
         }
@@ -290,17 +300,17 @@ impl LinearRegression {
         let coeffs = self.coefficients.as_ref().unwrap();
         let intercept = self.intercept.unwrap_or(0.0);
 
-        let mut predictions = Vec::with_capacity(x.len());
-        for sample in x {
-            if sample.len() != coeffs.len() {
+        let mut predictions = Vec::with_capacity(x.nrows());
+        for i in 0..x.nrows() {
+            if x.ncols() != coeffs.len() {
                 return Err(ModelError::InputValidationError(
                     "Number of features does not match training data"
                 ));
             }
 
             let mut prediction = intercept;
-            for (i, &feature_val) in sample.iter().enumerate() {
-                prediction += feature_val * coeffs[i];
+            for j in 0..x.ncols() {
+                prediction += x[[i, j]] * coeffs[j];
             }
 
             predictions.push(prediction);
@@ -322,7 +332,7 @@ impl LinearRegression {
     ///
     /// A Result containing either:
     /// * `Vec<f64>` - The predicted values for the input data
-    pub fn fit_predict(&mut self, x: &[Vec<f64>], y: &[f64]) -> Vec<f64> {
+    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Vec<f64> {
         self.fit(x, y);
         self.predict(x).unwrap()
     }

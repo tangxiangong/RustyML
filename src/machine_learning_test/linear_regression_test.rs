@@ -1,5 +1,6 @@
 use crate::ModelError;
 use crate::machine_learning::linear_regression::*;
+use ndarray::{Array1, Array2};
 
 #[test]
 fn test_default_constructor() {
@@ -40,8 +41,12 @@ fn test_not_fitted_error() {
 #[test]
 fn test_fit_and_predict() {
     // Create a simple dataset: y = 2*x + 1
-    let x = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
-    let y = vec![3.0, 5.0, 7.0, 9.0];
+    let x_vec = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
+    let y_vec = vec![3.0, 5.0, 7.0, 9.0];
+
+    // 将Vec转换为ndarray的Array
+    let x = Array2::from_shape_vec((4, 1), x_vec.into_iter().flatten().collect()).unwrap();
+    let y = Array1::from_vec(y_vec);
 
     let mut model = LinearRegression::new(true, 0.01, 10000, 1e-8);
     model.fit(&x, &y);
@@ -54,7 +59,8 @@ fn test_fit_and_predict() {
     assert!((intercept - 1.0).abs() < 0.1);
 
     // Test predictions
-    let test_x = vec![vec![5.0], vec![6.0]];
+    let test_x_vec = vec![vec![5.0], vec![6.0]];
+    let test_x = Array2::from_shape_vec((2, 1), test_x_vec.into_iter().flatten().collect()).unwrap();
     let predictions = model.predict(&test_x).unwrap();
 
     assert!((predictions[0] - 11.0).abs() < 0.2);
@@ -64,26 +70,28 @@ fn test_fit_and_predict() {
 #[test]
 fn test_multivariate_regression() {
     // Create multivariate dataset: y = 2*x1 + 3*x2 + 1
-    // Using uncorrelated feature values to avoid multicollinearity issues
-    let x = vec![
-        vec![1.0, 2.0],  // Different values
-        vec![2.0, 1.0],  // Inverse relationship
+    let x_vec = vec![
+        vec![1.0, 2.0],
+        vec![2.0, 1.0],
         vec![3.0, 4.0],
         vec![4.0, 3.0],
-        vec![2.5, 3.5],  // Adding more samples
+        vec![2.5, 3.5],
         vec![3.5, 2.5],
         vec![1.5, 3.0],
         vec![3.0, 1.5],
     ];
 
     // Calculate y values based on y = 2*x1 + 3*x2 + 1
-    let mut y = Vec::new();
-    for sample in &x {
-        y.push(2.0 * sample[0] + 3.0 * sample[1] + 1.0);
+    let mut y_vec = Vec::new();
+    for sample in &x_vec {
+        y_vec.push(2.0 * sample[0] + 3.0 * sample[1] + 1.0);
     }
 
+    // 将Vec转换为ndarray的Array
+    let x = Array2::from_shape_vec((8, 2), x_vec.into_iter().flatten().collect()).unwrap();
+    let y = Array1::from_vec(y_vec);
+
     // Create model and train
-    // Using smaller learning rate and more iterations
     let mut model = LinearRegression::new(true, 0.005, 20000, 1e-10);
     model.fit(&x, &y);
 
@@ -94,7 +102,6 @@ fn test_multivariate_regression() {
     println!("Learned coefficients: {:?}", coefficients);
     println!("Learned intercept: {}", intercept);
 
-    // Allow for some margin of error
     assert!((coefficients[0] - 2.0).abs() < 0.2,
             "First coefficient {} differs too much from expected 2.0", coefficients[0]);
     assert!((coefficients[1] - 3.0).abs() < 0.2,
@@ -103,13 +110,13 @@ fn test_multivariate_regression() {
             "Intercept {} differs too much from expected 1.0", intercept);
 
     // Test predictions
-    let test_x = vec![
+    let test_x_vec = vec![
         vec![5.0, 5.0],
         vec![2.0, 4.0],
     ];
+    let test_x = Array2::from_shape_vec((2, 2), test_x_vec.into_iter().flatten().collect()).unwrap();
     let predictions = model.predict(&test_x).unwrap();
 
-    // Expected: y1 = 2*5 + 3*5 + 1 = 26, y2 = 2*2 + 3*4 + 1 = 17
     assert!((predictions[0] - 26.0).abs() < 0.5,
             "Prediction {} differs too much from expected 26.0", predictions[0]);
     assert!((predictions[1] - 17.0).abs() < 0.5,
@@ -119,8 +126,12 @@ fn test_multivariate_regression() {
 #[test]
 fn test_no_intercept() {
     // Test without intercept: y = 2*x
-    let x = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
-    let y = vec![2.0, 4.0, 6.0, 8.0];
+    let x_vec = vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]];
+    let y_vec = vec![2.0, 4.0, 6.0, 8.0];
+
+    // 将Vec转换为ndarray的Array
+    let x = Array2::from_shape_vec((4, 1), x_vec.into_iter().flatten().collect()).unwrap();
+    let y = Array1::from_vec(y_vec);
 
     let mut model = LinearRegression::new(false, 0.01, 10000, 1e-8);
     model.fit(&x, &y);
@@ -142,11 +153,14 @@ fn test_linear_regression_fit_predict() {
     let mut model = LinearRegression::new(true, 0.01, 1000, 1e-6);
 
     // Create simple training data
-    // Data points following y = 2x + 3
-    let x = vec![
+    let x_vec = vec![
         vec![1.0], vec![2.0], vec![3.0], vec![4.0], vec![5.0]
     ];
-    let y = vec![5.0, 7.0, 9.0, 11.0, 13.0];
+    let y_vec = vec![5.0, 7.0, 9.0, 11.0, 13.0];
+
+    // 将Vec转换为ndarray的Array
+    let x = Array2::from_shape_vec((5, 1), x_vec.into_iter().flatten().collect()).unwrap();
+    let y = Array1::from_vec(y_vec);
 
     // Use the fit_predict method
     let predictions = model.fit_predict(&x, &y);
@@ -155,7 +169,6 @@ fn test_linear_regression_fit_predict() {
     assert_eq!(predictions.len(), y.len());
 
     for i in 0..y.len() {
-        // Allow for some margin of error
         assert!((predictions[i] - y[i]).abs() < 0.5,
                 "Prediction {} differs too much from actual value {}", predictions[i], y[i]);
     }
