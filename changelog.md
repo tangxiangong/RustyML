@@ -9,6 +9,8 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ### Added
 - Add function `generate_tree_structure` for `DecisionTree` to generate tree structure as string
 - Add isolation forest implementation
+- Add PCA(Principal Component Analysis) implementation
+- Add function `standard_deviation` in math module to calculates the standard deviation of a set of values
 
 ## [v0.1.0] - 2025-3-28
 ### Added

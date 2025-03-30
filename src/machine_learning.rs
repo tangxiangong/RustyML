@@ -25,3 +25,4 @@ pub mod meanshift;
 pub mod dbscan;
 pub mod decision_tree;
 pub mod isolation_forest;
+pub mod principal_component_analysis;

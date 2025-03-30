@@ -41,6 +41,7 @@ impl std::error::Error for ModelError {}
 /// - Calculates the gain ratio for a dataset split
 /// - Calculates the Mean Squared Error (MSE) of a set of values
 /// - Calculates the leaf node adjustment factor c(n)
+/// - Calculates the standard deviation of a set of values
 /// 
 /// These functions are particularly useful for regression model evaluation and
 /// performance assessment in machine learning applications.

@@ -436,3 +436,30 @@ pub fn average_path_length_factor(n: f64) -> f64 {
         2.0 * ((n - 1.0).ln() + gamma) - 2.0 * (n - 1.0) / n
     }
 }
+
+/// Calculates the standard deviation of a set of values
+///
+/// # Parameters
+///
+/// * `values` - A slice of f64 values
+///
+/// # Returns
+///
+/// * `f64` - The standard deviation. Returns 0.0 if the slice is empty or contains only one element.
+pub fn standard_deviation(values: &[f64]) -> f64 {
+    let n = values.len();
+    if n == 0 {
+        return 0.0;
+    }
+
+    // Calculate the mean of the values
+    let mean = values.iter().sum::<f64>() / n as f64;
+
+    // Calculate the variance using n (population variance)
+    let variance = values.iter()
+        .map(|&x| (x - mean).powi(2))
+        .sum::<f64>() / n as f64;
+
+    // Return the population standard deviation
+    variance.sqrt()
+}

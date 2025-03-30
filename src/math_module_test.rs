@@ -419,3 +419,29 @@ fn test_mse_with_variance() {
     let expected = 200.0;
     assert!((mean_squared_error(&values) - expected).abs() < f64::EPSILON);
 }
+
+#[test]
+fn test_standard_deviation() {
+    // Test empty array
+    let empty: Vec<f64> = vec![];
+    assert_eq!(standard_deviation(&empty), 0.0);
+
+    // Test array with single element
+    let single = vec![5.0];
+    assert_eq!(standard_deviation(&single), 0.0);
+
+    // Test array with all same values
+    let same_values = vec![2.0, 2.0, 2.0, 2.0];
+    assert!((standard_deviation(&same_values) - 0.0).abs() < f64::EPSILON);
+
+    // Test general case
+    let values = vec![2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
+    let expected = 2.0; // population standard deviation is 2.0
+    assert!((standard_deviation(&values) - expected).abs() < f64::EPSILON);
+
+    // Test with negative numbers
+    let negative_values = vec![-5.0, -3.0, 0.0, 3.0, 5.0];
+    // Correct expected population standard deviation = sqrt(68/5)
+    let expected = f64::sqrt(68.0 / 5.0);
+    assert!((standard_deviation(&negative_values) - expected).abs() < f64::EPSILON);
+}
