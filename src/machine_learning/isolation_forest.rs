@@ -180,6 +180,8 @@ impl IsolationForest {
 
             self.trees.as_mut().unwrap().push(tree);
         }
+
+        println!("Finished building Isolation Forest");
     }
 
     /// Recursively constructs an Isolation Tree
