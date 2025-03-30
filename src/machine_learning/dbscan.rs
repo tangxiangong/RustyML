@@ -134,10 +134,26 @@ impl DBSCAN {
     /// # Parameters
     /// * `data` - Input data as a 2D array where each row is a sample
     ///
+    /// # Returns
+    /// - `Ok(&Vec<usize>)` - Vector of indices of core samples if model has been fitted
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    ///
     /// # Notes
     /// After fitting, cluster labels can be accessed via `get_labels()` method.
     /// Labels of -1 indicate noise points (outliers).
-    pub fn fit(&mut self, data: &Array2<f64>) {
+    pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
+        if data.nrows() == 0 {
+            return Err(ModelError::InputValidationError("Empty dataset provided to DBSCAN"));
+        }
+
+        if self.eps <= 0.0 {
+            return Err(ModelError::InputValidationError("eps must be positive"));
+        }
+
+        if self.min_samples <= 0 {
+            return Err(ModelError::InputValidationError("min_samples must be greater than 0"));
+        }
+
         /// Find all neighbors of point p (points within eps distance)
         ///
         /// # Parameters
@@ -236,6 +252,8 @@ impl DBSCAN {
 
         self.labels_ = Some(labels);
         self.core_sample_indices_ = Some(core_samples.into_iter().collect());
+
+        Ok(self)
     }
 
     /// Predicts cluster labels for new data points based on trained model
@@ -301,13 +319,14 @@ impl DBSCAN {
     /// * `data` - Input data as a 2D array where each row is a sample
     ///
     /// # Returns
-    /// * `Vec<i32>` - Vector of cluster labels for each sample
+    /// - `Ok(Vec<i32>)` - Vector of cluster labels for each sample
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     ///
     /// # Notes
     /// This is equivalent to calling `fit()` followed by `get_labels()`,
     /// but more convenient when you don't need to reuse the model.
-    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Vec<i32> {
-        self.fit(data);
-        self.labels_.as_ref().unwrap().clone()
+    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
+        self.fit(data)?;
+        Ok(self.labels_.as_ref().unwrap().clone())
     }
 }

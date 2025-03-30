@@ -61,7 +61,7 @@ fn test_fit_simple_data() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 3, Metric::Euclidean);
-    dbscan.fit(&data);
+    dbscan.fit(&data).unwrap();
 
     let labels = dbscan.get_labels().unwrap();
     let core_indices = dbscan.get_core_sample_indices().unwrap();
@@ -103,7 +103,7 @@ fn test_predict() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    dbscan.fit(&train_data);
+    dbscan.fit(&train_data).unwrap();
 
     let predictions = dbscan.predict(&train_data, &new_data).unwrap();
     assert_eq!(predictions.len(), new_data.nrows());
@@ -121,7 +121,7 @@ fn test_fit_predict() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    let labels = dbscan.fit_predict(&data);
+    let labels = dbscan.fit_predict(&data).unwrap();
 
     // Verify fit_predict results match fit+get_labels
     assert_eq!(labels, *dbscan.get_labels().unwrap());
@@ -152,9 +152,10 @@ fn test_empty_data() {
     let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
 
     // Test with empty dataset
-    dbscan.fit(&data);
-    let labels = dbscan.get_labels().unwrap();
-    assert_eq!(labels.len(), 0);
+    match dbscan.fit(&data) {
+        Err(ModelError::InputValidationError(_)) => assert!(true),
+        _ => panic!("Expected InputValidationError"),
+    }
 }
 
 #[test]
@@ -169,11 +170,11 @@ fn test_different_metrics() {
 
     // Test with different distance metrics
     let mut euclidean_dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    euclidean_dbscan.fit(&data);
+    euclidean_dbscan.fit(&data).unwrap();
     let euclidean_labels = euclidean_dbscan.get_labels().unwrap();
 
     let mut manhattan_dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    manhattan_dbscan.fit(&data);
+    manhattan_dbscan.fit(&data).unwrap();
     let manhattan_labels = manhattan_dbscan.get_labels().unwrap();
 
     // The clustering results might differ based on the metric

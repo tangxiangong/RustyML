@@ -34,7 +34,7 @@ fn test_fit_and_predict_simple_case() {
     let y = arr1(&[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
 
     let mut model = LogisticRegression::default();
-    model.fit(&x, &y);
+    model.fit(&x, &y).unwrap();
 
     // Check if weights exist
     assert!(matches!(model.get_weights(), Ok(_)));
@@ -61,7 +61,7 @@ fn test_predict_proba() {
     let x = arr2(&[[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]);
     let y = arr1(&[0.0, 0.0, 0.0, 1.0]);
 
-    model.fit(&x, &y);
+    model.fit(&x, &y).unwrap();
 
     // Check predictions
     let predictions = model.predict(&x).unwrap();
@@ -104,11 +104,11 @@ fn test_fit_with_intercept() {
     let y = arr1(&[0.0, 0.0, 1.0, 1.0]);
 
     let mut model_with_intercept = LogisticRegression::new(true, 0.1, 1000, 1e-6);
-    model_with_intercept.fit(&x, &y);
+    model_with_intercept.fit(&x, &y).unwrap();
 
     // Training without intercept
     let mut model_without_intercept = LogisticRegression::new(false, 0.1, 1000, 1e-6);
-    model_without_intercept.fit(&x, &y);
+    model_without_intercept.fit(&x, &y).unwrap();
 
     // Check predictions from both models
     let predictions_with_intercept = model_with_intercept.predict(&x).unwrap();
@@ -141,7 +141,7 @@ fn test_fit_predict() {
     ]).unwrap();
 
     // Use fit_predict method for prediction
-    let predictions = model.fit_predict(&train_x, &train_y, &test_x);
+    let predictions = model.fit_predict(&train_x, &train_y, &test_x).unwrap();
 
     // Assert: Check that the predictions are a 1D array of length 2 (number of test samples)
     assert_eq!(predictions.len(), 2);

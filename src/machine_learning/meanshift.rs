@@ -116,7 +116,7 @@ impl MeanShift {
     /// Gets the cluster centers found by the algorithm.
     ///
     /// # Returns
-    /// * `Ok(Array2<f64>)` - A Result containing the cluster centers as an ndarray `Array2<f64>`
+    /// * `Ok(Array2<f64>)` - A Result containing the cluster centers as a ndarray `Array2<f64>`
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_cluster_centers(&self) -> Result<Array2<f64>, ModelError> {
         match self.cluster_centers.as_ref() {
@@ -128,7 +128,7 @@ impl MeanShift {
     /// Gets the cluster labels assigned to each data point.
     ///
     /// # Returns
-    /// - `Ok(Array1<usize>)` - A Result containing the cluster labels as an ndarray `Array1<usize>`
+    /// - `Ok(Array1<usize>)` - A Result containing the cluster labels as a ndarray `Array1<usize>`
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_labels(&self) -> Result<Array1<usize>, ModelError> {
         match self.labels.as_ref() {
@@ -152,7 +152,7 @@ impl MeanShift {
     /// Gets the number of samples per cluster center.
     ///
     /// # Returns
-    /// - `Ok(Array1<usize>)` - A Result containing the number of samples per center as an ndarray `Array1<usize>`
+    /// - `Ok(Array1<usize>)` - A Result containing the number of samples per center as a ndarray `Array1<usize>`
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn get_n_samples_per_center(&self) -> Result<Array1<usize>, ModelError> {
         match self.n_samples_per_center.as_ref() {
@@ -228,15 +228,49 @@ impl MeanShift {
     /// Fits the MeanShift clustering model to the input data.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
+    /// * `x` - The input data as a ndarray `Array2<f64>` where each row is a sample.
     ///
     /// # Returns
-    /// * `&mut Self` - A mutable reference to the fitted model.
-    pub fn fit(&mut self, x: &Array2<f64>) -> &mut Self {
+    /// - `Ok(&mut Self)` - A mutable reference to the fitted model
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError> {
+        if self.bandwidth <= 0.0 {
+            return Err(ModelError::InputValidationError("bandwidth must be positive"));
+        }
+
+        if self.max_iter <= 0 {
+            return Err(ModelError::InputValidationError("max_iter must be positive"));
+        }
+
+        if self.tol <= 0.0 {
+            return Err(ModelError::InputValidationError("tol must be positive"));
+        }
+
         use crate::math::gaussian_kernel;
 
         let n_samples = x.shape()[0];
         let n_features = x.shape()[1];
+
+        if n_samples == 0 {
+            return Err(ModelError::InputValidationError("x must contain at least one sample"));
+        }
+
+        if n_features == 0 {
+            return Err(ModelError::InputValidationError("x must contain at least one feature"));
+        }
+
+        for row in 0..n_samples {
+            for col in 0..n_features {
+                let value = x[[row, col]];
+                if value.is_nan() {
+                    return Err(ModelError::InputValidationError("x must not contain NaN values"));
+                }
+
+                if value.is_infinite() {
+                    return Err(ModelError::InputValidationError("x must not contain infinite values"));
+                }
+            }
+        }
 
         // Initialize seed points
         let seeds: Vec<usize> = if self.bin_seeding {
@@ -335,7 +369,7 @@ impl MeanShift {
                     let count = center_counts[i];
                     let new_count = count + 1;
                     let updated_center = unique_centers[i].clone() * (count as f64 / new_count as f64) +
-                        center.clone() * (1.0 / new_count as f64);  // 这里添加 clone()
+                        center.clone() * (1.0 / new_count as f64);
                     unique_centers[i] = updated_center;
                     center_counts[i] = new_count;
                     is_unique = false;
@@ -388,13 +422,13 @@ impl MeanShift {
         println!("Mean shift model training finished at iteration {}, number of clusters: {}",
                 self.n_iter.unwrap_or(0), n_clusters);
 
-        self
+        Ok(self)
     }
 
     /// Predicts cluster labels for the input data.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
+    /// * `x` - The input data as a ndarray `Array2<f64>` where each row is a sample.
     ///
     /// # Returns
     /// - `Ok(Array1<usize>)` - containing the predicted cluster labels.
@@ -437,20 +471,20 @@ impl MeanShift {
     /// Fits the model to the input data and predicts cluster labels.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
+    /// * `x` - The input data as a ndarray `Array2<f64>` where each row is a sample.
     ///
     /// # Returns
     /// - `Ok(Array1<usize>)` - containing the predicted cluster labels.
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn fit_predict(&mut self, x: &Array2<f64>) -> Array1<usize> {
-        self.fit(x);
-        self.labels.clone().unwrap()
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit_predict(&mut self, x: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+        self.fit(x)?;
+        Ok(self.labels.clone().unwrap())
     }
 
     /// Generates initial seeds for the clustering algorithm using binning.
     ///
     /// # Parameters
-    /// * `x` - The input data as an ndarray Array2<f64> where each row is a sample.
+    /// * `x` - The input data as a ndarray Array2<f64> where each row is a sample.
     ///
     /// # Returns
     /// * `Vec<usize>` - A vector of indices representing the initial seed points.
@@ -503,7 +537,7 @@ impl MeanShift {
 /// The bandwidth is estimated based on the pairwise distances between a subset of points.
 ///
 /// # Parameters
-/// * `x` - The input data as an ndarray `Array2<f64>` where each row is a sample.
+/// * `x` - The input data as a ndarray `Array2<f64>` where each row is a sample.
 /// * `quantile` - The quantile of the pairwise distances to use as the bandwidth.
 /// * `n_samples` - The number of samples to use for the distance calculation.
 /// * `random_state` - Seed for random number generation.

@@ -49,7 +49,7 @@ fn test_fit_and_predict() {
     let y = Array1::from_vec(y_vec);
 
     let mut model = LinearRegression::new(true, 0.01, 10000, 1e-8);
-    model.fit(&x, &y);
+    model.fit(&x, &y).unwrap();
 
     // Check if coefficients and intercept are close to expected values
     let coefficients = model.get_coefficients().unwrap();
@@ -93,7 +93,7 @@ fn test_multivariate_regression() {
 
     // Create model and train
     let mut model = LinearRegression::new(true, 0.005, 20000, 1e-10);
-    model.fit(&x, &y);
+    model.fit(&x, &y).unwrap();
 
     // Check if coefficients and intercept are close to expected values
     let coefficients = model.get_coefficients().unwrap();
@@ -134,7 +134,7 @@ fn test_no_intercept() {
     let y = Array1::from_vec(y_vec);
 
     let mut model = LinearRegression::new(false, 0.01, 10000, 1e-8);
-    model.fit(&x, &y);
+    model.fit(&x, &y).unwrap();
 
     // Check if coefficient is close to expected value (around 2.0)
     let coefficients = model.get_coefficients().unwrap();
@@ -163,7 +163,7 @@ fn test_linear_regression_fit_predict() {
     let y = Array1::from_vec(y_vec);
 
     // Use the fit_predict method
-    let predictions = model.fit_predict(&x, &y);
+    let predictions = model.fit_predict(&x, &y).unwrap();
 
     // Verify predictions are close to actual values
     assert_eq!(predictions.len(), y.len());

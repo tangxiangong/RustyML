@@ -109,7 +109,8 @@ impl PCA {
     ///
     /// # Returns
     ///
-    /// * `Result<(), Box<dyn Error>>` - Ok if successful, Err otherwise
+    /// - `Ok(&mut Self)` - The instance
+    /// - `Err(Box<dyn std::error::Error>)` - If something goes wrong
     ///
     /// # Implementation Details
     ///
@@ -118,9 +119,27 @@ impl PCA {
     /// - Computes the covariance matrix
     /// - Calculates eigenvalues and eigenvectors
     /// - Sorts components by explained variance
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<(), Box<dyn Error>> {
+    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn Error>> {
         let n_samples = x.nrows();
         let n_features = x.ncols();
+
+        if n_samples == 0 || n_features == 0 {
+            return Err(Box::new(ModelError::InputValidationError("Input cannot be empty.")))
+        }
+
+        if self.n_components <= 0 {
+            return Err(Box::new(ModelError::InputValidationError("Number of components must be positive.")))
+        }
+
+        for value in x.iter() {
+            if value.is_nan() {
+                return Err(Box::new(ModelError::InputValidationError("Input contains NaN values.")))
+            }
+
+            if value.is_infinite() {
+                return Err(Box::new(ModelError::InputValidationError("Input contains infinite values.")))
+            }
+        }
 
         // Calculate mean
         let mut mean = Array1::<f64>::zeros(n_features);
@@ -171,7 +190,59 @@ impl PCA {
         self.explained_variance_ratio = Some(explained_variance_ratio);
         self.singular_values = Some(singular_values);
 
-        Ok(())
+        Ok(self)
+    }
+
+    /// Gets the components matrix
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(&Array2<f64>)` - The components matrix if fitted
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_components(&self) -> Result<&Array2<f64>, ModelError> {
+        match self.components.as_ref() {
+            Some(components) => Ok(components),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Gets the explained variance
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(&Array1<f64>)` - The explained variance array if fitted
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_explained_variance(&self) -> Result<&Array1<f64>, ModelError> {
+        match self.explained_variance.as_ref() {
+            Some(explained_variance) => Ok(explained_variance),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Gets the explained variance ratio
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(&Array1<f64>)` - The explained variance ratio array if fitted
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_explained_variance_ratio(&self) -> Result<&Array1<f64>, ModelError> {
+        match self.explained_variance_ratio.as_ref() {
+            Some(explained_variance_ratio) => Ok(explained_variance_ratio),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Gets the singular values
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&Array1<f64>)` - The singular values array if fitted
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn get_singular_values(&self) -> Result<&Array1<f64>, ModelError> {
+        match self.singular_values.as_ref() {
+            Some(singular_values) => Ok(singular_values),
+            None => Err(ModelError::NotFitted),
+        }
     }
 
     /// Transforms data into principal component space
@@ -253,58 +324,6 @@ impl PCA {
         }
 
         Ok(x_restored)
-    }
-
-    /// Gets the components matrix
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(&Array2<f64>)` - The components matrix if fitted
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_components(&self) -> Result<&Array2<f64>, ModelError> {
-        match self.components.as_ref() {
-            Some(components) => Ok(components),
-            None => Err(ModelError::NotFitted),
-        }
-    }
-
-    /// Gets the explained variance
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(&Array1<f64>)` - The explained variance array if fitted
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_explained_variance(&self) -> Result<&Array1<f64>, ModelError> {
-        match self.explained_variance.as_ref() {
-            Some(explained_variance) => Ok(explained_variance),
-            None => Err(ModelError::NotFitted),
-        }
-    }
-
-    /// Gets the explained variance ratio
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(&Array1<f64>)` - The explained variance ratio array if fitted
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_explained_variance_ratio(&self) -> Result<&Array1<f64>, ModelError> {
-        match self.explained_variance_ratio.as_ref() {
-            Some(explained_variance_ratio) => Ok(explained_variance_ratio),
-            None => Err(ModelError::NotFitted),
-        }
-    }
-
-    /// Gets the singular values
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(&Array1<f64>)` - The singular values array if fitted
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_singular_values(&self) -> Result<&Array1<f64>, ModelError> {
-        match self.singular_values.as_ref() {
-            Some(singular_values) => Ok(singular_values),
-            None => Err(ModelError::NotFitted),
-        }
     }
 }
 

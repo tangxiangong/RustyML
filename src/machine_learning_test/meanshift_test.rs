@@ -66,7 +66,7 @@ fn test_meanshift_fit() {
     let data = create_test_data();
 
     let mut ms = MeanShift::new(2.0, None, None, None, Some(true));
-    ms.fit(&data);
+    ms.fit(&data).unwrap();
 
     // Check that all attributes are accessible after fitting
     assert!(ms.get_cluster_centers().is_ok());
@@ -88,7 +88,7 @@ fn test_meanshift_predict() {
     let data = create_test_data();
 
     let mut ms = MeanShift::new(2.0, None, None, None, Some(true));
-    ms.fit(&data);
+    ms.fit(&data).unwrap();
 
     // Create some new test points
     let test_points = arr2(&[
@@ -114,7 +114,7 @@ fn test_meanshift_fit_predict() {
     let data = create_test_data();
 
     let mut ms = MeanShift::new(2.0, None, None, None, Some(true));
-    let labels = ms.fit_predict(&data);
+    let labels = ms.fit_predict(&data).unwrap();
 
     assert_eq!(labels.len(), data.dim().0);
 
@@ -135,15 +135,14 @@ fn test_bin_seeding() {
     let mut ms1 = MeanShift::new(2.0, None, None, Some(false), None);
     let mut ms2 = MeanShift::new(2.0, None, None, Some(true), None);
 
-    ms1.fit(&data);
-    ms2.fit(&data);
+    ms1.fit(&data).unwrap();
+    ms2.fit(&data).unwrap();
 
     // Both methods should fit successfully
     assert!(ms1.get_cluster_centers().is_ok());
     assert!(ms2.get_cluster_centers().is_ok());
 
-    // With bin_seeding we typically expect fewer initial points
-    // but we can't make strong assertions about the final number of clusters
+    // With bin_seeding we typically expect fewer initial points, but we can't make strong assertions about the final number of clusters
 }
 
 #[test]
@@ -177,12 +176,12 @@ fn test_cluster_all_parameter() {
 
     // With cluster_all = false, some points may not be assigned to clusters
     let mut ms1 = MeanShift::new(1.0, None, None, None, Some(false));
-    ms1.fit(&data);
+    ms1.fit(&data).unwrap();
     let labels1 = ms1.get_labels().unwrap();
 
     // With cluster_all = true, all points should be assigned to clusters
     let mut ms2 = MeanShift::new(1.0, None, None, None, Some(true));
-    ms2.fit(&data);
+    ms2.fit(&data).unwrap();
     let labels2 = ms2.get_labels().unwrap();
 
     // Both should have the same number of labels
@@ -195,7 +194,7 @@ fn test_fit_with_max_iterations() {
 
     // Set a very low max_iter to force early stopping
     let mut ms = MeanShift::new(2.0, Some(1), None, None, None);
-    ms.fit(&data);
+    ms.fit(&data).unwrap();
 
     // Should complete successfully and n_iter should be 1
     assert_eq!(ms.get_n_iter().unwrap(), 1);

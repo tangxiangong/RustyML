@@ -36,7 +36,7 @@ use crate::ModelError;
 /// let y_train = Array1::from_vec(vec![0.0, 0.0, 0.0, 1.0]);
 ///
 /// // Train the model
-/// model.fit(&x_train, &y_train);
+/// model.fit(&x_train, &y_train).unwrap();
 ///
 /// // Create test data
 /// let x_test = Array2::from_shape_vec((2, 2), vec![
@@ -101,34 +101,6 @@ impl LogisticRegression {
             max_iter: max_iterations,
             tol : tolerance,
             n_iter: None,
-        }
-    }
-
-    /// Predicts probability scores for samples
-    ///
-    /// Uses the sigmoid function to convert linear predictions to probabilities between 0-1.
-    ///
-    /// # Parameters
-    ///
-    /// * `x` - Feature matrix view where each row is a sample and each column is a feature
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(Array1<f64>)`A 1D array containing the probability of each sample belonging to the positive class
-    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    fn predict_proba(&self, x: &ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
-        use crate::math::sigmoid;
-        if let Some(weights) = &self.weights {
-            let mut predictions = x.dot(weights);
-
-            // Apply sigmoid activation function
-            for val in predictions.iter_mut() {
-                *val = sigmoid(*val);
-            }
-
-            Ok(predictions)
-        } else {
-            Err(ModelError::NotFitted)
         }
     }
 
@@ -211,10 +183,45 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// * `&mut Self` - A mutable reference to the trained model, allowing for method chaining
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> &mut Self {
+    /// - `Ok(&mut Self)` - A mutable reference to the trained model, allowing for method chaining
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         use crate::math::sigmoid;
         let (n_samples, mut n_features) = x.dim();
+
+        if n_samples == 0 {
+            return Err(ModelError::InputValidationError("Input matrix is empty"));
+        }
+
+        if n_features == 0 {
+            return Err(ModelError::InputValidationError("Input matrix has no features"));
+        }
+
+        if y.len() != n_samples {
+            return Err(ModelError::InputValidationError("Input vector does not match number of samples"));
+        }
+
+        if self.learning_rate <= 0.0 {
+            return Err(ModelError::InputValidationError("Learning rate must be greater than 0.0"));
+        }
+
+        for &val in y.iter() {
+            if val != 0.0 && val != 1.0 {
+                return Err(ModelError::InputValidationError("Target vector must contain only 0 or 1"));
+            }
+        }
+
+        if x.iter().any(|x| x.is_nan() || x.is_infinite()) {
+            return Err(ModelError::InputValidationError("Input matrix contains NaN or infinite values"));
+        }
+
+        if y.iter().any(|y| y.is_nan() || y.is_infinite()) {
+            return Err(ModelError::InputValidationError("Target vector contains NaN or infinite values"));
+        }
+
+        if self.max_iter <= 0 {
+            return Err(ModelError::InputValidationError("Maximum number of iterations must be greater than 0"));
+        }
 
         // If using intercept, add a column of ones
         let x_train = if self.fit_intercept {
@@ -284,7 +291,7 @@ impl LogisticRegression {
         println!("Logistic regression training finished at iteration {}, cost: {}",
                  n_iter, final_cost);
 
-        self
+        Ok(self)
     }
 
     /// Predicts class labels for samples
@@ -324,6 +331,34 @@ impl LogisticRegression {
         }
     }
 
+    /// Predicts probability scores for samples
+    ///
+    /// Uses the sigmoid function to convert linear predictions to probabilities between 0-1.
+    ///
+    /// # Parameters
+    ///
+    /// * `x` - Feature matrix view where each row is a sample and each column is a feature
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Array1<f64>)`A 1D array containing the probability of each sample belonging to the positive class
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    fn predict_proba(&self, x: &ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
+        use crate::math::sigmoid;
+        if let Some(weights) = &self.weights {
+            let mut predictions = x.dot(weights);
+
+            // Apply sigmoid activation function
+            for val in predictions.iter_mut() {
+                *val = sigmoid(*val);
+            }
+
+            Ok(predictions)
+        } else {
+            Err(ModelError::NotFitted)
+        }
+    }
+
     /// Fits the logistic regression model to the training data and then makes predictions.
     ///
     /// This is a convenience method that combines `fit` and `predict` operations in a single call.
@@ -337,14 +372,15 @@ impl LogisticRegression {
     ///
     /// # Returns
     ///
-    /// * `Array1<i32>` - Predicted class labels for the test samples
+    /// - `Ok(Array1<i32>)` - Predicted class labels for the test samples
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self, 
                        train_x: &Array2<f64>, 
                        train_y: &Array1<f64>, 
                        test_x: &Array2<f64>
-    ) -> Array1<i32> {
-        self.fit(train_x, train_y);
-        self.predict(test_x).unwrap()
+    ) -> Result<Array1<i32>, ModelError> {
+        self.fit(train_x, train_y)?;
+        Ok(self.predict(test_x)?)
     }
 }
 
@@ -374,7 +410,7 @@ impl LogisticRegression {
 ///
 /// // Create and train a logistic regression model with polynomial features
 /// let mut model = LogisticRegression::default();
-/// model.fit(&poly_training_x, &training_y);
+/// model.fit(&poly_training_x, &training_y).unwrap();
 /// ```
 ///
 /// # Returns

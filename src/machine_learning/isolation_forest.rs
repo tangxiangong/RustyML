@@ -36,7 +36,7 @@ use crate::ModelError;
 /// let data = Array2::from_shape_vec((100, 2), sample_data).unwrap();
 ///
 /// // Fit the model
-/// model.fit(&data);
+/// model.fit(&data).unwrap();
 ///
 /// // Or get binary predictions (true for inliers, false for outliers)
 /// let predictions = model.predict(&data);
@@ -154,7 +154,23 @@ impl IsolationForest {
     ///
     /// # Parameters
     /// * `x` - 2D array of input data samples
-    pub fn fit(&mut self, x: &Array2<f64>) {
+    ///
+    /// # Returns
+    /// - `Ok(&mut Self)` - Trained instance
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError>{
+        if x.nrows() == 0 {
+            return Err(ModelError::InputValidationError("Input data is empty"));
+        }
+
+        if self.max_samples == 0 {
+            return Err(ModelError::InputValidationError("max_samples must be greater than 0"));
+        }
+
+        if self.n_estimators == 0 {
+            return Err(ModelError::InputValidationError("n_estimators must be greater than 0"));
+        }
+
         let n_rows = x.nrows();
         // Initialize random number generator
         let mut rng: StdRng = match self.random_state {
@@ -182,6 +198,8 @@ impl IsolationForest {
         }
 
         println!("Finished building Isolation Forest");
+
+        Ok(self)
     }
 
     /// Recursively constructs an Isolation Tree
@@ -373,9 +391,10 @@ impl IsolationForest {
     /// # Returns
     /// - `Ok(Array1<f64>)` - If successful, returns anomaly scores for each sample
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
         // First, train the model
-        self.fit(x);
+        self.fit(x)?;
 
         // Then, perform prediction
         self.predict(x)

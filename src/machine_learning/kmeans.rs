@@ -18,7 +18,7 @@ use crate::ModelError;
 /// * `random_seed` - Optional seed for random number generation
 /// * `centroids` - Computed cluster centers after fitting
 /// * `labels` - Cluster labels for training data after fitting
-/// * `inertia` - Sum of squared distances to closest centroid after fitting
+/// * `inertia` - Sum of squared distances to the closest centroid after fitting
 /// * `n_iter` - Number of iterations the algorithm ran for after fitting
 ///
 /// ## Examples
@@ -39,7 +39,7 @@ use crate::ModelError;
 /// let mut kmeans = KMeans::new(2, 100, 1e-4, Some(42));
 ///
 /// // Fit the model
-/// kmeans.fit(&data);
+/// kmeans.fit(&data).unwrap();
 ///
 /// // Get cluster labels
 /// let labels = kmeans.get_labels().unwrap();
@@ -315,10 +315,23 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// * `&mut Self` - A mutable reference to self for method chaining
-    pub fn fit(&mut self, data: &Array2<f64>) -> &mut Self {
+    /// - `&mut Self` - A mutable reference to self for method chaining
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
+        if data.is_empty() {
+            return Err(ModelError::InputValidationError("Input data is empty"));
+        }
+
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
+
+        if n_samples < self.n_clusters {
+            return Err(ModelError::InputValidationError("Number of samples is less than number of clusters"));
+        }
+
+        if data.iter().any(|&x| x.is_nan() || x.is_infinite()) {
+            return Err(ModelError::InputValidationError("Input data contains NaN or infinite values"));
+        }
 
         // Initialize cluster centers
         self.init_centroids(data);
@@ -402,7 +415,7 @@ impl KMeans {
         println!("KMeans model training finished at iteration {}, avg_cost: {}",
                  iter_count + 1, old_inertia / n_samples as f64);
 
-        self
+        Ok(self)
     }
 
     /// Predicts the closest cluster for each sample in the input data.
@@ -444,9 +457,10 @@ impl KMeans {
     ///
     /// # Returns
     ///
-    /// * `Array1<usize>` - An array of cluster indices for each input data point
-    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Array1<usize> {
-        self.fit(data);
-        self.labels.clone().unwrap()
+    /// - `Ok(Array1<usize>)` - An array of cluster indices for each input data point
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+        self.fit(data)?;
+        Ok(self.labels.clone().unwrap())
     }
 }

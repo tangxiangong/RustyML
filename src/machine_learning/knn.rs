@@ -57,7 +57,7 @@ pub enum WeightingStrategy {
 /// let mut knn = KNN::new(3, WeightingStrategy::Uniform, Metric::Euclidean);
 ///
 /// // Fit the model
-/// knn.fit(x_train, y_train);
+/// knn.fit(x_train, y_train).unwrap();
 ///
 /// // Predict new samples
 /// let x_test = array![
@@ -174,13 +174,31 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// * `x` - Training features as a 2D array (samples × features)
     /// * `y` - Training targets/labels as a 1D array
+    ///
+    /// # Returns
+    /// - `Ok(&mut Self)` - The instance
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     /// 
     /// # Notes
     /// 
     /// KNN is a lazy learning algorithm, and the calculation is done in the prediction phase.
-    pub fn fit(&mut self, x: Array2<f64>, y: Array1<T>) {
+    pub fn fit(&mut self, x: Array2<f64>, y: Array1<T>) -> Result<&mut Self, ModelError> {
+        if x.nrows() != y.len() {
+            return Err(ModelError::InputValidationError("The number of samples does not match"))
+        }
+
+        if x.nrows() < self.k {
+            return Err(ModelError::InputValidationError("The number of samples is less than k"))
+        }
+
+        if x.iter().any(|&val| val.is_nan() || val.is_infinite()) {
+            return Err(ModelError::InputValidationError("The input contains NaN or infinite values"))
+        }
+
         self.x_train = Some(x);
         self.y_train = Some(y);
+
+        Ok(self)
     }
 
     /// Predicts the class labels for the provided data points
@@ -310,12 +328,13 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     /// * `Ok(Vec<T>)` - Vector of predicted values
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self, 
                        x_train: Array2<f64>, 
                        y_train: Array1<T>, 
                        x_test: ArrayView2<f64>
-    ) -> Vec<T> {
-        self.fit(x_train, y_train);
-        self.predict(x_test).unwrap()
+    ) -> Result<Vec<T>, ModelError> {
+        self.fit(x_train, y_train)?;
+        Ok(self.predict(x_test)?)
     }
 }

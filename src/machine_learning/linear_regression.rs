@@ -35,7 +35,7 @@ use ndarray::{Array1, Array2};
 /// let y = Array1::from_vec(raw_y);
 ///
 /// // Train the model
-/// model.fit(&x, &y);
+/// model.fit(&x, &y).unwrap();
 ///
 /// // Make predictions
 /// let new_data = Array2::from_shape_vec((1, 2), vec![4.0, 5.0]).unwrap();
@@ -186,12 +186,21 @@ impl LinearRegression {
     /// * `y` - Target variable vector
     ///
     /// # Return Value
-    /// * `&mut self` - Returns mutable reference to self for method chaining
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> &mut Self {
+    /// - `Ok(&mut self)` - Returns mutable reference to self for method chaining
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         // Ensure x and y have the same number of samples
-        assert!(x.nrows() > 0, "x cannot be empty");
-        assert!(y.len() > 0, "y cannot be empty");
-        assert_eq!(x.nrows(), y.len(), "x and y must have the same number of samples");
+        if x.nrows() == 0 {
+            return Err(ModelError::InputValidationError("x cannot be empty"));
+        }
+
+        if y.len() == 0 {
+            return Err(ModelError::InputValidationError("y cannot be empty"));
+        }
+
+        if x.nrows() != y.len() {
+            return Err(ModelError::InputValidationError("x and y must have the same number of samples"));
+        }
 
         let n_samples = x.nrows();
         let n_features = x.ncols();
@@ -280,7 +289,7 @@ impl LinearRegression {
         println!("Linear regression model training finished at iteration {}, cost: {}",
                  n_iter, final_cost);
 
-        self
+        Ok(self)
     }
 
     /// Makes predictions using the trained model
@@ -331,9 +340,10 @@ impl LinearRegression {
     /// # Returns
     ///
     /// A Result containing either:
-    /// * `Vec<f64>` - The predicted values for the input data
-    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Vec<f64> {
-        self.fit(x, y);
-        self.predict(x).unwrap()
+    /// - `Ok(Vec<f64>)` - The predicted values for the input data
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<Vec<f64>, ModelError> {
+        self.fit(x, y)?;
+        Ok(self.predict(x)?)
     }
 }

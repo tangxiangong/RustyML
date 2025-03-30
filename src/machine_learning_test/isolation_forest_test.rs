@@ -52,7 +52,7 @@ fn test_isolation_forest_fit() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(10, 8, Some(5), Some(42));
-    forest.fit(&data);
+    forest.fit(&data).unwrap();
 
     // After fitting, we should be able to get the trees
     assert!(forest.get_trees().is_ok());
@@ -78,7 +78,7 @@ fn test_isolation_forest_anomaly_score() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(100, 8, Some(8), Some(42));
-    forest.fit(&data);
+    forest.fit(&data).unwrap();
 
     // Test anomaly score for a normal point
     let normal_point = vec![0.5, 0.5];
@@ -109,7 +109,7 @@ fn test_isolation_forest_predict() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(100, 8, Some(8), Some(42));
-    forest.fit(&train_data);
+    forest.fit(&train_data).unwrap();
 
     // Create test data with both normal and anomaly points
     let test_data = Array2::from_shape_vec((4, 2), vec![
@@ -159,7 +159,7 @@ fn test_dimension_validation() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(10, 4, Some(5), Some(42));
-    forest.fit(&train_data);
+    forest.fit(&train_data).unwrap();
 
     // Test with 2D point (should work)
     let correct_sample = vec![0.2, 0.2];
@@ -227,7 +227,7 @@ fn test_fit_predict() {
 
     // Also verify that fit_predict gives the same results as calling fit and predict separately
     let mut forest2 = IsolationForest::new(100, 25, Some(8), Some(42));
-    forest2.fit(&x);
+    forest2.fit(&x).unwrap();
     let scores2 = forest2.predict(&x).unwrap();
 
     // Compare results (should be identical since we used the same random seed)

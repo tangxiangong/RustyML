@@ -52,7 +52,7 @@ pub enum Algorithm {
 /// let y = Array1::from_vec(vec![0.0, 1.0, 1.0, 0.0]);
 ///
 /// // Train the model
-/// tree.fit(&x, &y);
+/// tree.fit(&x, &y).unwrap();
 ///
 /// // Make predictions
 /// let new_sample = Array2::from_shape_vec((1, 2), vec![3.0, 5.0]).unwrap();
@@ -334,13 +334,22 @@ impl DecisionTree {
     /// * `y` - Target values (class labels for classification, continuous values for regression)
     ///
     /// # Returns
-    /// * `&mut Self` - Mutable reference to self, enabling method chaining
+    /// - `Ok(&mut Self)` - Mutable reference to self, enabling method chaining
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     ///
     /// # Note
     /// * For classification tasks, the class labels in `y` should be integers starting from 0
     /// * The algorithm used for building the tree is determined by the `algorithm` field set during initialization
     /// * Model hyperparameters like max_depth, min_samples_split etc. control the training process
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> &mut Self {
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
+        if x.nrows() == 0 {
+            return Err(ModelError::InputValidationError("The input feature matrix is empty"))
+        }
+
+        if x.nrows() != y.len() {
+            return Err(ModelError::InputValidationError("The input feature matrix and target vector have different lengths"))
+        }
+
         self.n_features = x.ncols();
 
         if self.is_classifier {
@@ -359,7 +368,7 @@ impl DecisionTree {
         let actual_depth = self.calculate_tree_depth(self.root.as_ref().unwrap());
         println!("Finish building decision tree, depth: {}", actual_depth);
 
-        self
+        Ok(self)
     }
 
     /// Core decision tree building function used by ID3 and C4.5 algorithms
@@ -618,12 +627,13 @@ impl DecisionTree {
     ///
     /// - `Result<Array1<f64>, ModelError>` - A 1D array of predictions for the test data if successful
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self,
                        x_train: &Array2<f64>,
                        y_train: &Array1<f64>,
                        x_test: &Array2<f64>
     ) -> Result<Array1<f64>, ModelError> {
-        self.fit(x_train, y_train);
+        self.fit(x_train, y_train)?;
         self.predict(x_test)
     }
 

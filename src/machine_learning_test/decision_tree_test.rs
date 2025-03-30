@@ -53,7 +53,7 @@ fn test_fit_predict_classifier() {
     let mut dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Train the model
-    dt.fit(&x, &y);
+    dt.fit(&x, &y).unwrap();
 
     // Ensure the model is trained correctly
     assert_eq!(dt.get_n_features(), 2);
@@ -93,7 +93,7 @@ fn test_fit_predict_regressor() {
     let mut dt = DecisionTree::new(Algorithm::CART, false, None);
 
     // Train the model
-    dt.fit(&x, &y);
+    dt.fit(&x, &y).unwrap();
 
     // Ensure the model is trained correctly
     assert_eq!(dt.get_n_features(), 1);
@@ -129,7 +129,7 @@ fn test_predict_proba() {
     let mut dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Train the model
-    dt.fit(&x, &y);
+    dt.fit(&x, &y).unwrap();
 
     // Test class probability prediction
     let prob = dt.predict_proba(&x).unwrap();
@@ -160,17 +160,17 @@ fn test_different_algorithms() {
 
     // Test ID3 algorithm
     let mut dt_id3 = DecisionTree::new(Algorithm::ID3, true, None);
-    dt_id3.fit(&x, &y);
+    dt_id3.fit(&x, &y).unwrap();
     let pred_id3 = dt_id3.predict(&x).unwrap();
 
     // Test C4.5 algorithm
     let mut dt_c45 = DecisionTree::new(Algorithm::C45, true, None);
-    dt_c45.fit(&x, &y);
+    dt_c45.fit(&x, &y).unwrap();
     let pred_c45 = dt_c45.predict(&x).unwrap();
 
     // Test CART algorithm
     let mut dt_cart = DecisionTree::new(Algorithm::CART, true, None);
-    dt_cart.fit(&x, &y);
+    dt_cart.fit(&x, &y).unwrap();
     let pred_cart = dt_cart.predict(&x).unwrap();
 
     // Verify that all algorithms correctly predict the training data
@@ -195,7 +195,7 @@ fn test_max_depth_parameter() {
     };
 
     let mut dt_limited = DecisionTree::new(Algorithm::CART, true, Some(params_depth1));
-    dt_limited.fit(&x, &y);
+    dt_limited.fit(&x, &y).unwrap();
 
     // Check if tree depth is limited
     // We can't directly check the depth, but we can infer that if the model
@@ -205,7 +205,7 @@ fn test_max_depth_parameter() {
 
     // Create an unlimited depth tree for comparison
     let mut dt_unlimited = DecisionTree::new(Algorithm::CART, true, None);
-    dt_unlimited.fit(&x, &y);
+    dt_unlimited.fit(&x, &y).unwrap();
 
     let predictions_unlimited = dt_unlimited.predict(&x).unwrap();
 
