@@ -606,6 +606,27 @@ impl DecisionTree {
         Ok(Array1::from(predictions))
     }
 
+    /// Fits the decision tree on training data and makes predictions on test data in a single operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `x_train` - A 2D array of training features where rows represent samples and columns represent features
+    /// * `y_train` - A 1D array of training target values corresponding to each sample in `x_train`
+    /// * `x_test` - A 2D array of test features with the same number of features (columns) as `x_train`
+    ///
+    /// # Returns
+    ///
+    /// - `Result<Array1<f64>, ModelError>` - A 1D array of predictions for the test data if successful
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn fit_predict(&mut self,
+                       x_train: &Array2<f64>,
+                       y_train: &Array1<f64>,
+                       x_test: &Array2<f64>
+    ) -> Result<Array1<f64>, ModelError> {
+        self.fit(x_train, y_train);
+        self.predict(x_test)
+    }
+
     /// Predicts the target value for a single sample by traversing the decision tree
     ///
     /// This method recursively navigates through the decision tree from the root to a leaf

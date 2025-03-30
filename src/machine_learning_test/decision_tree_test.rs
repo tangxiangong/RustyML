@@ -1,5 +1,5 @@
 use crate::machine_learning::decision_tree::*;
-use ndarray::{arr1, arr2};
+use ndarray::{arr1, arr2, Array2, Array1};
 
 #[test]
 fn test_decision_tree_new() {
@@ -272,4 +272,74 @@ fn test_node_creation() {
         },
         _ => panic!("Expected an internal categorical node"),
     }
+}
+
+#[test]
+fn test_decision_tree_fit_predict() {
+    // Create a simple training dataset
+    // Features: two columns, first for "height", second for "weight"
+    let x_train = Array2::from(vec![
+        [170.0, 65.0], // tall and light
+        [180.0, 85.0], // tall and heavy
+        [155.0, 55.0], // short and light
+        [160.0, 80.0], // short and heavy
+    ]);
+
+    // Labels: 0 means "unhealthy", 1 means "healthy"
+    let y_train = Array1::from(vec![1.0, 0.0, 1.0, 0.0]);
+
+    // Create test dataset
+    let x_test = Array2::from(vec![
+        [175.0, 60.0], // should predict healthy (1)
+        [165.0, 90.0], // should predict unhealthy (0)
+    ]);
+
+    // Create a decision tree classifier (using CART algorithm)
+    let mut tree = DecisionTree::new(Algorithm::CART, true, None);
+
+    // Use fit_predict method to train and predict
+    let predictions = tree.fit_predict(&x_train, &y_train, &x_test).unwrap();
+
+    // Verify prediction results
+    assert_eq!(predictions.len(), 2);
+    assert_eq!(predictions[0], 1.0); // First test sample should be predicted as healthy (1)
+    assert_eq!(predictions[1], 0.0); // Second test sample should be predicted as unhealthy (0)
+
+    // Test other properties of the model
+    assert_eq!(tree.get_n_features(), 2);
+    assert!(tree.get_is_classifier());
+    assert_eq!(*tree.get_algorithm(), Algorithm::CART);
+    assert!(tree.get_root().is_ok()); // Tree should be built
+}
+
+#[test]
+fn test_decision_tree_with_custom_params() {
+    // Create custom parameters
+    let params = DecisionTreeParams {
+        max_depth: Some(2),
+        min_samples_split: 2,
+        min_samples_leaf: 1,
+        min_impurity_decrease: 0.0,
+        random_state: Some(42),
+    };
+
+    // Create simple dataset
+    let x_train = Array2::from(vec![
+        [1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0], [5.0, 6.0]
+    ]);
+    let y_train = Array1::from(vec![0.0, 0.0, 1.0, 1.0, 1.0]);
+    let x_test = Array2::from(vec![[2.5, 3.5], [4.5, 5.5]]);
+
+    // Create decision tree with custom parameters
+    let mut tree = DecisionTree::new(Algorithm::ID3, true, Some(params));
+
+    // Train and predict
+    let predictions = tree.fit_predict(&x_train, &y_train, &x_test).unwrap();
+
+    // Verify prediction results length
+    assert_eq!(predictions.len(), 2);
+
+    // Verify parameters were correctly applied
+    assert_eq!(tree.get_params().max_depth, Some(2));
+    assert_eq!(tree.get_params().random_state, Some(42));
 }

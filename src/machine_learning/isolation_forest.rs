@@ -364,4 +364,20 @@ impl IsolationForest {
 
         Ok(Array1::from(result))
     }
+
+    /// Fits the model and performs anomaly detection in one step
+    ///
+    /// # Parameters
+    /// * `x` - Input data, a 2D array where each row represents a sample
+    ///
+    /// # Returns
+    /// - `Ok(Array1<f64>)` - If successful, returns anomaly scores for each sample
+    /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
+    pub fn fit_predict(&mut self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+        // First, train the model
+        self.fit(x);
+
+        // Then, perform prediction
+        self.predict(x)
+    }
 }

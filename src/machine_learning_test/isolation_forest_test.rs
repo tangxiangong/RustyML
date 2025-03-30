@@ -1,5 +1,6 @@
 use crate::machine_learning::isolation_forest::IsolationForest;
-use ndarray::{Array2};
+use ndarray::{Array2, Array};
+use rand::Rng;
 
 #[test]
 fn test_isolation_forest_new() {
@@ -171,4 +172,66 @@ fn test_dimension_validation() {
     // Test with 3D point (should fail)
     let too_large_sample = vec![0.2, 0.2, 0.2];
     assert!(forest.anomaly_score(&too_large_sample).is_err());
+}
+
+#[test]
+fn test_fit_predict() {
+    // Create a simple dataset with some outliers
+    // Normal points clustered around origin
+    let mut data = Vec::new();
+
+    // Generate 50 normal points around origin
+    let mut rng = rand::rng();
+    for _ in 0..50 {
+        let x = rng.random_range(-1.0..1.0);
+        let y = rng.random_range(-1.0..1.0);
+        data.push(vec![x, y]);
+    }
+
+    // Add 5 outlier points far from origin
+    data.push(vec![10.0, 10.0]);
+    data.push(vec![-10.0, 10.0]);
+    data.push(vec![10.0, -10.0]);
+    data.push(vec![-10.0, -10.0]);
+    data.push(vec![15.0, 0.0]);
+
+    // Convert to ndarray
+    let n_samples = data.len();
+    let n_features = data[0].len();
+    let x_flat: Vec<f64> = data.into_iter().flatten().collect();
+    let x = Array::from_shape_vec((n_samples, n_features), x_flat).unwrap();
+
+    // Create and fit IsolationForest
+    let mut forest = IsolationForest::new(100, 25, Some(8), Some(42));
+
+    // Using fit_predict to get anomaly scores
+    let scores = forest.fit_predict(&x).unwrap();
+
+    // We expect 5 outliers to have higher anomaly scores than normal points
+    // Let's sort the scores and check the indices
+    let mut score_indices: Vec<(usize, f64)> = scores.iter()
+        .enumerate()
+        .map(|(i, &score)| (i, score))
+        .collect();
+
+    score_indices.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap()); // Sort by score in descending order
+
+    // The top 5 scores should correspond to our outliers (indices 50-54)
+    let top_indices: Vec<usize> = score_indices.iter().take(5).map(|(i, _)| *i).collect();
+
+    assert!(top_indices.contains(&50));
+    assert!(top_indices.contains(&51));
+    assert!(top_indices.contains(&52));
+    assert!(top_indices.contains(&53));
+    assert!(top_indices.contains(&54));
+
+    // Also verify that fit_predict gives the same results as calling fit and predict separately
+    let mut forest2 = IsolationForest::new(100, 25, Some(8), Some(42));
+    forest2.fit(&x);
+    let scores2 = forest2.predict(&x).unwrap();
+
+    // Compare results (should be identical since we used the same random seed)
+    for (s1, s2) in scores.iter().zip(scores2.iter()) {
+        assert_eq!(*s1, *s2);
+    }
 }
