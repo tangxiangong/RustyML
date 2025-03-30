@@ -415,3 +415,24 @@ pub fn mean_squared_error(y: &[f64]) -> f64 {
 
     variance
 }
+
+/// Calculates the leaf node adjustment factor c(n)
+///
+/// # Parameters
+/// * `n` - Number of samples
+///
+/// # Returns
+/// * `f64` - The adjustment factor
+///
+/// # Notes
+///
+/// Formula: c(n) = 2 * (H(n-1)) - (2*(n-1)/n)
+/// where H(n-1) can be approximated by ln(n-1) + gamma, gamma is Euler's constant
+pub fn average_path_length_factor(n: f64) -> f64 {
+    if n <= 1.0 {
+        0.0
+    } else {
+        let gamma = 0.57721566; // Euler's constant
+        2.0 * ((n - 1.0).ln() + gamma) - 2.0 * (n - 1.0) / n
+    }
+}

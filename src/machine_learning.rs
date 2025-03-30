@@ -7,7 +7,6 @@
 /// * `Euclidean` - Euclidean distance (L2 norm), calculated as the square root of the sum of squared differences between corresponding coordinates.
 /// * `Manhattan` - Manhattan distance (L1 norm), calculated as the sum of absolute differences between corresponding coordinates.
 /// * `Minkowski` - A generalized metric that includes both Euclidean and Manhattan distances as special cases. Requires an additional parameter p (not implemented in this enum).
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum DistanceCalculationMetric {
     /// Euclidean distance (L2 norm) - the straight-line distance between two points.
@@ -25,3 +24,4 @@ pub mod knn;
 pub mod meanshift;
 pub mod dbscan;
 pub mod decision_tree;
+pub mod isolation_forest;
