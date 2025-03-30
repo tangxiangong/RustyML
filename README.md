@@ -21,6 +21,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Calculates the information gain when splitting a dataset | 计算数据集分割时的信息增益
     - Calculates the gain ratio for a dataset split | 计算数据集分割的增益率
     - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
+    - Calculates the leaf node adjustment factor c(n) | 计算叶节点调整因子 c(n)
 
 - **Machine Learning Models | 机器学习模型**: Initial implementation of basic machine learning algorithms:
     - Supervised Learning | 监督式学习:
@@ -33,6 +34,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
       - KMeans | K均值聚类
       - MeanShift | MeanShift聚类
       - DBSCAN | DBSCAN聚类
+      - Isolation Forest | 隔离森林
 
 ## Vision | 愿景
 While the library is in its early stages, Rust AI aims to evolve into a comprehensive crate that includes:
