@@ -3,7 +3,7 @@ use std::error::Error;
 use ndarray_linalg::Eigh;
 use crate::ModelError;
 
-/// #PCA structure for implementing Principal Component Analysis
+/// # PCA structure for implementing Principal Component Analysis
 ///
 /// This structure provides functionality for dimensionality reduction using PCA.
 /// It allows fitting a model to data, transforming data into principal component space,
