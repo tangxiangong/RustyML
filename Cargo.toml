@@ -7,7 +7,7 @@ description = "A high-performance machine learning library in pure Rust, offerin
 license = "MIT"
 homepage = "https://github.com/SomeB1oody/RustyML"
 readme = "README.md"
-keywords = ["machine-learning", "ML", "Deep-learning", "DL"]
+keywords = ["machine-learning", "ML", "Deep-learning", "DL", "AI"]
 repository = "https://github.com/SomeB1oody/RustyML"
 
 [dependencies]

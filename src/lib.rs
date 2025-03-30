@@ -133,3 +133,28 @@ pub mod machine_learning;
 
 #[cfg(test)]
 mod machine_learning_test;
+
+/// A convenience module that re-exports the most commonly used types and traits from this crate.
+///
+/// This module provides a single import point for frequently used items from this library's machine learning modules,
+/// allowing users to import multiple items with a single `use` statement.
+///
+/// # Examples
+///
+/// ```
+/// // Import all common items
+/// use rustyml::prelude::*;
+///
+/// // Now you can use items like DBSCAN, KMeans, DecisionTree, etc. directly
+/// ```
+///
+/// # Available Components
+///
+/// This prelude exports the following machine learning algorithms and utilities:
+/// - Clustering: `DBSCAN`, `KMeans`, `MeanShift`
+/// - Classification: `KNN`, `DecisionTree`, `LogisticRegression`
+/// - Regression: `LinearRegression`
+/// - Dimensionality Reduction: `PCA`
+/// - Anomaly Detection: `IsolationForest`
+/// - Common parameters and metrics: `DistanceCalculationMetric`, `WeightingStrategy`, etc.
+pub mod prelude;
