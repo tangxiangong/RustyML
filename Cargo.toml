@@ -5,10 +5,10 @@ edition = "2024"
 authors = ["SomeB1oody <stanyin64@gmail.com>"]
 description = "A high-performance machine learning library in pure Rust, offering statistical utilities, ML algorithms, and future support for neural networks and transformer architectures."
 license = "MIT"
-homepage = "https://github.com/SomeB1oody/rust_ai"
+homepage = "https://github.com/SomeB1oody/RustyML"
 readme = "README.md"
 keywords = ["machine-learning", "ML", "Deep-learning", "DL"]
-repository = "https://github.com/SomeB1oody/rust_ai"
+repository = "https://github.com/SomeB1oody/RustyML"
 
 [dependencies]
 ndarray = "0.16.1"
