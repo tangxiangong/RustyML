@@ -11,6 +11,17 @@ use ndarray::ArrayView2;
 ///
 /// # Returns
 /// * The Sum of Square Total (SST)
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::sum_of_square_total;
+///
+/// let values = [1.0, 2.0, 3.0];
+/// let sst = sum_of_square_total(&values);
+/// // Mean is 2.0, so SST = (1-2)^2 + (2-2)^2 + (3-2)^2 = 1 + 0 + 1 = 2.0
+/// assert!((sst - 2.0).abs() < 1e-5);
+/// ```
 pub fn sum_of_square_total(values: &[f64]) -> f64 {
     if values.is_empty() {
         return 0.0;
@@ -34,8 +45,20 @@ pub fn sum_of_square_total(values: &[f64]) -> f64 {
 /// # Returns
 /// * Sum of squared errors sum((predicted_i - actual_i)^2)
 ///
-/// # Panic
+/// # Panics
 /// The function will panic if the vectors have different lengths
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::sum_of_squared_errors;
+///
+/// let predicted = [2.0, 3.0];
+/// let actual = [1.0, 3.0];
+/// let sse = sum_of_squared_errors(&predicted, &actual);
+/// // (2-1)^2 + (3-3)^2 = 1 + 0 = 1
+/// assert!((sse - 1.0).abs() < 1e-6);
+/// ```
 pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
     // Ensure both vectors have the same length
     assert_eq!(predicted.len(), actual.len(), "Vectors must have the same length");
@@ -64,6 +87,18 @@ pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
 /// - Returns 0 if SST is 0 (when all actual values are identical)
 /// - R-squared can theoretically be negative, indicating that the model performs worse than simply predicting the mean
 /// - A value close to 1 indicates a good fit
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::r2_score;
+///
+/// let predicted = [2.0, 3.0, 4.0];
+/// let actual = [1.0, 3.0, 5.0];
+/// let r2 = r2_score(&predicted, &actual);
+/// // For actual values [1,3,5], mean=3, SSE = 1+0+1 = 2, SST = 4+0+4 = 8, so R2 = 1 - (2/8) = 0.75
+/// assert!((r2 - 0.75).abs() < 1e-6);
+/// ```
 pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
     let sse = sum_of_squared_errors(predicted, actual);
     let sst = sum_of_square_total(actual);
@@ -91,6 +126,16 @@ pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
 /// * sigmoid(0) = 0.5
 /// * As z approaches positive infinity, sigmoid(z) approaches 1
 /// * As z approaches negative infinity, sigmoid(z) approaches 0
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::sigmoid;
+///
+/// let value = sigmoid(0.0);
+/// // sigmoid(0) = 0.5
+/// assert!((value - 0.5).abs() < 1e-6);
+/// ```
 pub fn sigmoid(z: f64) -> f64 {
     1.0 / (1.0 + (-z).exp())
 }
@@ -101,13 +146,25 @@ pub fn sigmoid(z: f64) -> f64 {
 /// applying sigmoid to raw predictions before calculating loss.
 ///
 /// # Parameters
-/// * `raw_predictions` - Vector of raw model outputs (logits, before sigmoid)
+/// * `logits` - Vector of raw model outputs (logits, before sigmoid)
 /// * `actual_labels` - Vector of actual binary labels (0 or 1)
 ///
 /// # Returns
 /// * Average logistic regression loss
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::logistic_loss;
+///
+/// let logits = [0.0, 2.0, -1.0];
+/// let actual_labels = [0.0, 1.0, 0.0];
+/// let loss = logistic_loss(&logits, &actual_labels);
+/// // Expected average loss is approximately 0.37778
+/// assert!((loss - 0.37778).abs() < 1e-5);
+/// ```
 pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
-    assert_eq!(logits.len(), actual_labels.len(), 
+    assert_eq!(logits.len(), actual_labels.len(),
                "Raw predictions and actual labels must have the same length");
 
     // Validate that all labels are either 0 or 1
@@ -132,17 +189,27 @@ pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
 /// For multi-class classification, values should be numeric class labels.
 ///
 /// # Parameters
-///
 /// * `predicted` - Array of predicted class labels
 /// * `actual` - Array of actual class labels
 ///
 /// # Returns
+/// * The accuracy score between 0.0 and 1.0
 ///
-/// The accuracy score between 0.0 and 1.0
+/// # Panic
+/// If the input arrays have different lengths
 ///
-/// # Panics
+/// # Examples
 ///
-/// Panics if the input arrays have different lengths
+/// ```
+/// use rustyml::math::accuracy;
+///
+/// let predicted = [0.0, 1.0, 1.0];
+/// let actual = [0.0, 0.0, 1.0];
+/// let acc = accuracy(&predicted, &actual);
+///
+/// // Two out of three predictions are correct: accuracy = 2/3 ≈ 0.6666666666666667
+/// assert!((acc - 0.6666666666666667).abs() < 1e-6);
+/// ```
 pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
     assert_eq!(
         predicted.len(),
@@ -169,13 +236,24 @@ pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
 /// of two 2D arrays, representing the squared Euclidean distance.
 ///
 /// # Parameters
-///
 /// * `x1` - First point as a 2D array view
 /// * `x2` - Second point as a 2D array view
 ///
 /// # Returns
+/// * The squared Euclidean distance as a f64 value
 ///
-/// The squared Euclidean distance as a f64 value
+/// # Examples
+///
+/// ```
+/// use rustyml::math::squared_euclidean_distance;
+///
+/// use ndarray::array;
+/// let a = array![[1.0, 2.0]];
+/// let b = array![[4.0, 6.0]];
+/// let distance = squared_euclidean_distance(&a.view(), &b.view());
+/// // (1-4)^2 + (2-6)^2 = 9 + 16 = 25
+/// assert!((distance - 25.0).abs() < 1e-6);
+/// ```
 pub fn squared_euclidean_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
     let diff = x1 - x2;
     diff.iter().map(|&x| x * x).sum()
@@ -187,13 +265,24 @@ pub fn squared_euclidean_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) ->
 /// of two 2D arrays, representing the Manhattan (L1) distance.
 ///
 /// # Parameters
-///
 /// * `x1` - First point as a 2D array view
 /// * `x2` - Second point as a 2D array view
 ///
 /// # Returns
+/// * The Manhattan distance as a f64 value
 ///
-/// The Manhattan distance as a f64 value
+/// # Examples
+///
+/// ```
+/// use rustyml::math::manhattan_distance;
+///
+/// use ndarray::array;
+/// let a = array![[1.0, 2.0]];
+/// let b = array![[4.0, 6.0]];
+/// let distance = manhattan_distance(&a.view(), &b.view());
+/// // |1-4| + |2-6| = 3 + 4 = 7
+/// assert!((distance - 7.0).abs() < 1e-6);
+/// ```
 pub fn manhattan_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
     let diff = x1 - x2;
     diff.iter().map(|&x| x.abs()).sum()
@@ -205,14 +294,25 @@ pub fn manhattan_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>) -> f64 {
 /// representing the Minkowski distance with parameter p.
 ///
 /// # Parameters
-///
 /// * `x1` - First point as a 2D array view
 /// * `x2` - Second point as a 2D array view
 /// * `p` - The order of the norm (p ≥ 1.0)
 ///
 /// # Returns
+/// * The Minkowski distance as a f64 value
 ///
-/// The Minkowski distance as a f64 value
+/// # Examples
+///
+/// ```
+/// use rustyml::math::minkowski_distance;
+///
+/// use ndarray::array;
+/// let a = array![[1.0, 2.0]];
+/// let b = array![[4.0, 6.0]];
+/// let distance = minkowski_distance(&a.view(), &b.view(), 3.0);
+/// // Expected distance is approximately 4.497
+/// assert!((distance - 4.497).abs() < 1e-3);
+/// ```
 pub fn minkowski_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, p: f64) -> f64 {
     assert!(p >= 1.0, "p must be greater than or equal to 1.0");
 
@@ -229,7 +329,21 @@ pub fn minkowski_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, p: f64) ->
 /// * `gamma` - Kernel width parameter, controls the "width" of the Gaussian function
 ///
 /// # Returns
-/// The Gaussian kernel value between the two points
+/// * The Gaussian kernel value between the two points
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::gaussian_kernel;
+///
+/// use ndarray::array;
+/// let a = array![[1.0, 2.0]];
+/// let b = array![[1.0, 2.0]];
+/// let gamma = 0.5;
+/// let kernel = gaussian_kernel(&a.view(), &b.view(), gamma);
+/// // For identical points, squared distance is 0, so kernel = exp(0) = 1.0
+/// assert!((kernel - 1.0).abs() < 1e-6);
+/// ```
 pub fn gaussian_kernel(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, gamma: f64) -> f64 {
     // Calculate the squared Euclidean distance between the two points
     let squared_distance = squared_euclidean_distance(x1, x2);
@@ -244,17 +358,25 @@ pub fn gaussian_kernel(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, gamma: f64) -
 /// like ID3 and C4.5. It quantifies the uncertainty or randomness in the data distribution.
 ///
 /// # Parameters
-///
 /// * `y` - A slice of f64 values representing class labels
 ///
 /// # Returns
-///
 /// * The entropy value of the given dataset. Lower values indicate more homogeneous data.
 ///
 /// # Notes
-///
 /// * The function handles floating point labels by rounding to 3 decimal places for counting.
 /// * Returns 0.0 for empty datasets.
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::entropy;
+///
+/// let labels = [0.0, 1.0, 1.0, 0.0];
+/// let ent = entropy(&labels);
+/// // For two classes with equal frequency, entropy = 1.0
+/// assert!((ent - 1.0).abs() < 1e-6);
+/// ```
 pub fn entropy(y: &[f64]) -> f64 {
     let total_samples = y.len() as f64;
     if total_samples == 0.0 {
@@ -285,17 +407,25 @@ pub fn entropy(y: &[f64]) -> f64 {
 /// in the subset. It is commonly used in decision tree algorithms like CART.
 ///
 /// # Parameters
-///
 /// * `y` - A slice of f64 values representing class labels
 ///
 /// # Returns
-///
 /// * The Gini impurity value of the given dataset. The value ranges from 0.0 (pure) to 1.0 (impure).
 ///
 /// # Notes
-///
 /// * The function handles floating point labels by rounding to 3 decimal places for counting.
 /// * Returns 0.0 for empty datasets.
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::gini;
+///
+/// let labels = [0.0, 0.0, 1.0, 1.0];
+/// let gini_val = gini(&labels);
+/// // For two classes with equal frequency, Gini = 1 - (0.5^2 + 0.5^2) = 0.5
+/// assert!((gini_val - 0.5).abs() < 1e-6);
+/// ```
 pub fn gini(y: &[f64]) -> f64 {
     let total_samples = y.len() as f64;
     if total_samples == 0.0 {
@@ -326,18 +456,28 @@ pub fn gini(y: &[f64]) -> f64 {
 /// like ID3 and C4.5 to select the best feature for splitting.
 ///
 /// # Parameters
-///
 /// * `y` - A slice of f64 values representing class labels in the parent node
 /// * `left_y` - A slice of f64 values representing class labels in the left child node
 /// * `right_y` - A slice of f64 values representing class labels in the right child node
 ///
 /// # Returns
-///
 /// * The information gain value. Higher values indicate a more useful split.
 ///
 /// # Notes
-///
 /// * This function uses the entropy function to calculate impurity at each node.
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::information_gain;
+///
+/// let parent = [0.0, 0.0, 1.0, 1.0];
+/// let left = [0.0, 0.0];
+/// let right = [1.0, 1.0];
+/// let ig = information_gain(&parent, &left, &right);
+/// // Entropy(parent)=1.0, Entropy(left)=Entropy(right)=0, so IG = 1.0
+/// assert!((ig - 1.0).abs() < 1e-6);
+/// ```
 pub fn information_gain(y: &[f64], left_y: &[f64], right_y: &[f64]) -> f64 {
     let n = y.len() as f64;
     let n_left = left_y.len() as f64;
@@ -358,19 +498,29 @@ pub fn information_gain(y: &[f64], left_y: &[f64], right_y: &[f64]) -> f64 {
 /// normalize information gain by the entropy of the split itself.
 ///
 /// # Parameters
-///
 /// * `y` - A slice of f64 values representing class labels in the parent node
 /// * `left_y` - A slice of f64 values representing class labels in the left child node
 /// * `right_y` - A slice of f64 values representing class labels in the right child node
 ///
 /// # Returns
-///
 /// * The gain ratio value. Higher values indicate a more useful split.
 ///
 /// # Notes
-///
 /// * Returns 0.0 if the split information is zero to avoid division by zero.
 /// * This function uses the information_gain function as part of its calculation.
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::gain_ratio;
+///
+/// let parent = [0.0, 0.0, 1.0, 1.0];
+/// let left = [0.0, 0.0];
+/// let right = [1.0, 1.0];
+/// let gr = gain_ratio(&parent, &left, &right);
+/// // With equal splits, gain ratio should be 1.0
+/// assert!((gr - 1.0).abs() < 1e-6);
+/// ```
 pub fn gain_ratio(y: &[f64], left_y: &[f64], right_y: &[f64]) -> f64 {
     if left_y.is_empty() || right_y.is_empty() {
         return 0.0;
@@ -397,12 +547,21 @@ pub fn gain_ratio(y: &[f64], left_y: &[f64], right_y: &[f64]) -> f64 {
 /// and the mean of all values. It represents the variance of the dataset.
 ///
 /// # Arguments
-///
 /// * `y` - A slice of f64 values for which to calculate the MSE
 ///
 /// # Returns
+/// * `f64` - The mean squared error as a f64 value, returns 0.0 if the input slice is empty
 ///
-/// * `f64` - The mean squared error as an f64 value, returns 0.0 if the input slice is empty
+/// # Examples
+///
+/// ```
+/// use rustyml::math::mean_squared_error;
+///
+/// let values = [1.0, 2.0, 3.0];
+/// let mse = mean_squared_error(&values);
+/// // Mean is 2.0, so MSE = ((1-2)^2 + (2-2)^2 + (3-2)^2) / 3 = (1 + 0 + 1) / 3 ≈ 0.66667
+/// assert!((mse - 0.6666667).abs() < 1e-6);
+/// ```
 pub fn mean_squared_error(y: &[f64]) -> f64 {
     if y.is_empty() {
         return 0.0;
@@ -425,9 +584,18 @@ pub fn mean_squared_error(y: &[f64]) -> f64 {
 /// * `f64` - The adjustment factor
 ///
 /// # Notes
-///
 /// Formula: c(n) = 2 * (H(n-1)) - (2*(n-1)/n)
 /// where H(n-1) can be approximated by ln(n-1) + gamma, gamma is Euler's constant
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::average_path_length_factor;
+///
+/// let factor = average_path_length_factor(10.0);
+/// // For n = 10, the factor is approximately 3.748
+/// assert!((factor - 3.748).abs() < 0.01);
+/// ```
 pub fn average_path_length_factor(n: f64) -> f64 {
     if n <= 1.0 {
         0.0
@@ -440,12 +608,21 @@ pub fn average_path_length_factor(n: f64) -> f64 {
 /// Calculates the standard deviation of a set of values
 ///
 /// # Parameters
-///
 /// * `values` - A slice of f64 values
 ///
 /// # Returns
-///
 /// * `f64` - The standard deviation. Returns 0.0 if the slice is empty or contains only one element.
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::math::standard_deviation;
+///
+/// let values = [1.0, 2.0, 3.0];
+/// let std_dev = standard_deviation(&values);
+/// // Population standard deviation for [1,2,3] is approximately 0.8165
+/// assert!((std_dev - 0.8165).abs() < 1e-4);
+/// ```
 pub fn standard_deviation(values: &[f64]) -> f64 {
     let n = values.len();
     if n == 0 {
