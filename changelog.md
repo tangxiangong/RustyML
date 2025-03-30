@@ -1,10 +1,16 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+This change log records updates after 2025-3-24.
 
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
-## [v0.1.0] - 2025-3-27
+## [v0.1.0] - 2025-3-29
+### Added
+- Add function `generate_tree_structure` for `DecisionTree` to generate tree structure as string
+- Add isolation forest implementation
+
+## [v0.1.0] - 2025-3-28
 ### Added
 - Add Decision Tree model
 - Add following functions to math.rs:
