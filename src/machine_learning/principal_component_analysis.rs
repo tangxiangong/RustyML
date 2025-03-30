@@ -22,7 +22,7 @@ use crate::ModelError;
 ///
 /// ```
 /// use ndarray::{array, Array2};
-/// use rust_ai::machine_learning::principal_component_analysis::PCA;
+/// use rustyml::machine_learning::principal_component_analysis::PCA;
 ///
 /// // Create some sample data (3 samples, 4 features)
 /// let data = Array2::from_shape_vec((3, 4), vec![

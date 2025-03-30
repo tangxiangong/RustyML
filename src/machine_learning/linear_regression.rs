@@ -20,7 +20,7 @@ use ndarray::{Array1, Array2};
 /// ## Examples
 ///
 /// ```
-/// use rust_ai::machine_learning::linear_regression::LinearRegression;
+/// use rustyml::machine_learning::linear_regression::LinearRegression;
 /// use ndarray::{Array1, Array2, array};
 ///
 /// // Create a linear regression model

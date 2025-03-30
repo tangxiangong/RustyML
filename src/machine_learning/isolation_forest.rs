@@ -20,7 +20,7 @@ use crate::ModelError;
 /// # Example
 ///
 /// ```rust
-/// use rust_ai::machine_learning::isolation_forest::IsolationForest;
+/// use rustyml::machine_learning::isolation_forest::IsolationForest;
 /// use ndarray::Array2;
 ///
 /// // Create a new Isolation Forest model

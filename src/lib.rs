@@ -49,7 +49,7 @@ impl std::error::Error for ModelError {}
 /// # Examples
 ///
 /// ```
-/// use rust_ai::math::{sum_of_squared_errors, r2_score};
+/// use rustyml::math::{sum_of_squared_errors, r2_score};
 ///
 /// // Example data
 /// let predicted = vec![2.1, 3.8, 5.2, 7.1];

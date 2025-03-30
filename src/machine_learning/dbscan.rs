@@ -15,9 +15,9 @@ use super::DistanceCalculationMetric as Metric;
 ///
 /// ## Examples
 /// ```
-/// use rust_ai::machine_learning::dbscan::DBSCAN;
+/// use rustyml::machine_learning::dbscan::DBSCAN;
 /// use ndarray::Array2;
-/// use rust_ai::machine_learning::DistanceCalculationMetric;
+/// use rustyml::machine_learning::DistanceCalculationMetric;
 ///
 /// let data = Array2::from_shape_vec((5, 2), vec![
 ///     0.0, 0.0,

@@ -25,7 +25,7 @@ use crate::ModelError;
 ///
 /// ```
 /// use ndarray::{array, Array2};
-/// use rust_ai::machine_learning::kmeans::KMeans;
+/// use rustyml::machine_learning::kmeans::KMeans;
 ///
 /// // Create a 2D dataset
 /// let data = array![

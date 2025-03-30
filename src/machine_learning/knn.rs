@@ -38,8 +38,8 @@ pub enum WeightingStrategy {
 ///
 /// ```rust
 /// use ndarray::{array, Array1, Array2};
-/// use rust_ai::machine_learning::knn::{KNN, WeightingStrategy};
-/// use rust_ai::machine_learning::DistanceCalculationMetric as Metric;
+/// use rustyml::machine_learning::knn::{KNN, WeightingStrategy};
+/// use rustyml::machine_learning::DistanceCalculationMetric as Metric;
 ///
 /// // Create a simple dataset
 /// let x_train = array![

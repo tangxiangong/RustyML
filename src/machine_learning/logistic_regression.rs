@@ -17,7 +17,7 @@ use crate::ModelError;
 /// ## Examples
 ///
 /// ```
-/// use rust_ai::machine_learning::logistic_regression::LogisticRegression;
+/// use rustyml::machine_learning::logistic_regression::LogisticRegression;
 /// use ndarray::{Array1, Array2};
 ///
 /// // Create a logistic regression model
@@ -362,7 +362,7 @@ impl LogisticRegression {
 /// Following codes show how this function works with `LogisticRegression`:
 /// ```
 /// use ndarray::array;
-/// use rust_ai::machine_learning::logistic_regression::{generate_polynomial_features, LogisticRegression};
+/// use rustyml::machine_learning::logistic_regression::{generate_polynomial_features, LogisticRegression};
 ///
 /// // Example of using polynomial features with logistic regression
 /// // Create a simple dataset for binary classification

@@ -22,7 +22,7 @@ use crate::ModelError;
 /// # Examples
 ///
 /// ```
-/// use rust_ai::machine_learning::meanshift::MeanShift;
+/// use rustyml::machine_learning::meanshift::MeanShift;
 /// use ndarray::Array2;
 ///
 /// // Create a 2D dataset

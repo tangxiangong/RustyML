@@ -38,6 +38,26 @@ pub enum Algorithm {
 /// - Handles both classification and regression tasks
 /// - Provides probability estimates for classification
 /// - Customizable via hyperparameters to control tree complexity
+///
+/// ## Example
+/// ```rust
+/// use ndarray::{Array1, Array2};
+/// use rustyml::machine_learning::decision_tree::{DecisionTree, Algorithm};
+///
+/// // Create a classification decision tree with default parameters
+/// let mut tree = DecisionTree::new(Algorithm::CART, true, None);
+///
+/// // Sample data: 2 features (x1, x2) and class labels (0 or 1)
+/// let x = Array2::from_shape_vec((4, 2), vec![2.0, 3.0, 5.0, 4.0, 7.0, 2.0, 1.0, 6.0]).unwrap();
+/// let y = Array1::from_vec(vec![0.0, 1.0, 1.0, 0.0]);
+///
+/// // Train the model
+/// tree.fit(&x, &y);
+///
+/// // Make predictions
+/// let new_sample = Array2::from_shape_vec((1, 2), vec![3.0, 5.0]).unwrap();
+/// let prediction = tree.predict(&new_sample).unwrap();
+/// ```
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
     algorithm: Algorithm,
