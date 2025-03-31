@@ -691,6 +691,13 @@ fn preliminary_check(x: &ndarray::Array2<f64>,
                     x.nrows(), y.len()
                 )));
         }
+
+        for (i, &val) in y.iter().enumerate() {
+            if val != 0.0 && val != 1.0 {
+                return Err(crate::ModelError::InputValidationError(
+                    format!("Target vector contains non-binary values at position {}", i)));
+            }
+        }
     }
     Ok(())
 }
