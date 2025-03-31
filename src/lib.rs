@@ -5,7 +5,7 @@ pub enum ModelError {
     NotFitted,
     /// indicates the input data provided  does not meet the expected format, type, or validation rules.
     InputValidationError(&'static str),
-    /// indicates that there is something wrong with decision tree
+    /// indicates that there is something wrong with the tree
     TreeError(&'static str),
 }
 
