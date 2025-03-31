@@ -50,7 +50,7 @@ use ndarray::{Array1, Array2};
 #[derive(Debug, Clone)]
 pub struct LinearRegression {
     /// Coefficients (slopes)
-    coefficients: Option<Vec<f64>>,
+    coefficients: Option<Array1<f64>>,
     /// Intercept
     intercept: Option<f64>,
     /// Whether to fit an intercept
@@ -146,7 +146,7 @@ impl LinearRegression {
     ///
     /// - `Ok(Vec<f64>)` - A vector of model coefficients
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_coefficients(&self) -> Result<Vec<f64>, ModelError> {
+    pub fn get_coefficients(&self) -> Result<Array1<f64>, ModelError> {
         match &self.coefficients {
             Some(coeffs) => Ok(coeffs.clone()),
             None => Err(ModelError::NotFitted),
@@ -281,7 +281,7 @@ impl LinearRegression {
         }
 
         // Save training results
-        self.coefficients = Some(weights.to_vec());
+        self.coefficients = Some(weights);
         self.intercept = Some(if self.fit_intercept { intercept } else { 0.0 });
         self.n_iter = Some(n_iter);
 
@@ -301,7 +301,7 @@ impl LinearRegression {
     /// - `Ok(Vec<f64>)` - A vector of predictions
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::InputValidationError)` - If number of features does not match training data
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Vec<f64>, ModelError> {
+    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
         if self.coefficients.is_none() {
             return Err(ModelError::NotFitted);
         }
@@ -309,20 +309,21 @@ impl LinearRegression {
         let coeffs = self.coefficients.as_ref().unwrap();
         let intercept = self.intercept.unwrap_or(0.0);
 
-        let mut predictions = Vec::with_capacity(x.nrows());
-        for i in 0..x.nrows() {
-            if x.ncols() != coeffs.len() {
-                return Err(ModelError::InputValidationError(
-                    "Number of features does not match training data"
-                ));
-            }
+        if x.ncols() != coeffs.len() {
+            return Err(ModelError::InputValidationError(
+                "Number of features does not match training data"
+            ));
+        }
 
+        let mut predictions = Array1::zeros(x.nrows());
+
+        for i in 0..x.nrows() {
             let mut prediction = intercept;
             for j in 0..x.ncols() {
                 prediction += x[[i, j]] * coeffs[j];
             }
 
-            predictions.push(prediction);
+            predictions[i] = prediction;
         }
 
         Ok(predictions)
@@ -342,7 +343,7 @@ impl LinearRegression {
     /// A Result containing either:
     /// - `Ok(Vec<f64>)` - The predicted values for the input data
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<Vec<f64>, ModelError> {
+    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<Array1<f64>, ModelError> {
         self.fit(x, y)?;
         Ok(self.predict(x)?)
     }
