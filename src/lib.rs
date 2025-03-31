@@ -88,16 +88,12 @@ mod math_module_test;
 /// - **DBSCAN**: Density-based spatial clustering of applications with noise
 /// - **MeanShift**: Non-parametric clustering that finds clusters by identifying density modes
 ///
-/// ## Dimensionality Reduction
-/// - **PCA**: Principal Component Analysis for linear dimensionality reduction
-///
 /// ## Anomaly Detection
 /// - **IsolationForest**: Isolation Forest for identifying anomalies and outliers in the data
 ///
 /// # Utility Functions
 /// - **estimate_bandwidth**: Estimates the bandwidth parameter for MeanShift clustering
 /// - **generate_polynomial_features**: Creates polynomial features for enhancing model complexity
-/// - **standardize**: Standardizes features by removing the mean and scaling to unit variance
 ///
 /// # Examples
 ///
@@ -158,6 +154,38 @@ mod machine_learning_test;
 /// - Anomaly Detection: `IsolationForest`
 /// - Common parameters and metrics: `DistanceCalculationMetric`, `WeightingStrategy`, etc.
 pub mod prelude;
+
+/// # Utility Module
+///
+/// A collection of utility functions and data processing tools to support machine learning operations.
+///
+/// This module provides various utility components that are commonly used across different machine learning
+/// tasks, including data transformation, dimensionality reduction, and preprocessing techniques.
+///
+/// ## Submodules
+///
+/// * [`principal_component_analysis`] - Implementation of Principal Component Analysis (PCA) for
+///   dimensionality reduction and feature extraction.
+///
+/// ## Examples
+///
+/// ```
+/// use rustyml::utility::principal_component_analysis::PCA;
+/// use ndarray::{Array2, arr2};
+///
+/// // Create a new PCA instance with 2 components
+/// let mut pca = PCA::new(2);
+///
+/// // Data to transform
+/// let data = arr2(&[
+///     [1.0, 2.0, 3.0],
+///     [4.0, 5.0, 6.0],
+///     [7.0, 8.0, 9.0],
+/// ]);
+///
+/// // Fit and transform data
+/// let transformed = pca.fit_transform(&data).unwrap();
+/// ```
 pub mod utility;
 
 #[cfg(test)]
