@@ -24,6 +24,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Calculates the leaf node adjustment factor c(n) | 计算叶节点调整因子 c(n)
     - Calculates the standard deviation of a set of values | 计算标准差
 
+
 - **Machine Learning Models | 机器学习模型**:
     - Supervised Learning | 监督式学习:
       - Linear Regression | 线性回归
@@ -36,6 +37,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
       - MeanShift | MeanShift聚类
       - DBSCAN | DBSCAN聚类
       - Isolation Forest | 隔离森林
+
 
 - **Utility | 工具**:
   - PCA(Principal Component Analysis)
@@ -70,8 +72,9 @@ While the library is in its early stages, Rust AI aims to evolve into a comprehe
 ## Dependencies | 依赖
 - [ndarray](https://crates.io/crates/ndarray) (0.16.1): N-dimensional array library for Rust | Rust的N维数组库
 - [rand](https://crates.io/crates/rand) (0.9.0): Random number generators and other randomness functionality for Rust | Rust的随机数生成器和其他随机性功能
+- [ndarray-linalg](https://crates.io/crates/ndarray-linalg)(0.17.0): Linear algebra package for rust-ndarray | 给 Rust ndarray使用的线性代数包
 
-## Getting Started | 开始使用(Not available right now)
+## Getting Started | 开始使用
 Add the library to your `Cargo.toml`:
 将库添加到您的`Cargo.toml`文件中：
 ``` toml
@@ -80,18 +83,32 @@ rustyml = "0.1.0"
 ```
 Example usage | 使用示例:
 ``` rust
-use rustyml::math::{sum_of_squared_errors, r2_score};
+use rustyml::machine_learning::linear_regression::LinearRegression;
+use ndarray::{Array1, Array2, array};
 
-// Example data | 示例数据
-let predicted = vec![2.1, 3.8, 5.2, 7.1];
-let actual = vec![2.0, 4.0, 5.0, 7.0];
+// Create a linear regression model
+let mut model = LinearRegression::new(true, 0.01, 1000, 1e-6);
 
-// Calculate error metrics | 计算误差指标
-let sse = sum_of_squared_errors(&predicted, &actual);
-let r2 = r2_score(&predicted, &actual);
+// Prepare training data
+let raw_x = vec![vec![1.0, 2.0], vec![2.0, 3.0], vec![3.0, 4.0]];
+let raw_y = vec![6.0, 9.0, 12.0];
 
-println!("Sum of Squared Errors: {}", sse);
-println!("R² Score: {}", r2);
+// Convert Vec to ndarray types
+let x = Array2::from_shape_vec((3, 2), raw_x.into_iter().flatten().collect()).unwrap();
+let y = Array1::from_vec(raw_y);
+
+// Train the model
+model.fit(&x, &y).unwrap();
+
+// Make predictions
+let new_data = Array2::from_shape_vec((1, 2), vec![4.0, 5.0]).unwrap();
+let predictions = model.predict(&new_data);
+
+// Since Clone is implemented, the model can be easily cloned
+let model_copy = model.clone();
+
+// Since Debug is implemented, detailed model information can be printed
+println!("{:?}", model);
 ```
 ## Project Status | 项目状态
 This project is in the **early development stage**. Currently, only a small subset of the planned functionality has been implemented. The API is unstable and subject to significant changes as the project evolves.
@@ -105,7 +122,7 @@ Contributions are welcome! If you're interested in helping build a robust machin
 4. Help with documentation and examples | 帮助完善文档和示例
 
 ## License | 许可证
-MIT - License
+[MIT - License](https://github.com/SomeB1oody/RustyML/blob/master/LICENSE)
 ## Authors | 作者
 - SomeB1oody (stanyin64@gmail.com)
 
