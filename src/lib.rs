@@ -3,7 +3,7 @@
 pub enum ModelError {
     /// Indicates that the model has not been fitted yet
     NotFitted,
-    /// indicates the input data provided  does not meet the expected format, type, or validation rules.
+    /// indicates the input data provided does not meet the expected format, type, or validation rules.
     InputValidationError(&'static str),
     /// indicates that there is something wrong with the tree
     TreeError(&'static str),
