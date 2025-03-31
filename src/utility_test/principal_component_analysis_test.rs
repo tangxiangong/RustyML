@@ -1,6 +1,6 @@
 use ndarray::{arr2, Array2};
 use std::error::Error;
-use crate::machine_learning::principal_component_analysis::{PCA, standardize};
+use crate::utility::principal_component_analysis::{PCA, standardize};
 
 // Helper function for approximate equality checks
 fn approx_eq(a: f64, b: f64, epsilon: f64) -> bool {

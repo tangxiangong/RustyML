@@ -543,106 +543,6 @@ pub mod decision_tree;
 /// IEEE International Conference on Data Mining (pp. 413-422). IEEE.
 pub mod isolation_forest;
 
-/// Principal Component Analysis (PCA) implementation for dimensionality reduction.
-///
-/// This module provides an implementation of PCA, a statistical technique used for
-/// dimensionality reduction, data visualization, and feature extraction. PCA transforms
-/// the data into a new coordinate system where the greatest variances lie on the first
-/// coordinates (principal components).
-///
-/// # Features
-///
-/// * Dimensionality reduction while preserving variance
-/// * Visualization of high-dimensional data
-/// * Computation of principal components
-/// * Explained variance analysis
-/// * Data transformation and inverse transformation
-/// * Singular value decomposition (SVD) based implementation
-/// * Data standardization utility
-///
-/// # Parameters
-///
-/// * `n_components` - Number of principal components to keep
-///
-/// # Examples
-///
-/// ```
-/// use ndarray::{Array2, array};
-/// use rustyml::machine_learning::principal_component_analysis::{PCA, standardize};
-///
-/// // Example data: 5 samples, 3 features
-/// let data = Array2::from_shape_vec((5, 3), vec![
-///     1.0, 2.0, 3.0,
-///     4.0, 5.0, 6.0,
-///     7.0, 8.0, 9.0,
-///     10.0, 11.0, 12.0,
-///     13.0, 14.0, 15.0,
-/// ]).unwrap();
-///
-/// // Standardize the data (recommended before PCA)
-/// let std_data = standardize(&data);
-///
-/// // Create a PCA model with 2 components
-/// let mut pca = PCA::new(2);
-///
-/// // Fit the model
-/// pca.fit(&std_data).unwrap();
-///
-/// // Get the principal components
-/// let components = pca.get_components().unwrap();
-///
-/// // Get explained variance
-/// let explained_variance = pca.get_explained_variance().unwrap();
-/// let explained_variance_ratio = pca.get_explained_variance_ratio().unwrap();
-///
-/// // Transform data to lower-dimensional space
-/// let transformed = pca.transform(&std_data).unwrap();
-///
-/// // Transform back to original space (with some information loss)
-/// let reconstructed = pca.inverse_transform(&transformed).unwrap();
-///
-/// // Fit and transform in one step
-/// let mut pca_new = PCA::new(2);
-/// let transformed_direct = pca_new.fit_transform(&std_data).unwrap();
-/// ```
-///
-/// # Algorithm Details
-///
-/// The PCA algorithm implemented here works by:
-///
-/// 1. Centering the data by subtracting the mean
-/// 2. Computing the covariance matrix
-/// 3. Performing singular value decomposition (SVD) on the centered data
-/// 4. Extracting the principal components (eigenvectors)
-/// 5. Computing explained variance and explained variance ratio
-/// 6. Projecting data onto the principal components
-///
-/// For best results, it's recommended to standardize the data before applying PCA,
-/// especially when features have different scales. The module provides a `standardize`
-/// function for this purpose.
-///
-/// # Performance Considerations
-///
-/// * Time complexity is dominated by the SVD computation, approximately O(min(n²m, nm²)) where n is the number of samples and m is the number of features
-/// * Memory usage scales with the size of the input data
-/// * Reducing dimensionality can significantly speed up downstream processing
-/// * For very large datasets, consider using incremental PCA algorithms (not implemented here)
-///
-/// # Applications
-///
-/// * Dimensionality reduction for machine learning
-/// * Data visualization
-/// * Noise reduction
-/// * Feature extraction
-/// * Image compression
-/// * Signal processing
-///
-/// # References
-///
-/// * Jolliffe, I. T. (2002). Principal Component Analysis, Second Edition. Springer.
-/// * Shlens, J. (2014). A tutorial on principal component analysis. arXiv preprint arXiv:1404.1100.
-pub mod principal_component_analysis;
-
 /// Performs validation checks on the input data matrices.
 ///
 /// This function validates that:
@@ -661,7 +561,7 @@ pub mod principal_component_analysis;
 ///
 /// - `Ok(())` - If all validation checks pass
 /// - `Err(ModelError::InputValidationError)` - If any validation check fails, with an informative error message
-fn preliminary_check(x: &ndarray::Array2<f64>,
+pub fn preliminary_check(x: &ndarray::Array2<f64>,
                      y: Option<&ndarray::Array1<f64>>
 ) -> Result<(), crate::ModelError> {
     if x.nrows() == 0 {

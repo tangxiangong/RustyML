@@ -5,6 +5,10 @@ This change log records updates after 2025-3-24.
 
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
+## [v0.2.0] - 2025-3-31
+### Changed
+- Change `principal_component_analysis` module to `utility` module, change `principal_component_analysis_test` module to `utility_test` module
+
 ## [v0.1.1] - 2025-3-31
 ### Added
 - Add function `preliminary_check` in machine_learning module to performs validation checks on the input data matrices

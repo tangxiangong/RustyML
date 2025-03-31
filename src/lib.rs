@@ -158,3 +158,7 @@ mod machine_learning_test;
 /// - Anomaly Detection: `IsolationForest`
 /// - Common parameters and metrics: `DistanceCalculationMetric`, `WeightingStrategy`, etc.
 pub mod prelude;
+pub mod utility;
+
+#[cfg(test)]
+mod utility_test;

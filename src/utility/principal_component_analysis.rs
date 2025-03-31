@@ -22,7 +22,7 @@ use crate::ModelError;
 ///
 /// ```
 /// use ndarray::{array, Array2};
-/// use rustyml::machine_learning::principal_component_analysis::PCA;
+/// use rustyml::utility::principal_component_analysis::PCA;
 ///
 /// // Create some sample data (3 samples, 4 features)
 /// let data = Array2::from_shape_vec((3, 4), vec![
@@ -120,7 +120,7 @@ impl PCA {
     /// - Calculates eigenvalues and eigenvectors
     /// - Sorts components by explained variance
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn Error>> {
-        use super::preliminary_check;
+        use crate::machine_learning::preliminary_check;
 
         preliminary_check(&x, None)?;
 
