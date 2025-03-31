@@ -187,40 +187,33 @@ impl LogisticRegression {
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         use crate::math::sigmoid;
-        let (n_samples, mut n_features) = x.dim();
 
-        if n_samples == 0 {
-            return Err(ModelError::InputValidationError("Input matrix is empty"));
-        }
+        use super::preliminary_check;
 
-        if n_features == 0 {
-            return Err(ModelError::InputValidationError("Input matrix has no features"));
-        }
-
-        if y.len() != n_samples {
-            return Err(ModelError::InputValidationError("Input vector does not match number of samples"));
-        }
+        preliminary_check(&x, Some(&y))?;
 
         if self.learning_rate <= 0.0 {
-            return Err(ModelError::InputValidationError("Learning rate must be greater than 0.0"));
+            return Err(ModelError::InputValidationError("Learning rate must be greater than 0.0".to_string()));
         }
 
         for &val in y.iter() {
             if val != 0.0 && val != 1.0 {
-                return Err(ModelError::InputValidationError("Target vector must contain only 0 or 1"));
+                return Err(ModelError::InputValidationError("Target vector must contain only 0 or 1".to_string()));
             }
         }
 
-        if x.iter().any(|x| x.is_nan() || x.is_infinite()) {
-            return Err(ModelError::InputValidationError("Input matrix contains NaN or infinite values"));
-        }
+        let (n_samples, mut n_features) = x.dim();
 
-        if y.iter().any(|y| y.is_nan() || y.is_infinite()) {
-            return Err(ModelError::InputValidationError("Target vector contains NaN or infinite values"));
+        for (i, y_val) in y.iter().enumerate() {
+            if y_val.is_nan() || y_val.is_infinite() {
+                return Err(ModelError::InputValidationError(
+                    format!("Target vector contains NaN or infinite values, at index {}", i)
+                ));
+            }
         }
 
         if self.max_iter <= 0 {
-            return Err(ModelError::InputValidationError("Maximum number of iterations must be greater than 0"));
+            return Err(ModelError::InputValidationError("Maximum number of iterations must be greater than 0".to_string()));
         }
 
         // If using intercept, add a column of ones

@@ -342,13 +342,9 @@ impl DecisionTree {
     /// * The algorithm used for building the tree is determined by the `algorithm` field set during initialization
     /// * Model hyperparameters like max_depth, min_samples_split etc. control the training process
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
-        if x.nrows() == 0 {
-            return Err(ModelError::InputValidationError("The input feature matrix is empty"))
-        }
+        use super::preliminary_check;
 
-        if x.nrows() != y.len() {
-            return Err(ModelError::InputValidationError("The input feature matrix and target vector have different lengths"))
-        }
+        preliminary_check(&x, Some(&y))?;
 
         self.n_features = x.ncols();
 

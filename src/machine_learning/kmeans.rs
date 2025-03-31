@@ -318,19 +318,15 @@ impl KMeans {
     /// - `&mut Self` - A mutable reference to self for method chaining
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
-        if data.is_empty() {
-            return Err(ModelError::InputValidationError("Input data is empty"));
-        }
+        use super::preliminary_check;
+
+        preliminary_check(&data, None)?;
 
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
 
         if n_samples < self.n_clusters {
-            return Err(ModelError::InputValidationError("Number of samples is less than number of clusters"));
-        }
-
-        if data.iter().any(|&x| x.is_nan() || x.is_infinite()) {
-            return Err(ModelError::InputValidationError("Input data contains NaN or infinite values"));
+            return Err(ModelError::InputValidationError("Number of samples is less than number of clusters".to_string()));
         }
 
         // Initialize cluster centers

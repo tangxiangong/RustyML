@@ -235,42 +235,24 @@ impl MeanShift {
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError> {
         if self.bandwidth <= 0.0 {
-            return Err(ModelError::InputValidationError("bandwidth must be positive"));
+            return Err(ModelError::InputValidationError("bandwidth must be positive".to_string()));
         }
 
         if self.max_iter <= 0 {
-            return Err(ModelError::InputValidationError("max_iter must be positive"));
+            return Err(ModelError::InputValidationError("max_iter must be positive".to_string()));
         }
 
         if self.tol <= 0.0 {
-            return Err(ModelError::InputValidationError("tol must be positive"));
+            return Err(ModelError::InputValidationError("tol must be positive".to_string()));
         }
 
         use crate::math::gaussian_kernel;
+        use super::preliminary_check;
+
+        preliminary_check(&x, None)?;
 
         let n_samples = x.shape()[0];
         let n_features = x.shape()[1];
-
-        if n_samples == 0 {
-            return Err(ModelError::InputValidationError("x must contain at least one sample"));
-        }
-
-        if n_features == 0 {
-            return Err(ModelError::InputValidationError("x must contain at least one feature"));
-        }
-
-        for row in 0..n_samples {
-            for col in 0..n_features {
-                let value = x[[row, col]];
-                if value.is_nan() {
-                    return Err(ModelError::InputValidationError("x must not contain NaN values"));
-                }
-
-                if value.is_infinite() {
-                    return Err(ModelError::InputValidationError("x must not contain infinite values"));
-                }
-            }
-        }
 
         // Initialize seed points
         let seeds: Vec<usize> = if self.bin_seeding {

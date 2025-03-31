@@ -183,16 +183,17 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     /// 
     /// KNN is a lazy learning algorithm, and the calculation is done in the prediction phase.
     pub fn fit(&mut self, x: Array2<f64>, y: Array1<T>) -> Result<&mut Self, ModelError> {
+        use super::preliminary_check;
+
+        preliminary_check(&x, None)?;
+
         if x.nrows() != y.len() {
-            return Err(ModelError::InputValidationError("The number of samples does not match"))
+            return Err(ModelError::InputValidationError(
+                format!("The number of samples does not match, x columns: {}, y length: {}", x.nrows(), y.len())))
         }
 
         if x.nrows() < self.k {
-            return Err(ModelError::InputValidationError("The number of samples is less than k"))
-        }
-
-        if x.iter().any(|&val| val.is_nan() || val.is_infinite()) {
-            return Err(ModelError::InputValidationError("The input contains NaN or infinite values"))
+            return Err(ModelError::InputValidationError("The number of samples is less than k".to_string()))
         }
 
         self.x_train = Some(x);

@@ -120,25 +120,15 @@ impl PCA {
     /// - Calculates eigenvalues and eigenvectors
     /// - Sorts components by explained variance
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn Error>> {
+        use super::preliminary_check;
+
+        preliminary_check(&x, None)?;
+
         let n_samples = x.nrows();
         let n_features = x.ncols();
 
-        if n_samples == 0 || n_features == 0 {
-            return Err(Box::new(ModelError::InputValidationError("Input cannot be empty.")))
-        }
-
         if self.n_components <= 0 {
-            return Err(Box::new(ModelError::InputValidationError("Number of components must be positive.")))
-        }
-
-        for value in x.iter() {
-            if value.is_nan() {
-                return Err(Box::new(ModelError::InputValidationError("Input contains NaN values.")))
-            }
-
-            if value.is_infinite() {
-                return Err(Box::new(ModelError::InputValidationError("Input contains infinite values.")))
-            }
+            return Err(Box::new(ModelError::InputValidationError("Number of components must be positive.".to_string())));
         }
 
         // Calculate mean

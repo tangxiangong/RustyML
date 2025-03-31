@@ -159,16 +159,16 @@ impl IsolationForest {
     /// - `Ok(&mut Self)` - Trained instance
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError>{
-        if x.nrows() == 0 {
-            return Err(ModelError::InputValidationError("Input data is empty"));
+        use super::preliminary_check;
+
+        preliminary_check(&x, None)?;
+
+        if self.max_samples <= 0 {
+            return Err(ModelError::InputValidationError("max_samples must be greater than 0".to_string()));
         }
 
-        if self.max_samples == 0 {
-            return Err(ModelError::InputValidationError("max_samples must be greater than 0"));
-        }
-
-        if self.n_estimators == 0 {
-            return Err(ModelError::InputValidationError("n_estimators must be greater than 0"));
+        if self.n_estimators <= 0 {
+            return Err(ModelError::InputValidationError("n_estimators must be greater than 0".to_string()));
         }
 
         let n_rows = x.nrows();
@@ -347,7 +347,7 @@ impl IsolationForest {
 
         
         if sample.len() != expected_dimension {
-            return Err(ModelError::InputValidationError("Input dimension does not match training data"));
+            return Err(ModelError::InputValidationError("Input dimension does not match training data".to_string()));
         }
 
 

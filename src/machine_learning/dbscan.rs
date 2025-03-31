@@ -142,16 +142,16 @@ impl DBSCAN {
     /// After fitting, cluster labels can be accessed via `get_labels()` method.
     /// Labels of -1 indicate noise points (outliers).
     pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
-        if data.nrows() == 0 {
-            return Err(ModelError::InputValidationError("Empty dataset provided to DBSCAN"));
-        }
+        use super::preliminary_check;
+
+        preliminary_check(&data, None)?;
 
         if self.eps <= 0.0 {
-            return Err(ModelError::InputValidationError("eps must be positive"));
+            return Err(ModelError::InputValidationError("eps must be positive".to_string()));
         }
 
         if self.min_samples <= 0 {
-            return Err(ModelError::InputValidationError("min_samples must be greater than 0"));
+            return Err(ModelError::InputValidationError("min_samples must be greater than 0".to_string()));
         }
 
         /// Find all neighbors of point p (points within eps distance)

@@ -190,17 +190,9 @@ impl LinearRegression {
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         // Ensure x and y have the same number of samples
-        if x.nrows() == 0 {
-            return Err(ModelError::InputValidationError("x cannot be empty"));
-        }
+        use super::preliminary_check;
 
-        if y.len() == 0 {
-            return Err(ModelError::InputValidationError("y cannot be empty"));
-        }
-
-        if x.nrows() != y.len() {
-            return Err(ModelError::InputValidationError("x and y must have the same number of samples"));
-        }
+        preliminary_check(&x, Some(&y))?;
 
         let n_samples = x.nrows();
         let n_features = x.ncols();
@@ -311,7 +303,8 @@ impl LinearRegression {
 
         if x.ncols() != coeffs.len() {
             return Err(ModelError::InputValidationError(
-                "Number of features does not match training data"
+                format!("Number of features does not match training data, x columns: {}, coefficients: {}",
+                        x.ncols(), coeffs.len())
             ));
         }
 

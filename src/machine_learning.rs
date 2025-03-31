@@ -623,8 +623,7 @@ pub mod isolation_forest;
 ///
 /// # Performance Considerations
 ///
-/// * Time complexity is dominated by the SVD computation, approximately O(min(n²m, nm²))
-///   where n is the number of samples and m is the number of features
+/// * Time complexity is dominated by the SVD computation, approximately O(min(n²m, nm²)) where n is the number of samples and m is the number of features
 /// * Memory usage scales with the size of the input data
 /// * Reducing dimensionality can significantly speed up downstream processing
 /// * For very large datasets, consider using incremental PCA algorithms (not implemented here)
@@ -643,3 +642,55 @@ pub mod isolation_forest;
 /// * Jolliffe, I. T. (2002). Principal Component Analysis, Second Edition. Springer.
 /// * Shlens, J. (2014). A tutorial on principal component analysis. arXiv preprint arXiv:1404.1100.
 pub mod principal_component_analysis;
+
+/// Performs validation checks on the input data matrices.
+///
+/// This function validates that:
+/// - The input data matrix is not empty
+/// - The input data does not contain NaN or infinite values
+/// - When a target vector is provided:
+///   - The target vector is not empty
+///   - The target vector length matches the number of rows in the input data
+///
+/// # Parameters
+///
+/// * `x` - A 2D array of feature values where rows represent samples and columns represent features
+/// * `y` - An optional 1D array representing the target variables or labels corresponding to each sample
+///
+/// # Returns
+///
+/// - `Ok(())` - If all validation checks pass
+/// - `Err(ModelError::InputValidationError)` - If any validation check fails, with an informative error message
+fn preliminary_check(x: &ndarray::Array2<f64>,
+                     y: Option<&ndarray::Array1<f64>>
+) -> Result<(), crate::ModelError> {
+    if x.nrows() == 0 {
+        return Err(crate::ModelError::InputValidationError(
+            "Input data is empty".to_string()));
+    }
+
+    for (i, row) in x.outer_iter().enumerate() {
+        for (j, &val) in row.iter().enumerate() {
+            if val.is_nan() || val.is_infinite() {
+                return Err(crate::ModelError::InputValidationError(
+                    format!("Input data contains NaN or infinite value at position [{}][{}]",
+                            i, j)));
+            }
+        }
+    }
+
+    if let Some(y) = y {
+        if y.len() == 0 {
+            return Err(crate::ModelError::InputValidationError(
+                "Target vector is empty".to_string()));
+        }
+
+        if y.len() != x.nrows() {
+            return Err(crate::ModelError::InputValidationError(
+                format!("Input data and target vector have different lengths, x columns: {}, y length: {}",
+                    x.nrows(), y.len()
+                )));
+        }
+    }
+    Ok(())
+}

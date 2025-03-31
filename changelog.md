@@ -6,9 +6,13 @@ This change log records updates after 2025-3-24.
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
 ## [v0.1.1] - 2025-3-31
+### Added
+- Add function `preliminary_check` in machine_learning module to performs validation checks on the input data matrices
+
 ### Changed
 - Change type of field `coefficients` of struct `LinearRegression` from `Option<Vec<f64>>` to `Option<Array1<f64>>`
 - Change the output of some methods of struct `LinearRegression` from `Vec<f64>` to `Array1<f64>`
+- Change variant `InputValidationError` of enum type `ModelError` from `InputValidationError(&str)` to `InputValidationError(String)`
 
 ## [v0.1.0] - 2025-3-30
 ### Added
