@@ -1,5 +1,5 @@
 use crate::math::*;
-use ndarray::Array2;
+use ndarray::{Array2, array};
 
 #[test]
 fn test_sum_of_square_total() {
@@ -444,4 +444,199 @@ fn test_standard_deviation() {
     // Correct expected population standard deviation = sqrt(68/5)
     let expected = f64::sqrt(68.0 / 5.0);
     assert!((standard_deviation(&negative_values) - expected).abs() < f64::EPSILON);
+}
+
+fn assert_float_eq(a: f64, b: f64) {
+    assert!((a - b).abs() < f64::EPSILON, "Expected {}, got {}", b, a);
+}
+
+#[test]
+fn test_confusion_matrix_new() {
+    // Test perfect classification
+    let pred = array![1.0, 0.0, 1.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+
+    assert_eq!(cm.get_counts(), (2, 0, 2, 0));
+
+    // Test various classification error scenarios
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+
+    assert_eq!(cm.get_counts(), (1, 1, 1, 1));
+
+    // Test probability threshold (0.5)
+    let pred = array![0.6, 0.4, 0.7, 0.3];
+    let actual = array![0.9, 0.1, 0.2, 0.8];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+
+    assert_eq!(cm.get_counts(), (1, 1, 1, 1));
+}
+
+#[test]
+fn test_confusion_matrix_new_error() {
+    // Test case with mismatched input lengths
+    let pred = array![1.0, 0.0, 1.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let result = ConfusionMatrix::new(&pred, &actual);
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_get_counts() {
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+
+    let counts = cm.get_counts();
+    assert_eq!(counts, (1, 1, 1, 1));
+}
+
+#[test]
+fn test_confusion_matrix_accuracy() {
+    // Perfect classification
+    let pred = array![1.0, 0.0, 1.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.accuracy(), 1.0);
+
+    // 50% correct
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.accuracy(), 0.5);
+
+    // All incorrect
+    let pred = array![1.0, 1.0, 1.0, 1.0];
+    let actual = array![0.0, 0.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.accuracy(), 0.0);
+}
+
+#[test]
+fn test_error_rate() {
+    // Perfect classification
+    let pred = array![1.0, 0.0, 1.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.error_rate(), 0.0);
+
+    // 50% errors
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.error_rate(), 0.5);
+
+    // All errors
+    let pred = array![1.0, 1.0, 1.0, 1.0];
+    let actual = array![0.0, 0.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.error_rate(), 1.0);
+}
+
+#[test]
+fn test_precision() {
+    // Perfect precision
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 1.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.precision(), 1.0);
+
+    // Partial precision
+    let pred = array![1.0, 1.0, 1.0, 0.0];
+    let actual = array![1.0, 0.0, 1.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.precision(), 2.0/3.0);
+
+    // No true positives
+    let pred = array![1.0, 1.0, 1.0];
+    let actual = array![0.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.precision(), 0.0);
+}
+
+#[test]
+fn test_recall() {
+    // Perfect recall
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 1.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.recall(), 1.0);
+
+    // Partial recall
+    let pred = array![1.0, 0.0, 0.0, 0.0];
+    let actual = array![1.0, 1.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.recall(), 0.5);
+
+    // No actual positives
+    let pred = array![0.0, 0.0, 0.0];
+    let actual = array![0.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.recall(), 1.0); // Note: when there are no actual positives, recall is 1.0 (avoiding 0/0 case)
+}
+
+#[test]
+fn test_specificity() {
+    // Perfect specificity
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 1.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.specificity(), 1.0);
+
+    // Partial specificity
+    let pred = array![1.0, 1.0, 0.0, 1.0];
+    let actual = array![1.0, 1.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.specificity(), 0.5);
+
+    // No actual negatives
+    let pred = array![1.0, 1.0, 1.0];
+    let actual = array![1.0, 1.0, 1.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.specificity(), 1.0); // Note: when there are no actual negatives, specificity is 1.0 (avoiding 0/0 case)
+}
+
+#[test]
+fn test_f1_score() {
+    // Perfect F1 score
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 1.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.f1_score(), 1.0);
+
+    // F1 score calculation example
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 0.0, 0.0, 1.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    // precision = 1/2, recall = 1/2, F1 = 2*1/2*1/2 / (1/2 + 1/2) = 1/2
+    assert_float_eq(cm.f1_score(), 0.5);
+
+    // Precision or recall is 0
+    let pred = array![1.0, 1.0, 1.0];
+    let actual = array![0.0, 0.0, 0.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    assert_float_eq(cm.f1_score(), 0.0);
+}
+
+#[test]
+fn test_summary() {
+    let pred = array![1.0, 1.0, 0.0, 0.0];
+    let actual = array![1.0, 0.0, 0.0, 1.0];
+    let cm = ConfusionMatrix::new(&pred, &actual).unwrap();
+    let summary = cm.summary();
+
+    // Check if the summary string contains all necessary information
+    assert!(summary.contains("TP:"));
+    assert!(summary.contains("FP:"));
+    assert!(summary.contains("TN:"));
+    assert!(summary.contains("FN:"));
+    assert!(summary.contains("Accuracy:"));
+    assert!(summary.contains("Error Rate:"));
+    assert!(summary.contains("Precision:"));
+    assert!(summary.contains("Recall:"));
+    assert!(summary.contains("Specificity:"));
+    assert!(summary.contains("F1 Score:"));
 }

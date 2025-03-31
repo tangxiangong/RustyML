@@ -8,6 +8,7 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ## [v0.1.1] - 2025-3-31
 ### Added
 - Add function `preliminary_check` in machine_learning module to performs validation checks on the input data matrices
+- Add confusion matrix in math module
 
 ### Changed
 - Change type of field `coefficients` of struct `LinearRegression` from `Option<Vec<f64>>` to `Option<Array1<f64>>`

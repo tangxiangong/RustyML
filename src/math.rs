@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use ndarray::ArrayView2;
+use ndarray::{Array1, ArrayView2};
+use crate::ModelError;
 
 /// Calculates the Sum of Square Total
 ///
@@ -639,4 +640,240 @@ pub fn standard_deviation(values: &[f64]) -> f64 {
 
     // Return the population standard deviation
     variance.sqrt()
+}
+
+/// # Confusion Matrix for binary classification evaluation
+///
+/// A confusion matrix is a table that is often used to describe the performance of a classification model
+/// on a set of test data for which the true values are known. It allows visualization of the performance
+/// of an algorithm and identification of common types of errors.
+///
+/// ## Fields
+///
+/// * `tp` - True Positive: The number of correct positive predictions when the actual class is positive
+/// * `fp` - False Positive: The number of incorrect positive predictions when the actual class is negative (Type I error)
+/// * `tn` - True Negative: The number of correct negative predictions when the actual class is negative
+/// * `fn_` - False Negative: The number of incorrect negative predictions when the actual class is positive (Type II error)
+///
+/// ## Performance Metrics
+///
+/// This implementation provides methods to calculate common performance metrics including:
+/// accuracy, precision, recall, specificity, and F1 score.
+///
+/// ## Example
+///
+/// ```
+/// use ndarray::arr1;
+/// use rustyml::math::ConfusionMatrix;
+///
+/// // Create arrays for predicted and actual values
+/// let predicted = arr1(&[0.9, 0.2, 0.8, 0.1, 0.7]);
+/// let actual = arr1(&[1.0, 0.0, 1.0, 0.0, 1.0]);
+///
+/// // Create confusion matrix
+/// let cm = ConfusionMatrix::new(&predicted, &actual).unwrap();
+///
+/// // Calculate performance metrics
+/// println!("Accuracy: {:.2}", cm.accuracy());
+/// println!("Precision: {:.2}", cm.precision());
+/// println!("Recall: {:.2}", cm.recall());
+/// println!("F1 Score: {:.2}", cm.f1_score());
+///
+/// // Get the confusion matrix components
+/// let (tp, fp, tn, fn_) = cm.get_counts();
+/// println!("TP: {}, FP: {}, TN: {}, FN: {}", tp, fp, tn, fn_);
+///
+/// // Print full summary
+/// println!("{}", cm.summary());
+/// ```
+#[derive(Debug, Clone)]
+pub struct ConfusionMatrix {
+    /// True Positive (TP): The number of correct positive predictions
+    /// when the actual class is positive (correctly identified positive cases)
+    tp: usize,
+
+    /// False Positive (FP): The number of incorrect positive predictions
+    /// when the actual class is negative (Type I error, false alarm)
+    fp: usize,
+
+    /// True Negative (TN): The number of correct negative predictions
+    /// when the actual class is negative (correctly identified negative cases)
+    tn: usize,
+
+    /// False Negative (FN): The number of incorrect negative predictions
+    /// when the actual class is positive (Type II error, miss)
+    fn_: usize,
+}
+
+impl ConfusionMatrix {
+    /// Create a new confusion matrix
+    ///
+    /// # Parameters
+    ///
+    /// * `predicted` - Array of predicted labels, values >= 0.5 are considered positive class
+    /// * `actual` - Array of actual labels, values >= 0.5 are considered positive class
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Self)` - A new confusion matrix if input arrays have the same length
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
+    pub fn new(predicted: &Array1<f64>, actual: &Array1<f64>) -> Result<Self, ModelError> {
+        if predicted.len() != actual.len() {
+            return Err(ModelError::InputValidationError(
+                format!("The length of prediction and actual labels do not match, prediction length: {}, actual label length: {}",
+                    predicted.len(), actual.len()
+                )
+            ));
+        }
+
+        let mut tp = 0;
+        let mut fp = 0;
+        let mut tn = 0;
+        let mut fn_ = 0;
+
+        for (p, a) in predicted.iter().zip(actual.iter()) {
+            let p_binary = if *p >= 0.5 { 1.0 } else { 0.0 };
+            let a_binary = if *a >= 0.5 { 1.0 } else { 0.0 };
+
+            match (p_binary, a_binary) {
+                (1.0, 1.0) => tp += 1,
+                (1.0, 0.0) => fp += 1,
+                (0.0, 1.0) => fn_ += 1,
+                (0.0, 0.0) => tn += 1,
+                _ => unreachable!(), // Should not happen as we explicitly convert to binary values
+            }
+        }
+
+        Ok(Self { tp, fp, tn, fn_ })
+    }
+
+    /// Get the components of the confusion matrix
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the four basic components of the confusion matrix:
+    /// * `tp` - True Positive count
+    /// * `fp` - False Positive count
+    /// * `tn` - True Negative count
+    /// * `fn_` - False Negative count
+    pub fn get_counts(&self) -> (usize, usize, usize, usize) {
+        (self.tp, self.fp, self.tn, self.fn_)
+    }
+
+    /// Calculate accuracy: (TP + TN) / (TP + TN + FP + FN)
+    ///
+    /// Accuracy measures the proportion of correct predictions among the total number of cases examined.
+    ///
+    /// # Returns
+    ///
+    /// * `f64` - A float value between 0.0 and 1.0 representing the accuracy. Returns 0.0 if there are no predictions (empty matrix).
+    pub fn accuracy(&self) -> f64 {
+        let total = self.tp + self.tn + self.fp + self.fn_;
+        if total == 0 {
+            return 0.0;
+        }
+        (self.tp + self.tn) as f64 / total as f64
+    }
+
+    /// Calculate error rate: (FP + FN) / (TP + TN + FP + FN) = 1 - Accuracy
+    ///
+    /// Error rate measures the proportion of incorrect predictions among the total number of cases examined.
+    ///
+    /// # Returns
+    ///
+    /// * `f64` - A float value between 0.0 and 1.0 representing the error rate. Returns 1.0 if there are no predictions (empty matrix).
+    pub fn error_rate(&self) -> f64 {
+        1.0 - self.accuracy()
+    }
+
+    /// Calculate precision: TP / (TP + FP)
+    ///
+    /// Precision measures the proportion of positive identifications that were actually correct.
+    /// It answers the question: "Of all the instances predicted as positive, how many were actually positive?"
+    ///
+    /// # Returns
+    ///
+    /// * `f64` - A float value between 0.0 and 1.0 representing precision. Returns 0.0 if there are no positive predictions (TP + FP = 0).
+    pub fn precision(&self) -> f64 {
+        if self.tp + self.fp == 0 {
+            return 0.0;
+        }
+        self.tp as f64 / (self.tp + self.fp) as f64
+    }
+
+    /// Calculate recall (sensitivity): TP / (TP + FN)
+    ///
+    /// Recall measures the proportion of actual positives that were correctly identified.
+    /// It answers the question: "Of all the actual positive instances, how many were correctly predicted?"
+    ///
+    /// # Returns
+    ///
+    /// * `f64` - A float value between 0.0 and 1.0 representing recall. Returns 1.0 if there are no actual positive instances (TP + FN = 0).
+    pub fn recall(&self) -> f64 {
+        if self.tp + self.fn_ == 0 {
+            return 1.0;
+        }
+        self.tp as f64 / (self.tp + self.fn_) as f64
+    }
+
+    /// Calculate specificity: TN / (TN + FP)
+    ///
+    /// Specificity measures the proportion of actual negatives that were correctly identified.
+    /// It answers the question: "Of all the actual negative instances, how many were correctly predicted?"
+    ///
+    /// # Returns
+    ///
+    /// * `f64` - A float value between 0.0 and 1.0 representing specificity. Returns 1.0 if there are no actual negative instances (TN + FP = 0).
+    pub fn specificity(&self) -> f64 {
+        if self.tn + self.fp == 0 {
+            return 1.0;
+        }
+        self.tn as f64 / (self.tn + self.fp) as f64
+    }
+
+    /// Calculate F1 score: 2 * (Precision * Recall) / (Precision + Recall)
+    ///
+    /// F1 score is the harmonic mean of precision and recall, providing a balance between the two metrics.
+    /// It's particularly useful when you want to balance precision and recall and there's an uneven class distribution.
+    ///
+    /// # Returns
+    ///
+    /// * `f64` - A float value between 0.0 and 1.0 representing the F1 score. Returns 0.0 if either precision or recall is 0.0.
+    pub fn f1_score(&self) -> f64 {
+        let precision = self.precision();
+        let recall = self.recall();
+
+        if precision + recall == 0.0 {
+            return 0.0;
+        }
+
+        2.0 * (precision * recall) / (precision + recall)
+    }
+
+    /// Generate a formatted summary of the confusion matrix and all performance metrics
+    ///
+    /// # Returns
+    ///
+    /// * `String` - A formatted string containing a visual representation of the confusion matrix and all calculated performance metrics with 4 decimal places of precision.
+    pub fn summary(&self) -> String {
+        format!(
+            "Confusion Matrix:\n\
+        |                | Predicted Positive | Predicted Negative |\n\
+        |----------------|-------------------|--------------------|\n\
+        | Actual Positive | TP: {}           | FN: {}             |\n\
+        | Actual Negative | FP: {}           | TN: {}             |\n\
+        \n\
+        Performance Metrics:\n\
+        - Accuracy: {:.4}\n\
+        - Error Rate: {:.4}\n\
+        - Precision: {:.4}\n\
+        - Recall: {:.4}\n\
+        - Specificity: {:.4}\n\
+        - F1 Score: {:.4}",
+            self.tp, self.fn_, self.fp, self.tn,
+            self.accuracy(), self.error_rate(),
+            self.precision(), self.recall(),
+            self.specificity(), self.f1_score()
+        )
+    }
 }
