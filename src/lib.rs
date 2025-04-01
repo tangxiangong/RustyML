@@ -29,7 +29,6 @@ impl std::error::Error for ModelError {}
 /// This module provides implementations of common statistical measures used in machine learning:
 /// - Sum of square total (SST) for measuring data variability
 /// - Sum of squared errors (SSE) for evaluating prediction errors
-/// - R-squared (R²) score for assessing model fit quality
 /// - Sigmoid function for logistic regression and neural networks
 /// - Logistic loss (log loss) for binary classification models
 /// - Accuracy score for classification model evaluation
@@ -51,7 +50,7 @@ impl std::error::Error for ModelError {}
 /// # Examples
 ///
 /// ```
-/// use rustyml::math::{sum_of_squared_errors, r2_score};
+/// use rustyml::math::{sum_of_squared_errors};
 ///
 /// // Example data
 /// let predicted = vec![2.1, 3.8, 5.2, 7.1];
@@ -59,7 +58,6 @@ impl std::error::Error for ModelError {}
 ///
 /// // Calculate error metrics
 /// let sse = sum_of_squared_errors(&predicted, &actual);
-/// let r2 = r2_score(&predicted, &actual);
 /// ```
 pub mod math;
 
@@ -190,3 +188,55 @@ pub mod utility;
 
 #[cfg(test)]
 mod utility_test;
+
+/// # Metric Module
+///
+/// This module provides implementation of common evaluation metrics used in statistical analysis
+/// and machine learning models.
+///
+/// ## Regression Metrics
+///
+/// The module offers several metrics for evaluating regression models:
+///
+/// * `root_mean_squared_error` - Calculates the square root of the mean of squared differences between predicted and actual values
+/// * `mean_absolute_error` - Calculates the mean of absolute differences between predicted and actual values
+/// * `r2_score` - Calculates the coefficient of determination (R²) that measures how well a model explains the variance in the target variable
+///
+/// ## Classification Metrics
+///
+/// The module provides the `ConfusionMatrix` struct for binary classification evaluation:
+///
+/// * Contains counts for true positives (TP), false positives (FP), true negatives (TN), and false negatives (FN)
+/// * Calculates various derived metrics:
+///   - Accuracy
+///   - Error rate
+///   - Precision
+///   - Recall
+///   - Specificity
+///   - F1 score
+///
+/// ## Examples
+///
+/// ```
+/// use rustyml::metric::*;
+/// use ndarray::Array1;
+///
+/// // Regression metrics example
+/// let predictions = vec![3.0, 2.0, 3.5, 4.1];
+/// let actuals = vec![2.8, 2.1, 3.3, 4.2];
+///
+/// let rmse = root_mean_squared_error(&predictions, &actuals);
+/// let mae = mean_absolute_error(&predictions, &actuals);
+/// let r2 = r2_score(&predictions, &actuals);
+///
+/// // Classification metrics example
+/// let predicted = Array1::from(vec![1.0, 0.0, 1.0, 1.0, 0.0]);
+/// let actual = Array1::from(vec![1.0, 0.0, 0.0, 1.0, 1.0]);
+///
+/// let cm = ConfusionMatrix::new(&predicted, &actual);
+/// println!("{}", cm.summary());
+/// ```
+pub mod metric;
+
+#[cfg(test)]
+mod metric_module_test;

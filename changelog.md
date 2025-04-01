@@ -8,6 +8,7 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ## [v0.2.0] - 2025-3-31
 ### Changed
 - Change `principal_component_analysis` module to `utility` module, change `principal_component_analysis_test` module to `utility_test` module
+- Keep the algorithm functions in the math module, and move the functions that evaluate the model's performance (such as R-square values) and structures (confusion matrices) to the metric module. Some of them are used in both ways, then keep them in both modules.
 
 ## [v0.1.1] - 2025-3-31
 ### Added

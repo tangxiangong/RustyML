@@ -5,39 +5,46 @@ A comprehensive machine learning and deep learning library written in pure Rust.
 Rust AI aims to be a feature-rich machine learning and deep learning framework that leverages Rust's performance, memory safety, and concurrency features. While currently in early development stages with foundational components, the project's long-term vision is to provide a complete ecosystem for machine learning, deep learning, and transformer-based models.
 Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充分利用Rust的性能、内存安全性和并发特性。虽然目前处于早期开发阶段，只实现了基础组件，但项目的长期愿景是提供一个完整的机器学习、深度学习和基于transformer架构的模型生态系统。
 ## Current Features | 当前功能
-- **Mathematical Utilities | 数学工具**: Core mathematical functions for statistical operations and model evaluation:
-    - Sum of square total (SST) for measuring data variability | 总平方和(SST)，用于衡量数据变异性
-    - Sum of squared errors (SSE) for evaluating prediction errors | 误差平方和(SSE)，用于评估预测误差
-    - R-squared (R²) score for assessing model fit quality | R平方(R²)分数，用于评估模型拟合质量
-    - Sigmoid function for logistic regression and neural networks | Sigmoid函数，用于逻辑回归和神经网络
-    - Logistic loss (log loss) for binary classification models | 逻辑损失函数(对数损失)，用于二元分类模型
-    - Accuracy score for classification model evaluation | 准确率分数，用于分类模型评估
-    - Calculate the squared Euclidean distance between two points | 计算两点之间的欧几里得距离平方
-    - Calculate the Manhattan distance between two points ｜ 计算两点间的曼哈顿距离
-    - Calculate the Minkowski distance between two points ｜ 计算两点间的闵可夫斯基距离
-    - Calculate the Gaussian kernel (RBF kernel) | 计算高斯核(RBF核)
-    - Calculates the entropy of a label set | 计算标签集的熵
-    - Calculates the Gini impurity of a label set | 计算标签集的基尼不纯度
-    - Calculates the information gain when splitting a dataset | 计算数据集分割时的信息增益
-    - Calculates the gain ratio for a dataset split | 计算数据集分割的增益率
-    - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
-    - Calculates the leaf node adjustment factor c(n) | 计算叶节点调整因子 c(n)
-    - Calculates the standard deviation of a set of values | 计算标准差
-    - Confusion matrix and related calculation formulas | 混淆矩阵及相关计算公式
+- **Mathematical Utilities | 数学工具**:
+  - Sum of square total (SST) for measuring data variability | 总平方和(SST)，用于衡量数据变异性
+  - Sum of squared errors (SSE) for evaluating prediction errors | 误差平方和(SSE)，用于评估预测误差
+  - Sigmoid function for logistic regression and neural networks | Sigmoid函数，用于逻辑回归和神经网络
+  - Logistic loss (log loss) for binary classification models | 逻辑损失函数(对数损失)，用于二元分类模型
+  - Accuracy score for classification model evaluation | 准确率分数，用于分类模型评估
+  - Calculate the squared Euclidean distance between two points | 计算两点之间的欧几里得距离平方
+  - Calculate the Manhattan distance between two points ｜ 计算两点间的曼哈顿距离
+  - Calculate the Minkowski distance between two points ｜ 计算两点间的闵可夫斯基距离
+  - Calculate the Gaussian kernel (RBF kernel) | 计算高斯核(RBF核)
+  - Calculates the entropy of a label set | 计算标签集的熵
+  - Calculates the Gini impurity of a label set | 计算标签集的基尼不纯度
+  - Calculates the information gain when splitting a dataset | 计算数据集分割时的信息增益
+  - Calculates the gain ratio for a dataset split | 计算数据集分割的增益率
+  - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
+  - Calculates the leaf node adjustment factor c(n) | 计算叶节点调整因子 c(n)
+  - Calculates the standard deviation of a set of values | 计算标准差
+  - Confusion matrix and related calculation formulas | 混淆矩阵及相关计算公式
+
+
+- **Metric Utilities | 度量工具**:
+  - R-squared (R²) score for assessing model fit quality | R平方(R²)分数，用于评估模型拟合质量
+  - Calculates the Root Mean Squared Error (RMSE) between predicted and actual values | 计算均方误差根
+  - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
+  - Calculates the Mean Absolute Error (MAE) between predicted and actual values | 计算平均绝对误差
+  - Confusion Matrix for binary classification evaluation | 混淆矩阵及相关计算公式
 
 
 - **Machine Learning Models | 机器学习模型**:
-    - Supervised Learning | 监督式学习:
-      - Linear Regression | 线性回归
-      - Logistic Regression | 逻辑回归
-      - KNN | K邻近值聚类
-      - Decision Tree | 决策树
+  - Supervised Learning | 监督式学习:
+    - Linear Regression | 线性回归
+    - Logistic Regression | 逻辑回归
+    - KNN | K邻近值聚类
+    - Decision Tree | 决策树
 
-    - Unsupervised Learning | 无监督学习:
-      - KMeans | K均值聚类
-      - MeanShift | MeanShift聚类
-      - DBSCAN | DBSCAN聚类
-      - Isolation Forest | 隔离森林
+  - Unsupervised Learning | 无监督学习:
+    - KMeans | K均值聚类
+    - MeanShift | MeanShift聚类
+    - DBSCAN | DBSCAN聚类
+    - Isolation Forest | 隔离森林
 
 
 - **Utility | 工具**:
