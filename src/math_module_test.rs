@@ -115,47 +115,6 @@ fn test_logistic_loss_different_lengths() {
 }
 
 #[test]
-fn test_accuracy() {
-    // Test case 1: Binary classification with perfect prediction
-    let predicted = vec![1.0, 0.0, 1.0, 0.0, 1.0];
-    let actual = vec![1.0, 0.0, 1.0, 0.0, 1.0];
-    assert_eq!(accuracy(&predicted, &actual), 1.0);
-
-    // Test case 2: Binary classification with some errors
-    let predicted = vec![1.0, 0.0, 1.0, 1.0, 0.0];
-    let actual = vec![1.0, 0.0, 0.0, 1.0, 1.0];
-    assert_eq!(accuracy(&predicted, &actual), 0.6);
-
-    // Test case 3: Multi-class classification
-    let predicted = vec![0.0, 1.0, 2.0, 3.0, 2.0, 1.0];
-    let actual = vec![0.0, 1.0, 2.0, 2.0, 1.0, 1.0];
-    assert_eq!(accuracy(&predicted, &actual), 2.0/3.0); // 4 out of 6 correct
-
-    // Test case 4: Edge case - empty arrays
-    let empty_vec: Vec<f64> = vec![];
-    assert_eq!(accuracy(&empty_vec, &empty_vec), 0.0);
-
-    // Test case 5: Floating point equality with very small differences
-    // (should be considered equal due to epsilon comparison)
-    let predicted = vec![0.0000001, 1.0];
-    let actual = vec![0.0, 1.0];
-    assert!(accuracy(&predicted, &actual) < 1.0); // Should fail equality due to floating point precision
-
-    // Test case 6: All predictions are wrong
-    let predicted = vec![1.0, 1.0, 0.0, 0.0];
-    let actual = vec![0.0, 0.0, 1.0, 1.0];
-    assert_eq!(accuracy(&predicted, &actual), 0.0);
-}
-
-#[test]
-#[should_panic(expected = "Predicted and actual arrays must have the same length")]
-fn test_accuracy_with_different_length_arrays() {
-    let predicted = vec![1.0, 0.0, 1.0];
-    let actual = vec![1.0, 0.0];
-    accuracy(&predicted, &actual); // This should panic
-}
-
-#[test]
 fn test_squared_distance() {
     use ndarray::array;
     let a = array![[1.0, 2.0], [3.0, 4.0]];

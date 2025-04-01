@@ -142,55 +142,6 @@ pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
     total_loss / logits.len() as f64
 }
 
-/// Calculate the accuracy of a classification model
-///
-/// Accuracy is defined as the proportion of correctly predicted samples
-/// over the total number of samples.
-/// For binary classification, predicted and actual values should be 0.0 or 1.0.
-/// For multi-class classification, values should be numeric class labels.
-///
-/// # Parameters
-/// * `predicted` - Array of predicted class labels
-/// * `actual` - Array of actual class labels
-///
-/// # Returns
-/// * The accuracy score between 0.0 and 1.0
-///
-/// # Panic
-/// If the input arrays have different lengths
-///
-/// # Examples
-///
-/// ```
-/// use rustyml::math::accuracy;
-///
-/// let predicted = [0.0, 1.0, 1.0];
-/// let actual = [0.0, 0.0, 1.0];
-/// let acc = accuracy(&predicted, &actual);
-///
-/// // Two out of three predictions are correct: accuracy = 2/3 ≈ 0.6666666666666667
-/// assert!((acc - 0.6666666666666667).abs() < 1e-6);
-/// ```
-pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
-    assert_eq!(
-        predicted.len(),
-        actual.len(),
-        "Predicted and actual arrays must have the same length"
-    );
-
-    if predicted.is_empty() {
-        return 0.0;
-    }
-
-    let correct_predictions = predicted
-        .iter()
-        .zip(actual.iter())
-        .filter(|&(p, a)| (p - a).abs() < f64::EPSILON)
-        .count();
-
-    correct_predictions as f64 / predicted.len() as f64
-}
-
 /// Calculate the squared Euclidean distance between two points
 ///
 /// Computes the sum of squared differences between corresponding elements
