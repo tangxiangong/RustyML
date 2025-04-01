@@ -49,6 +49,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
 
 - **Utility | 工具**:
   - PCA(Principal Component Analysis)
+  - Split dataset for training and dataset for test 
 
 ## Vision | 愿景
 While the library is in its early stages, Rust AI aims to evolve into a comprehensive crate that includes:
