@@ -33,6 +33,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
   - Confusion Matrix for binary classification evaluation | 混淆矩阵及相关计算公式
   - Calculates the Normalized Mutual Information (NMI) between two cluster label assignments.(Unit: nat) | 计算NMI值(单位: nat)
   - Calculates the Adjusted Mutual Information (AMI) between two cluster label assignments.(Unit: nat) | 计算AMI值(单位: nat)
+  - Calculates the Area Under the Receiver Operating Characteristic Curve (AUC-ROC) | 计算AUC-ROC值
 
 
 - **Machine Learning Models | 机器学习模型**:

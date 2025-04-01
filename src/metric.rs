@@ -52,7 +52,7 @@ pub use crate::math::mean_squared_error;
 /// ```
 pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> Result<f64, ModelError> {
     // Check if inputs are empty
-    if predictions.is_empty() || targets.is_empty() {
+    if predictions.is_empty() {
         return Err(ModelError::InputValidationError("Input arrays cannot be empty".to_string()));
     }
 
@@ -104,7 +104,7 @@ pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> Result<f
 /// ```
 pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> Result<f64, ModelError> {
     // Check if inputs are empty
-    if predictions.is_empty() || targets.is_empty() {
+    if predictions.is_empty() {
         return Err(ModelError::InputValidationError("Input cannot be empty".to_string()));
     }
 
@@ -158,7 +158,7 @@ pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> Result<f64, 
 pub fn r2_score(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
     use crate::math::{sum_of_square_total, sum_of_squared_errors};
     let sse = sum_of_squared_errors(predicted, actual)?;
-    let sst = sum_of_square_total(actual);
+    let sst = sum_of_square_total(actual)?;
 
     // Prevent division by zero (when all actual values are identical)
     if sst == 0.0 {
@@ -248,6 +248,12 @@ impl ConfusionMatrix {
             return Err(ModelError::InputValidationError(
                 format!("Input arrays must have the same length. Predicted: {}, Actual: {}", predicted.len(), actual.len())
             ));
+        }
+
+        if predicted.is_empty() {
+            return Err(ModelError::InputValidationError(
+                "Input arrays must not be empty".to_string()
+            ))
         }
 
         let mut tp = 0;
@@ -437,7 +443,9 @@ pub fn accuracy(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
     }
 
     if predicted.is_empty() {
-        return Ok(0.0);
+        return Err(ModelError::InputValidationError(
+            "Input arrays must not be empty".to_string()
+        ))
     }
 
     let correct_predictions = predicted
@@ -611,6 +619,13 @@ pub fn normalized_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> R
             format!("Input arrays must have the same length. Predicted: {}, Actual: {}", labels_true.len(), labels_pred.len())
         ));
     }
+
+    if labels_true.is_empty() {
+        return Err(ModelError::InputValidationError(
+            "Input arrays cannot be empty".to_string()
+        ))
+    }
+
     let n = labels_true.len();
     let (contingency, row_sums, col_sums) = contingency_matrix(labels_true, labels_pred);
     let mi = mutual_information(&contingency, n, &row_sums, &col_sums);
@@ -667,6 +682,13 @@ pub fn adjusted_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> Res
             format!("Input arrays must have the same length. Predicted: {}, Actual: {}", labels_true.len(), labels_pred.len())
         ));
     }
+
+    if labels_true.is_empty() {
+        return Err(ModelError::InputValidationError(
+            "Input arrays cannot be empty".to_string()
+        ))
+    }
+
     let n = labels_true.len();
     let (contingency, row_sums, col_sums) = contingency_matrix(labels_true, labels_pred);
     let mi = mutual_information(&contingency, n, &row_sums, &col_sums);
@@ -679,4 +701,102 @@ pub fn adjusted_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> Res
     } else {
         Ok((mi - emi) / denominator)
     }
+}
+
+/// Calculates the Area Under the Receiver Operating Characteristic Curve (AUC-ROC).
+///
+/// The AUC-ROC is a performance measurement for classification problems that tells how much
+/// the model is capable of distinguishing between classes. It uses the Mann-Whitney U statistic
+/// to calculate the probability that a randomly chosen positive example is ranked higher than
+/// a randomly chosen negative example.
+///
+/// # Parameters
+///
+/// * `scores` - A slice of predicted scores or probabilities for each sample
+/// * `labels` - A slice of boolean values indicating the true class of each sample (true for positive class, false for negative class)
+///
+/// # Returns
+///
+/// - `Ok(f64)` - The AUC-ROC value between 0.0 and 1.0
+/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
+///
+/// # Example
+///
+/// ```
+/// use rustyml::metric::calculate_auc;
+///
+/// let scores = vec![0.1, 0.4, 0.35, 0.8];
+/// let labels = vec![false, true, false, true];
+/// let auc = calculate_auc(&scores, &labels).unwrap();
+/// println!("AUC-ROC: {}", auc);
+/// ```
+///
+/// # Notes
+///
+/// The implementation handles tied scores by assigning average ranks to tied elements.
+/// It implements the AUC calculation based on the Mann-Whitney U statistic, which is
+/// mathematically equivalent to the area under the ROC curve.
+pub fn calculate_auc(scores: &[f64], labels: &[bool]) -> Result<f64, ModelError> {
+    if scores.len() != labels.len() {
+        return Err(ModelError::InputValidationError(
+            format!("Input arrays must have the same length. Scores: {}, Labels: {}", scores.len(), labels.len())
+        ))
+    }
+    if scores.is_empty() {
+        return Err(ModelError::InputValidationError(
+            "Input arrays must have at least one element".to_string()
+        ))
+    }
+
+    // Pack the (score, label) pairs into a vector
+    let mut pairs: Vec<(f64, bool)> = scores.iter()
+        .zip(labels.iter())
+        .map(|(s, &l)| (*s, l))
+        .collect();
+
+    // Sort by score in ascending order, using partial_cmp for floating-point numbers
+    pairs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+
+    let mut pos_count = 0;
+    let mut neg_count = 0;
+    let mut sum_positive_ranks = 0.0;
+
+    // Assign ranks to each sample in the sorted array (handling ties: use average rank for identical scores)
+    let n = pairs.len();
+    let mut i = 0;
+    let mut rank = 1.0;
+
+    while i < n {
+        let current_score = pairs[i].0;
+        let mut j = i;
+        // Find all samples with the current score
+        while j < n && (pairs[j].0 - current_score).abs() < 1e-12 {
+            j += 1;
+        }
+        // Calculate the average rank for the tie: for k identical scores, the average rank is (rank + rank+1 + ... + rank+k-1)/k
+        let count = (j - i) as f64;
+        let avg_rank = (2.0 * rank + count - 1.0) / 2.0;
+        for k in i..j {
+            if pairs[k].1 {
+                sum_positive_ranks += avg_rank;
+                pos_count += 1;
+            } else {
+                neg_count += 1;
+            }
+        }
+        rank += count;
+        i = j;
+    }
+
+    // If there are no positive or negative samples, AUC cannot be calculated
+    if pos_count == 0 || neg_count == 0 {
+        return Err(ModelError::InputValidationError(
+            "Cannot calculate AUC without both positive and negative samples.".to_string()
+        ));
+    }
+
+    // Compute the Mann–Whitney U statistic
+    let u = sum_positive_ranks - (pos_count as f64 * (pos_count as f64 + 1.0) / 2.0);
+    // AUC is equal to the U statistic divided by (n_positive * n_negative)
+    Ok(u / (pos_count as f64 * neg_count as f64))
 }

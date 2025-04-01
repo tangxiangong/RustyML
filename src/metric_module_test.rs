@@ -338,10 +338,6 @@ fn test_accuracy() {
     let actual = vec![0.0, 1.0, 2.0, 2.0, 1.0, 1.0];
     assert_eq!(accuracy(&predicted, &actual).unwrap(), 2.0/3.0); // 4 out of 6 correct
 
-    // Test case 4: Edge case - empty arrays
-    let empty_vec: Vec<f64> = vec![];
-    assert_eq!(accuracy(&empty_vec, &empty_vec).unwrap(), 0.0);
-
     // Test case 5: Floating point equality with very small differences
     // (should be considered equal due to epsilon comparison)
     let predicted = vec![0.0000001, 1.0];
@@ -415,4 +411,66 @@ fn test_constant_labels() {
     // For AMI, the special handling returns 1.0 when the denominator is close to 0.
     let ami = adjusted_mutual_info(&labels_true, &labels_pred).unwrap();
     assert_eq!(ami, 1.0, "AMI for constant labels should be 1.0");
+}
+
+#[test]
+fn test_calculate_auc_valid() {
+    // Test a valid case.
+    let scores = vec![0.1, 0.4, 0.35, 0.8];
+    let labels = vec![false, true, true, false];
+    let auc = calculate_auc(&scores, &labels).unwrap();
+    // Calculation:
+    // Sorted: [(0.1, false), (0.35, true), (0.4, true), (0.8, false)]
+    // The ranks for positive samples are 2 and 3, so sum_positive_ranks = 2 + 3 = 5.
+    // U = 5 - (2*(2+1)/2) = 5 - 3 = 2. With 2 negatives, total comparisons = 2 * 2 = 4.
+    // Thus, AUC = 2/4 = 0.5.
+    assert!((auc - 0.5).abs() < 1e-12);
+}
+
+#[test]
+fn test_calculate_auc_empty_input() {
+    // Test empty input arrays: should return an error.
+    let scores: Vec<f64> = vec![];
+    let labels: Vec<bool> = vec![];
+    let result = calculate_auc(&scores, &labels);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_calculate_auc_length_mismatch() {
+    // Test input arrays with different lengths: should return an error.
+    let scores = vec![0.1, 0.2];
+    let labels = vec![true];
+    let result = calculate_auc(&scores, &labels);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_calculate_auc_no_positive() {
+    // Test case with no positive samples: should return an error.
+    let scores = vec![0.2, 0.3, 0.4];
+    let labels = vec![false, false, false];
+    let result = calculate_auc(&scores, &labels);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_calculate_auc_no_negative() {
+    // Test case with no negative samples: should return an error.
+    let scores = vec![0.2, 0.3, 0.4];
+    let labels = vec![true, true, true];
+    let result = calculate_auc(&scores, &labels);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_calculate_auc_with_ties() {
+    // Test case with tied scores, where positive and negative samples are balanced.
+    let scores = vec![0.5, 0.5, 0.5, 0.5];
+    let labels = vec![true, false, true, false];
+    // With all scores tied, the average rank is (1+2+3+4)/4 = 2.5.
+    // For two positive samples, sum_positive_ranks = 2.5 + 2.5 = 5.0.
+    // U = 5 - (2*(2+1)/2) = 5 - 3 = 2, negative sample count = 2, so AUC = 2/(2*2) = 0.5.
+    let auc = calculate_auc(&scores, &labels).unwrap();
+    assert!((auc - 0.5).abs() < 1e-12);
 }

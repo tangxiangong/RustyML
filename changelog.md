@@ -9,6 +9,7 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ### Added
 - Add `train_test_split` function in utility module to split dataset for training and dataset for test
 - Add function `normalized_mutual_info` and `adjusted_mutual_info` to metric module to calculate NMI and AMI info
+- Add AUC-ROC value calculation in metric module
 
 ## [v0.2.0] - 2025-3-31
 ### Changed

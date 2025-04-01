@@ -11,7 +11,8 @@ use crate::ModelError;
 /// * `values` - A slice of observed values
 ///
 /// # Returns
-/// * The Sum of Square Total (SST)
+/// - `Ok(f64)` - The Sum of Square Total (SST)
+/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
 ///
 /// # Examples
 ///
@@ -19,22 +20,26 @@ use crate::ModelError;
 /// use rustyml::math::sum_of_square_total;
 ///
 /// let values = [1.0, 2.0, 3.0];
-/// let sst = sum_of_square_total(&values);
+/// let sst = sum_of_square_total(&values).unwrap();
 /// // Mean is 2.0, so SST = (1-2)^2 + (2-2)^2 + (3-2)^2 = 1 + 0 + 1 = 2.0
 /// assert!((sst - 2.0).abs() < 1e-5);
 /// ```
-pub fn sum_of_square_total(values: &[f64]) -> f64 {
+pub fn sum_of_square_total(values: &[f64]) -> Result<f64, ModelError> {
     if values.is_empty() {
-        return 0.0;
+        return Err(ModelError::InputValidationError(
+            "Cannot calculate sum of square total with empty inputs".to_string()
+        ));
     }
 
     // Calculate the mean
     let mean = values.iter().sum::<f64>() / values.len() as f64;
 
     // Calculate sum of squared differences from the mean
-    values.iter()
+    Ok(
+        values.iter()
         .map(|&value| (value - mean).powi(2))
         .sum()
+    )
 }
 
 /// Calculate the sum of squared errors

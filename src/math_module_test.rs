@@ -7,20 +7,16 @@ fn test_sum_of_square_total() {
     let values = vec![2.0, 4.0, 6.0, 8.0];
     // Mean is 5.0, so SST = (2-5)² + (4-5)² + (6-5)² + (8-5)² = 9 + 1 + 1 + 9 = 20
     let expected = 20.0;
-    assert!((sum_of_square_total(&values) - expected).abs() < f64::EPSILON);
+    assert!((sum_of_square_total(&values).unwrap() - expected).abs() < f64::EPSILON);
 
     // Case where all values are identical
     let same_values = vec![5.0, 5.0, 5.0, 5.0];
     // Mean is 5.0, so SST = 0
-    assert!((sum_of_square_total(&same_values) - 0.0).abs() < f64::EPSILON);
-
-    // Empty array case
-    let empty = Vec::<f64>::new();
-    assert_eq!(sum_of_square_total(&empty), 0.0);
+    assert!((sum_of_square_total(&same_values).unwrap() - 0.0).abs() < f64::EPSILON);
 
     // Single value case
     let single = vec![10.0];
-    assert!((sum_of_square_total(&single) - 0.0).abs() < f64::EPSILON);
+    assert!((sum_of_square_total(&single).unwrap() - 0.0).abs() < f64::EPSILON);
 }
 
 #[test]
