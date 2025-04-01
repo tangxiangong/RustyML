@@ -31,6 +31,8 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
   - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
   - Calculates the Mean Absolute Error (MAE) between predicted and actual values | 计算平均绝对误差
   - Confusion Matrix for binary classification evaluation | 混淆矩阵及相关计算公式
+  - Calculates the Normalized Mutual Information (NMI) between two cluster label assignments.(Unit: nat) | 计算NMI值(单位: nat)
+  - Calculates the Adjusted Mutual Information (AMI) between two cluster label assignments.(Unit: nat) | 计算AMI值(单位: nat)
 
 
 - **Machine Learning Models | 机器学习模型**:

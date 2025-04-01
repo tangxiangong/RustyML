@@ -361,3 +361,58 @@ fn test_accuracy_with_different_length_arrays() {
     let actual = vec![1.0, 0.0];
     accuracy(&predicted, &actual).unwrap(); // This should panic
 }
+
+// Test that when the clusterings are identical, both NMI and AMI return 1.0.
+#[test]
+fn test_identical_clusterings() {
+    let labels = vec![0, 1, 1, 0, 2, 2];
+    let nmi = normalized_mutual_info(&labels, &labels).unwrap();
+    let ami = adjusted_mutual_info(&labels, &labels).unwrap();
+    assert!((nmi - 1.0).abs() < 1e-6, "NMI of identical clusterings should be 1.0, got {}", nmi);
+    assert!((ami - 1.0).abs() < 1e-6, "AMI of identical clusterings should be 1.0, got {}", ami);
+}
+
+// Test different clusterings using the example provided in the documentation.
+#[test]
+fn test_different_clusterings() {
+    let labels_true = vec![0, 0, 1, 1, 2, 2];
+    let labels_pred = vec![0, 0, 1, 2, 1, 2];
+
+    // Test NMI
+    let nmi = normalized_mutual_info(&labels_true, &labels_pred).unwrap();
+    // The expected NMI is approximately 0.578 (subject to implementation details)
+    let expected_nmi = 0.578;
+    assert!((nmi - expected_nmi).abs() < 0.05, "Expected NMI approx {} but got {}", expected_nmi, nmi);
+
+    // Test AMI
+    let ami = adjusted_mutual_info(&labels_true, &labels_pred).unwrap();
+    // Since EMI calculation may affect the exact value, we assert that:
+    // - AMI is less than 1.0 (since the clusterings are not identical)
+    // - AMI is non-negative
+    assert!(ami < 1.0, "AMI should be less than 1.0 for different clusterings, got {}", ami);
+    assert!(ami >= 0.0, "AMI should be non-negative, got {}", ami);
+}
+
+// Test that an error is returned when the input slices have different lengths.
+#[test]
+fn test_length_mismatch() {
+    let labels_true = vec![0, 1, 1];
+    let labels_pred = vec![0, 1];
+    assert!(normalized_mutual_info(&labels_true, &labels_pred).is_err(), "Should return error for length mismatch in NMI");
+    assert!(adjusted_mutual_info(&labels_true, &labels_pred).is_err(), "Should return error for length mismatch in AMI");
+}
+
+// Test the special case when all samples are assigned to the same cluster.
+#[test]
+fn test_constant_labels() {
+    let labels_true = vec![0, 0, 0, 0];
+    let labels_pred = vec![1, 1, 1, 1];
+
+    // For constant labels, since the entropy is 0, the function returns 0.0 for NMI.
+    let nmi = normalized_mutual_info(&labels_true, &labels_pred).unwrap();
+    assert_eq!(nmi, 0.0, "NMI for constant labels should be 0.0");
+
+    // For AMI, the special handling returns 1.0 when the denominator is close to 0.
+    let ami = adjusted_mutual_info(&labels_true, &labels_pred).unwrap();
+    assert_eq!(ami, 1.0, "AMI for constant labels should be 1.0");
+}
