@@ -157,7 +157,7 @@ impl IsolationForest {
     ///
     /// # Returns
     /// - `Ok(&mut Self)` - Trained instance
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError>{
         use super::preliminary_check;
 

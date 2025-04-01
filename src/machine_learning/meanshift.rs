@@ -232,7 +232,7 @@ impl MeanShift {
     ///
     /// # Returns
     /// - `Ok(&mut Self)` - A mutable reference to the fitted model
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError> {
         if self.bandwidth <= 0.0 {
             return Err(ModelError::InputValidationError("bandwidth must be positive".to_string()));

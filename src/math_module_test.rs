@@ -31,26 +31,26 @@ fn test_sum_of_squared_errors() {
     // SSE = (1-1.2)² + (2-1.8)² + (3-3.3)² + (4-3.9)²
     // SSE = 0.04 + 0.04 + 0.09 + 0.01 = 0.18
     let expected = 0.18;
-    assert!((sum_of_squared_errors(&predicted, &actual) - expected).abs() < 0.0001);
+    assert!((sum_of_squared_errors(&predicted, &actual).unwrap() - expected).abs() < 0.0001);
 
     // Case with perfect prediction
     let perfect_prediction = vec![5.0, 10.0, 15.0];
     let actual_values = vec![5.0, 10.0, 15.0];
-    assert!((sum_of_squared_errors(&perfect_prediction, &actual_values) - 0.0).abs() < f64::EPSILON);
+    assert!((sum_of_squared_errors(&perfect_prediction, &actual_values).unwrap() - 0.0).abs() < f64::EPSILON);
 
     // Empty arrays case
     let empty_pred = Vec::<f64>::new();
     let empty_actual = Vec::<f64>::new();
-    assert!((sum_of_squared_errors(&empty_pred, &empty_actual) - 0.0).abs() < f64::EPSILON);
+    assert!(matches!(sum_of_squared_errors(&empty_pred, &empty_actual), Err(_)));
 }
 
 #[test]
-#[should_panic(expected = "Vectors must have the same length")]
+#[should_panic]
 fn test_sum_of_squared_errors_different_lengths() {
     // Different length arrays should panic
     let predicted = vec![1.0, 2.0, 3.0];
     let actual = vec![1.2, 1.8];
-    sum_of_squared_errors(&predicted, &actual);
+    sum_of_squared_errors(&predicted, &actual).unwrap();
 }
 
 #[test]
@@ -78,40 +78,40 @@ fn test_logistic_loss() {
     // Test case 1: Very good predictions
     let predictions1 = vec![10.0, -10.0];  // Very confident predictions
     let labels1 = vec![1.0, 0.0];          // Actual labels
-    let loss1 = logistic_loss(&predictions1, &labels1);
+    let loss1 = logistic_loss(&predictions1, &labels1).unwrap();
     println!("Loss1: {}", loss1);
     assert!(loss1 < 0.01);  // Loss should be small
 
     // Test case 2: Completely wrong predictions
     let predictions2 = vec![10.0, -10.0];
     let labels2 = vec![0.0, 1.0];
-    let loss2 = logistic_loss(&predictions2, &labels2);
+    let loss2 = logistic_loss(&predictions2, &labels2).unwrap();
     println!("Loss2: {}", loss2);
     assert!(loss2 > 9.0);
 
     // Test case 3: Uncertain predictions
     let predictions3 = vec![0.1, -0.1, 0.0];
     let labels3 = vec![1.0, 0.0, 1.0];
-    let loss3 = logistic_loss(&predictions3, &labels3);
+    let loss3 = logistic_loss(&predictions3, &labels3).unwrap();
     println!("Loss3: {}", loss3);
     assert!(loss3 > 0.5 && loss3 < 1.0);
 }
 
 #[test]
-#[should_panic(expected = "must be either 0 or 1")]
+#[should_panic]
 fn test_logistic_loss_invalid_labels() {
     let predictions = vec![1.0, 2.0];
     let labels = vec![1.0, 0.5]; // Invalid label value
-    logistic_loss(&predictions, &labels); // Should panic
+    logistic_loss(&predictions, &labels).unwrap(); // Should panic
 }
 
 #[test]
-#[should_panic(expected = "Raw predictions and actual labels must have the same length")]
+#[should_panic]
 fn test_logistic_loss_different_lengths() {
     // Different length arrays should panic
     let predictions = vec![0.1, 0.2, 0.3];
     let labels = vec![0.0, 1.0];
-    logistic_loss(&predictions, &labels);
+    logistic_loss(&predictions, &labels).unwrap();
 }
 
 #[test]

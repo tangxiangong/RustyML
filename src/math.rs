@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use ndarray::ArrayView2;
+use crate::ModelError;
 
 /// Calculates the Sum of Square Total
 ///
@@ -43,10 +44,8 @@ pub fn sum_of_square_total(values: &[f64]) -> f64 {
 /// * `actual` - Actual values vector (y)
 ///
 /// # Returns
-/// * Sum of squared errors sum((predicted_i - actual_i)^2)
-///
-/// # Panics
-/// The function will panic if the vectors have different lengths
+/// - `Ok(f64)` - Sum of squared errors sum((predicted_i - actual_i)^2)
+/// - `Err(ModelError::InputValidationError)` if input does not match expectation
 ///
 /// # Examples
 ///
@@ -55,21 +54,35 @@ pub fn sum_of_square_total(values: &[f64]) -> f64 {
 ///
 /// let predicted = [2.0, 3.0];
 /// let actual = [1.0, 3.0];
-/// let sse = sum_of_squared_errors(&predicted, &actual);
+/// let sse = sum_of_squared_errors(&predicted, &actual).unwrap();
 /// // (2-1)^2 + (3-3)^2 = 1 + 0 = 1
 /// assert!((sse - 1.0).abs() < 1e-6);
 /// ```
-pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> f64 {
+pub fn sum_of_squared_errors(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
     // Ensure both vectors have the same length
-    assert_eq!(predicted.len(), actual.len(), "Vectors must have the same length");
+    if predicted.len() != actual.len() {
+        return Err(ModelError::InputValidationError(format!(
+            "Predicted and actual vectors must have the same length, predicted length: {}, actual length: {}",
+            predicted.len(), actual.len()
+        )))
+    }
+
+    if predicted.is_empty() {
+        return Err(ModelError::InputValidationError(
+            "Cannot calculate sum of squared errors with empty inputs".to_string()
+        ));
+    }
+
     // Calculate the sum of squared errors
-    predicted.iter()
+    Ok(
+        predicted.iter()
         .zip(actual.iter())
         .map(|(p, a)| {
             let diff = p - a;
             diff * diff // Calculate square
         })
         .sum()
+    )
 }
 
 /// Calculate the sigmoid function value for a given input
@@ -111,7 +124,8 @@ pub fn sigmoid(z: f64) -> f64 {
 /// * `actual_labels` - Vector of actual binary labels (0 or 1)
 ///
 /// # Returns
-/// * Average logistic regression loss
+/// - `Ok(f64)` - Average logistic regression loss
+/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
 ///
 /// # Examples
 ///
@@ -120,18 +134,25 @@ pub fn sigmoid(z: f64) -> f64 {
 ///
 /// let logits = [0.0, 2.0, -1.0];
 /// let actual_labels = [0.0, 1.0, 0.0];
-/// let loss = logistic_loss(&logits, &actual_labels);
+/// let loss = logistic_loss(&logits, &actual_labels).unwrap();
 /// // Expected average loss is approximately 0.37778
 /// assert!((loss - 0.37778).abs() < 1e-5);
 /// ```
-pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
-    assert_eq!(logits.len(), actual_labels.len(),
-               "Raw predictions and actual labels must have the same length");
+pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> Result<f64, ModelError> {
+    if logits.len() != actual_labels.len() {
+        return Err(ModelError::InputValidationError(format!(
+            "Predicted and actual vectors must have the same length, predicted length: {}, actual length: {}",
+            logits.len(), actual_labels.len()
+        )))
+    }
 
     // Validate that all labels are either 0 or 1
     for (i, &label) in actual_labels.iter().enumerate() {
-        assert!(label == 0.0 || label == 1.0,
-                "Label at index {} must be either 0 or 1, found: {}", i, label);
+        if label != 0.0 && label != 1.0 {
+            return Err(ModelError::InputValidationError(
+                format!("Label {} must be either 0 or 1, found: {}", i, label)
+            ))
+        }
     }
 
     let mut total_loss = 0.0;
@@ -139,7 +160,7 @@ pub fn logistic_loss(logits: &[f64], actual_labels: &[f64]) -> f64 {
         let loss = x.max(0.0) - x * y + (1.0 + (-x.abs()).exp()).ln();
         total_loss += loss;
     }
-    total_loss / logits.len() as f64
+    Ok(total_loss / logits.len() as f64)
 }
 
 /// Calculate the squared Euclidean distance between two points

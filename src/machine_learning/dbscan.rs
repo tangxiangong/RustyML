@@ -136,7 +136,7 @@ impl DBSCAN {
     ///
     /// # Returns
     /// - `Ok(&Vec<usize>)` - Vector of indices of core samples if model has been fitted
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     ///
     /// # Notes
     /// After fitting, cluster labels can be accessed via `get_labels()` method.

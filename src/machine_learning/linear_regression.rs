@@ -187,7 +187,7 @@ impl LinearRegression {
     ///
     /// # Return Value
     /// - `Ok(&mut self)` - Returns mutable reference to self for method chaining
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         // Ensure x and y have the same number of samples
         use super::preliminary_check;
@@ -227,7 +227,7 @@ impl LinearRegression {
             let sse = math::sum_of_squared_errors(
                 predictions.as_slice().expect("predictions should be contiguous"),
                 y.as_slice().expect("y should be contiguous")
-            );
+            )?;
 
             let cost = sse / (2.0 * n_samples as f64); // Mean squared error divided by 2
             final_cost = cost;

@@ -316,7 +316,7 @@ impl KMeans {
     /// # Returns
     ///
     /// - `&mut Self` - A mutable reference to self for method chaining
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
 

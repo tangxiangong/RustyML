@@ -177,7 +177,7 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     ///
     /// # Returns
     /// - `Ok(&mut Self)` - The instance
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     /// 
     /// # Notes
     /// 

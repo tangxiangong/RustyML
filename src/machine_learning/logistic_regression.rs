@@ -184,7 +184,7 @@ impl LogisticRegression {
     /// # Returns
     ///
     /// - `Ok(&mut Self)` - A mutable reference to the trained model, allowing for method chaining
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         use crate::math::sigmoid;
 
@@ -266,7 +266,7 @@ impl LogisticRegression {
                 .collect();
 
             let y_vec: Vec<f64> = y.iter().copied().collect();
-            let cost = crate::math::logistic_loss(&raw_preds, &y_vec);
+            let cost = crate::math::logistic_loss(&raw_preds, &y_vec)?;
             final_cost = cost;
 
             // Check convergence

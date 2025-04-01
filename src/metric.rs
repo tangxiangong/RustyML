@@ -1,4 +1,6 @@
 use ndarray::Array1;
+use crate::ModelError;
+
 /// Calculates the Mean Squared Error (MSE) of a set of values.
 ///
 /// The MSE is calculated as the average of the squared differences between each value
@@ -32,7 +34,8 @@ pub use crate::math::mean_squared_error;
 /// * `targets` - A slice of f64 values containing the actual/target values
 ///
 /// # Returns
-/// * `Result<f64, String>` - The RMSE as a f64 value on success, or an error message if inputs are invalid
+/// - `Ok(f64)` - The RMSE as a f64 value on success
+/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
 ///
 /// # Examples
 ///
@@ -41,19 +44,21 @@ pub use crate::math::mean_squared_error;
 ///
 /// let predictions = [2.0, 3.0, 4.0];
 /// let targets = [1.0, 2.0, 3.0];
-/// let rmse = root_mean_squared_error(&predictions, &targets);
+/// let rmse = root_mean_squared_error(&predictions, &targets).unwrap();
 /// // RMSE = sqrt(((2-1)^2 + (3-2)^2 + (4-3)^2) / 3) = sqrt(3/3) = 1.0
 /// assert!((rmse - 1.0).abs() < 1e-6);
 /// ```
-pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> f64 {
+pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> Result<f64, ModelError> {
     // Check if inputs are empty
     if predictions.is_empty() || targets.is_empty() {
-        panic!("Input arrays cannot be empty");
+        return Err(ModelError::InputValidationError("Input arrays cannot be empty".to_string()));
     }
 
     // Check if arrays have matching lengths
     if predictions.len() != targets.len() {
-        panic!("Prediction and target arrays must have the same length");
+        return Err(ModelError::InputValidationError(
+            format!("Prediction and target arrays must have the same length. Predicted: {}, Actual: {}", predictions.len(), targets.len())
+        ));
     }
 
     // Calculate sum of squared errors
@@ -67,7 +72,7 @@ pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> f64 {
     let mse = sum_squared_errors / predictions.len() as f64;
 
     // Return the square root of MSE
-    mse.sqrt()
+    Ok(mse.sqrt())
 }
 
 /// Calculates the Mean Absolute Error (MAE) between predicted and actual values.
@@ -81,7 +86,8 @@ pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> f64 {
 /// * `targets` - A slice of f64 values containing the actual/target values
 ///
 /// # Returns
-/// * `Result<f64, String>` - The MAE as a f64 value on success, or an error message if inputs are invalid
+/// - `Ok(f64)` - The MAE as a f64 value on success
+/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
 ///
 /// # Examples
 ///
@@ -90,19 +96,21 @@ pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> f64 {
 ///
 /// let predictions = [2.0, 3.0, 4.0];
 /// let targets = [1.0, 2.0, 3.0];
-/// let mae = mean_absolute_error(&predictions, &targets);
+/// let mae = mean_absolute_error(&predictions, &targets).unwrap();
 /// // MAE = (|2-1| + |3-2| + |4-3|) / 3 = (1 + 1 + 1) / 3 = 1.0
 /// assert!((mae - 1.0).abs() < 1e-6);
 /// ```
-pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> f64 {
+pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> Result<f64, ModelError> {
     // Check if inputs are empty
     if predictions.is_empty() || targets.is_empty() {
-        panic!("Input arrays cannot be empty");
+        return Err(ModelError::InputValidationError("Input cannot be empty".to_string()));
     }
 
     // Check if arrays have matching lengths
     if predictions.len() != targets.len() {
-        panic!("Prediction and target arrays must have the same length");
+        return Err(ModelError::InputValidationError(
+            format!("Prediction and target arrays must have the same length. Predicted: {}, Actual: {}", predictions.len(), targets.len())
+        ));
     }
 
     // Calculate sum of absolute errors
@@ -114,7 +122,7 @@ pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> f64 {
     // Calculate mean absolute error
     let mae = sum_absolute_errors / predictions.len() as f64;
 
-    mae
+    Ok(mae)
 }
 
 /// Calculate the R-squared score
@@ -126,7 +134,8 @@ pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> f64 {
 /// * `actual` - Array of actual values
 ///
 /// # Returns
-/// * `f64` - R-squared value, typically ranges from 0 to 1
+///  - `Ok(f64)` - R-squared value, typically ranges from 0 to 1
+///  - `Err(ModelError::InputValidationError)` - If input does not match expectation
 ///
 /// # Notes
 /// - Returns 0 if SST is 0 (when all actual values are identical)
@@ -140,21 +149,21 @@ pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> f64 {
 ///
 /// let predicted = [2.0, 3.0, 4.0];
 /// let actual = [1.0, 3.0, 5.0];
-/// let r2 = r2_score(&predicted, &actual);
+/// let r2 = r2_score(&predicted, &actual).unwrap();
 /// // For actual values [1,3,5], mean=3, SSE = 1+0+1 = 2, SST = 4+0+4 = 8, so R2 = 1 - (2/8) = 0.75
 /// assert!((r2 - 0.75).abs() < 1e-6);
 /// ```
-pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
+pub fn r2_score(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
     use crate::math::{sum_of_square_total, sum_of_squared_errors};
-    let sse = sum_of_squared_errors(predicted, actual);
+    let sse = sum_of_squared_errors(predicted, actual)?;
     let sst = sum_of_square_total(actual);
 
     // Prevent division by zero (when all actual values are identical)
     if sst == 0.0 {
-        return 0.0;
+        return Ok(0.0);
     }
 
-    1.0 - (sse / sst)
+    Ok(1.0 - (sse / sst))
 }
 
 /// # Confusion Matrix for binary classification evaluation
@@ -186,7 +195,7 @@ pub fn r2_score(predicted: &[f64], actual: &[f64]) -> f64 {
 /// let actual = arr1(&[1.0, 0.0, 1.0, 0.0, 1.0]);
 ///
 /// // Create confusion matrix
-/// let cm = ConfusionMatrix::new(&predicted, &actual);
+/// let cm = ConfusionMatrix::new(&predicted, &actual).unwrap();
 ///
 /// // Calculate performance metrics
 /// println!("Accuracy: {:.2}", cm.accuracy());
@@ -232,9 +241,11 @@ impl ConfusionMatrix {
     ///
     /// - `Ok(Self)` - A new confusion matrix if input arrays have the same length
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn new(predicted: &Array1<f64>, actual: &Array1<f64>) -> Self {
+    pub fn new(predicted: &Array1<f64>, actual: &Array1<f64>) -> Result<Self, ModelError> {
         if predicted.len() != actual.len() {
-            panic!("Predicted and actual arrays must have the same length");
+            return Err(ModelError::InputValidationError(
+                format!("Input arrays must have the same length. Predicted: {}, Actual: {}", predicted.len(), actual.len())
+            ));
         }
 
         let mut tp = 0;
@@ -255,7 +266,7 @@ impl ConfusionMatrix {
             }
         }
 
-        Self { tp, fp, tn, fn_ }
+        Ok(Self { tp, fp, tn, fn_ })
     }
 
     /// Get the components of the confusion matrix
@@ -401,10 +412,8 @@ impl ConfusionMatrix {
 /// * `actual` - Array of actual class labels
 ///
 /// # Returns
-/// * The accuracy score between 0.0 and 1.0
-///
-/// # Panic
-/// If the input arrays have different lengths
+/// - `Ok(f64)` - The accuracy score between 0.0 and 1.0
+/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
 ///
 /// # Examples
 ///
@@ -413,20 +422,20 @@ impl ConfusionMatrix {
 ///
 /// let predicted = [0.0, 1.0, 1.0];
 /// let actual = [0.0, 0.0, 1.0];
-/// let acc = accuracy(&predicted, &actual);
+/// let acc = accuracy(&predicted, &actual).unwrap();
 ///
 /// // Two out of three predictions are correct: accuracy = 2/3 ≈ 0.6666666666666667
 /// assert!((acc - 0.6666666666666667).abs() < 1e-6);
 /// ```
-pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
-    assert_eq!(
-        predicted.len(),
-        actual.len(),
-        "Predicted and actual arrays must have the same length"
-    );
+pub fn accuracy(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
+    if predicted.len() != actual.len() {
+        return Err(ModelError::InputValidationError(
+            format!("Input arrays must have the same length. Predicted: {}, Actual: {}", predicted.len(), actual.len())
+        ));
+    }
 
     if predicted.is_empty() {
-        return 0.0;
+        return Ok(0.0);
     }
 
     let correct_predictions = predicted
@@ -435,5 +444,5 @@ pub fn accuracy(predicted: &[f64], actual: &[f64]) -> f64 {
         .filter(|&(p, a)| (p - a).abs() < f64::EPSILON)
         .count();
 
-    correct_predictions as f64 / predicted.len() as f64
+    Ok(correct_predictions as f64 / predicted.len() as f64)
 }

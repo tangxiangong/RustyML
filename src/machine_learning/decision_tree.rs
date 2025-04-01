@@ -335,7 +335,7 @@ impl DecisionTree {
     ///
     /// # Returns
     /// - `Ok(&mut Self)` - Mutable reference to self, enabling method chaining
-    /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
+    /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     ///
     /// # Note
     /// * For classification tasks, the class labels in `y` should be integers starting from 0
