@@ -153,16 +153,14 @@ mod machine_learning_test;
 /// - Common parameters and metrics: `DistanceCalculationMetric`, `WeightingStrategy`, etc.
 pub mod prelude;
 
-/// # Utility Module
-///
-/// A collection of utility functions and data processing tools to support machine learning operations.
+/// # A collection of utility functions and data processing tools to support machine learning operations.
 ///
 /// This module provides various utility components that are commonly used across different machine learning
 /// tasks, including data transformation, dimensionality reduction, and preprocessing techniques.
 ///
 /// ## Submodules
 ///
-/// * [`principal_component_analysis`] - Implementation of Principal Component Analysis (PCA) for
+/// * `principal_component_analysis` - Implementation of Principal Component Analysis (PCA) for
 ///   dimensionality reduction and feature extraction.
 ///
 /// ## Examples
@@ -189,10 +187,7 @@ pub mod utility;
 #[cfg(test)]
 mod utility_test;
 
-/// # Metric Module
-///
-/// This module provides implementation of common evaluation metrics used in statistical analysis
-/// and machine learning models.
+/// # This module provides implementation of common evaluation metrics used in statistical analysis and machine learning models.
 ///
 /// ## Regression Metrics
 ///
