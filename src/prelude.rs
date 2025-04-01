@@ -17,3 +17,5 @@ pub use crate::machine_learning::logistic_regression::{LogisticRegression, gener
 pub use crate::machine_learning::meanshift::{MeanShift, estimate_bandwidth};
 
 pub use crate::utility::principal_component_analysis::{PCA, standardize};
+
+pub use crate::metric::ConfusionMatrix;
