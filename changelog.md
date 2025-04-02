@@ -5,6 +5,10 @@ This change log records updates after 2025-3-24.
 
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
+## [v0.2.1] - 2025-4-2
+### Added
+- Add LinearSVC support
+
 ## [v0.2.1] - 2025-4-1
 ### Added
 - Add SVC(Support Vector Classification) support

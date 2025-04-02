@@ -599,6 +599,46 @@ pub mod isolation_forest;
 /// 2. Platt, J. (1998). Sequential minimal optimization: A fast algorithm for training support vector machines.
 pub mod svc;
 
+/// This module contains the implementation of Linear Support Vector Classification (SVC).
+///
+/// Linear SVC is a popular machine learning algorithm used for binary classification problems.
+/// It works by finding the hyperplane that best separates the classes with the maximum margin.
+/// This implementation uses gradient descent optimization with regularization options.
+///
+/// # Features
+///
+/// - Supports both L1 and L2 regularization penalties
+/// - Configurable learning rate and maximum iterations
+/// - Optional intercept (bias) fitting
+/// - Provides access to model parameters and convergence information
+///
+/// # Examples
+///
+/// ```
+/// use rustyml::machine_learning::linear_svc::{LinearSVC, PenaltyType};
+/// use ndarray::{Array1, Array2};
+///
+/// // Create a new Linear SVC model
+/// let mut model = LinearSVC::new(
+///     1000,            // max_iter
+///     0.01,            // learning_rate
+///     0.1,             // regularization_param
+///     PenaltyType::L2, // penalty
+///     true,            // fit_intercept
+///     1e-4,            // tolerance
+/// );
+///
+/// // Fit the model to training data
+/// let x_train = Array2::<f64>::zeros((100, 5)); // Replace with actual training data
+/// let y_train = Array1::<f64>::zeros(100);      // Replace with actual labels
+/// model.fit(&x_train, &y_train).unwrap();
+///
+/// // Make predictions
+/// let x_test = Array2::<f64>::zeros((10, 5));   // Replace with actual test data
+/// let predictions = model.predict(&x_test).unwrap();
+/// ```
+pub mod linear_svc;
+
 /// Performs validation checks on the input data matrices.
 ///
 /// This function validates that:

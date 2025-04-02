@@ -1,0 +1,427 @@
+use ndarray::{Array1, Array2};
+use ndarray_linalg::Norm;
+use rand::seq::SliceRandom;
+use rand::rng;
+use crate::ModelError;
+
+/// # Linear Support Vector Classifier (LinearSVC)
+///
+/// Implements a classifier similar to sklearn's LinearSVC, trained using the hinge loss function.
+/// Supports L1 and L2 regularization for preventing overfitting.
+///
+/// ## Fields
+/// - `weights` - Weight coefficients for each feature
+/// - `bias` - Bias term (intercept) of the model
+/// - `max_iter` - Maximum number of iterations for the optimizer
+/// - `learning_rate` - Learning rate (step size) for gradient descent
+/// - `regularization_param` - Regularization strength parameter
+/// - `penalty` - Regularization type: L1 or L2
+/// - `fit_intercept` - Whether to calculate and use an intercept/bias term
+/// - `tol` - Training convergence tolerance
+/// - `n_iter` - Number of iterations that were actually performed during training
+///
+/// ## Features
+/// - Binary classification
+/// - Stochastic gradient descent optimization
+/// - L1 or L2 regularization
+/// - Configurable convergence tolerance
+///
+/// ## Example
+/// ```
+/// use ndarray::{Array1, Array2};
+/// use rustyml::machine_learning::linear_svc::*;
+/// use rustyml::utility::train_test_split::train_test_split;
+///
+/// // Create model with custom parameters
+/// let mut model = LinearSVC::new(
+///     1000,                // max_iter
+///     0.001,               // learning_rate
+///     1.0,                 // regularization_param
+///     PenaltyType::L2,     // penalty type
+///     true,                // fit_intercept
+///     1e-4                 // tolerance
+/// );
+///
+/// let x = Array2::from_shape_vec((8, 2), vec![
+///         1.0, 2.0,
+///         2.0, 3.0,
+///         3.0, 4.0,
+///         4.0, 5.0,
+///         5.0, 1.0,
+///         6.0, 2.0,
+///         7.0, 3.0,
+///         8.0, 4.0,
+///     ]).unwrap();
+///
+/// let y = Array1::from_vec(vec![0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]);
+///
+/// let (x_train, x_test, y_train, y_test) = train_test_split(x, y, Some(0.25), Some(42)).unwrap();
+///
+/// model.fit(&x_train, &y_train).unwrap();
+///
+/// // Make predictions
+/// let predictions = model.predict(&x_test).unwrap();
+/// ```
+#[derive(Debug, Clone)]
+pub struct LinearSVC {
+    /// Weight coefficients for each feature.
+    /// `None` if model is not trained yet.
+    weights: Option<Array1<f64>>,
+
+    /// Bias term (intercept) of the model.
+    /// `None` if model is not trained yet.
+    bias: Option<f64>,
+
+    /// Maximum number of iterations for the optimizer.
+    /// Higher values may lead to better convergence but longer training time.
+    max_iter: usize,
+
+    /// Learning rate (step size) for gradient descent.
+    /// Controls how quickly the model adapts to the problem.
+    learning_rate: f64,
+
+    /// Regularization strength parameter.
+    /// Higher values specify stronger regularization.
+    regularization_param: f64,
+
+    /// Regularization type: L1 or L2.
+    /// L1 can produce sparse models, L2 typically works better for most problems.
+    penalty: PenaltyType,
+
+    /// Whether to calculate and use an intercept/bias term.
+    /// If false, the decision boundary passes through origin.
+    fit_intercept: bool,
+
+    /// Training convergence tolerance.
+    /// The algorithm stops when the improvement is less than this value.
+    tol: f64,
+
+    /// Number of iterations that were actually performed during training.
+    /// `None` if model is not trained yet.
+    n_iter: Option<usize>,
+}
+
+/// # Penalty Type for Regularization
+///
+/// Defines the type of regularization to apply during model training.
+/// Different regularization types can lead to different model characteristics.
+///
+/// ## Variants
+/// - `L1`: Lasso regularization that can lead to sparse models (many weights become zero)
+/// - `L2`: Ridge regularization that generally performs better for most problems
+#[derive(Debug, Clone)]
+pub enum PenaltyType {
+    /// L1 (Lasso) regularization which can zero out some coefficients completely
+    L1,
+    /// L2 (Ridge) regularization which penalizes large coefficients but rarely zeros them out
+    L2,
+}
+
+impl Default for LinearSVC {
+    /// Creates a new LinearSVC with default parameters.
+    ///
+    /// ## Default values
+    /// - `weights`: None (not trained)
+    /// - `bias`: None (not trained)
+    /// - `max_iter`: 1000
+    /// - `learning_rate`: 0.001
+    /// - `regularization_param`: 1.0
+    /// - `penalty`: PenaltyType::L2
+    /// - `fit_intercept`: true
+    /// - `tol`: 1e-4
+    /// - `n_iter`: None (not trained)
+    ///
+    /// ## Returns
+    /// A new LinearSVC instance with default parameters
+    fn default() -> Self {
+        LinearSVC {
+            weights: None,
+            bias: None,
+            max_iter: 1000,
+            learning_rate: 0.001,
+            regularization_param: 1.0,
+            penalty: PenaltyType::L2,
+            fit_intercept: true,
+            tol: 1e-4,
+            n_iter: None,
+        }
+    }
+}
+
+impl LinearSVC {
+    /// Creates a new LinearSVC instance with custom parameters.
+    ///
+    /// # Parameters
+    /// - `max_iter`: Maximum number of iterations for the optimizer
+    /// - `learning_rate`: Step size for gradient descent updates
+    /// - `regularization_param`: Strength of regularization (higher = stronger)
+    /// - `penalty`: Type of regularization (L1 or L2)
+    /// - `fit_intercept`: Whether to calculate and use bias term
+    /// - `tol`: Convergence tolerance that stops training when reached
+    ///
+    /// # Returns
+    /// * `Self` - A new LinearSVC instance with specified parameters
+    pub fn new(
+        max_iter: usize,
+        learning_rate: f64,
+        regularization_param: f64,
+        penalty: PenaltyType,
+        fit_intercept: bool,
+        tol: f64,
+    ) -> Self {
+        LinearSVC {
+            weights: None,
+            bias: None,
+            max_iter,
+            learning_rate,
+            regularization_param,
+            penalty,
+            fit_intercept,
+            tol,
+            n_iter: None,
+        }
+    }
+
+    /// Returns the weight coefficients of the trained model.
+    ///
+    /// # Returns
+    /// - `Ok(&Array1<f64>)`: Reference to weight coefficients if model is trained
+    /// - `Err(ModelError::NotFitted)`: If model hasn't been trained yet
+    pub fn get_weights(&self) -> Result<&Array1<f64>, ModelError> {
+        match &self.weights {
+            Some(w) => Ok(w),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the bias term (intercept) of the trained model.
+    ///
+    /// # Returns
+    /// - `Ok(f64)`: Bias value if model is trained
+    /// - `Err(ModelError::NotFitted)`: If model hasn't been trained yet
+    pub fn get_bias(&self) -> Result<f64, ModelError> {
+        match &self.bias {
+            Some(b) => Ok(*b),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the number of iterations performed during training.
+    ///
+    /// # Returns
+    /// - `Ok(usize)`: Number of iterations if model is trained
+    /// - `Err(ModelError::NotFitted)`: If model hasn't been trained yet
+    pub fn get_n_iter(&self) -> Result<usize, ModelError> {
+        match &self.n_iter {
+            Some(n) => Ok(*n),
+            None => Err(ModelError::NotFitted),
+        }
+    }
+
+    /// Returns the maximum number of iterations.
+    ///
+    /// # Returns
+    /// * `usize` - Maximum iterations the model will use during training
+    pub fn get_max_iter(&self) -> usize {
+        self.max_iter
+    }
+
+    /// Returns the learning rate.
+    ///
+    /// # Returns
+    /// * `f64` - Current learning rate value
+    pub fn get_learning_rate(&self) -> f64 {
+        self.learning_rate
+    }
+
+    /// Returns the regularization parameter.
+    ///
+    /// # Returns
+    /// * `f64` - Current regularization strength value
+    pub fn get_regularization_param(&self) -> f64 {
+        self.regularization_param
+    }
+
+    /// Returns the regularization penalty type.
+    ///
+    /// # Returns
+    /// * `&PenaltyType` - Reference to the current penalty type (L1 or L2)
+    pub fn get_penalty(&self) -> &PenaltyType {
+        &self.penalty
+    }
+
+    /// Returns whether the model uses an intercept/bias term.
+    ///
+    /// # Returns
+    /// * `bool` - `true` if the model uses a bias term, `false` otherwise
+    pub fn get_fit_intercept(&self) -> bool {
+        self.fit_intercept
+    }
+
+    /// Returns the convergence tolerance.
+    ///
+    /// # Returns
+    /// * `f64` - Current tolerance value
+    pub fn get_tol(&self) -> f64 {
+        self.tol
+    }
+
+    /// Trains the model on the provided data.
+    ///
+    /// Uses stochastic gradient descent to optimize the hinge loss function.
+    /// The model will continue training until either:
+    /// - Maximum iterations are reached
+    /// - Convergence is detected based on tolerance
+    ///
+    /// # Parameters
+    /// - `x`: Input features as a 2D array where each row is a sample and each column is a feature
+    /// - `y`: Target values as a 1D array (should contain only 0.0 and 1.0 values)
+    ///
+    /// # Returns
+    /// - `Ok(&mut Self)`: Reference to self if training succeeds
+    /// - `Err(ModelError)`: Error if validation fails or training encounters problems
+    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
+        if x.nrows() != y.len() {
+            return Err(ModelError::InputValidationError(
+                format!("Input data size mismatch: x.shape={}, y.shape={}", x.nrows(), y.len())
+            ));
+        }
+
+        if self.max_iter <= 0 {
+            return Err(ModelError::InputValidationError(
+                format!("max_iter must be greater than 0, got {}", self.max_iter)
+            ));
+        }
+
+        if self.learning_rate <= 0.0 {
+            return Err(ModelError::InputValidationError(
+                format!("learning_rate must be greater than 0.0, got {}", self.learning_rate)
+            ));
+        }
+
+        if self.regularization_param <= 0.0 {
+            return Err(ModelError::InputValidationError(
+                format!("regularization_param must be greater than 0.0, got {}", self.regularization_param)
+            ));
+        }
+
+        if self.tol <= 0.0 {
+            return Err(ModelError::InputValidationError(
+                format!("tol must be greater than 0.0, got {}", self.tol)
+            ));
+        }
+
+        let n_samples = x.nrows();
+        let n_features = x.ncols();
+
+        // Initialize weights and bias
+        let mut weights = Array1::zeros(n_features);
+        let mut bias = 0.0;
+
+        // Convert labels to -1 and 1
+        let y_binary = y.mapv(|v| if v <= 0.0 { -1.0 } else { 1.0 });
+
+        // Create index array for random sampling
+        let mut indices: Vec<usize> = (0..n_samples).collect();
+        let mut rng = rng();
+
+        let mut prev_weights = weights.clone();
+        let mut prev_bias = bias;
+
+        let mut n_iter = 0;
+
+        while n_iter < self.max_iter {
+            n_iter += 1;
+            // Randomly shuffle indices
+            indices.shuffle(&mut rng);
+
+            for &idx in &indices {
+                let xi = x.slice(ndarray::s![idx, ..]);
+                let yi = y_binary[idx];
+
+                // Calculate prediction
+                let margin = xi.dot(&weights) + bias;
+
+                // If misclassified or on the margin, update weights
+                if yi * margin < 1.0 {
+                    // Gradient update
+                    match self.penalty {
+                        PenaltyType::L2 => {
+                            weights = &weights * (1.0 - self.learning_rate * self.regularization_param) +
+                                &(xi.to_owned() * (self.learning_rate * yi));
+                        },
+                        PenaltyType::L1 => {
+                            // L1 regularization subgradient update
+                            weights = &weights - &(weights.mapv(|w| if w > 0.0 { 1.0 } else if w < 0.0 { -1.0 } else { 0.0 }) *
+                                (self.learning_rate * self.regularization_param)) +
+                                &(xi.to_owned() * (self.learning_rate * yi));
+                        },
+                    }
+
+                    if self.fit_intercept {
+                        bias += self.learning_rate * yi;
+                    }
+                }
+            }
+
+            // Convergence check
+            let weight_diff = (&weights - &prev_weights).norm_l2() / weights.len() as f64;
+            let bias_diff = if self.fit_intercept { (bias - prev_bias).abs() } else { 0.0 };
+
+            if weight_diff < self.tol && bias_diff < self.tol {
+                break;
+            }
+
+            prev_weights = weights.clone();
+            prev_bias = bias;
+        }
+
+        self.weights = Some(weights);
+        self.bias = Some(bias);
+        self.n_iter = Some(n_iter);
+
+        Ok(self)
+    }
+
+    /// Predicts the class for each sample in the provided data.
+    ///
+    /// # Parameters
+    /// - `x`: Input features as a 2D array where each row is a sample and each column is a feature
+    ///
+    /// # Returns
+    /// - `Ok(Array1<f64>)`: Array of predictions (0.0 or 1.0) for each sample
+    /// - `Err(ModelError::NotFitted)`: If the model hasn't been trained yet
+    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+        let weights = match self.weights.as_ref() {
+            Some(w) => w,
+            None => return Err(ModelError::NotFitted),
+        };
+        let bias = self.bias.unwrap_or(0.0);
+
+        let decision = x.dot(weights) + bias;
+
+        Ok(decision.mapv(|v| if v > 0.0 { 1.0 } else { 0.0 }))
+    }
+
+    /// Calculates the decision function values (distance to the hyperplane) for each sample.
+    ///
+    /// This method provides raw scores rather than class predictions.
+    /// Positive values indicate class 1, negative values indicate class 0,
+    /// and the magnitude indicates confidence (distance from the decision boundary).
+    ///
+    /// # Parameters
+    /// - `x`: Input features as a 2D array where each row is a sample and each column is a feature
+    ///
+    /// # Returns
+    /// - `Ok(Array1<f64>)`: Raw decision scores for each sample
+    /// - `Err(ModelError::NotFitted)`: If the model hasn't been trained yet
+    pub fn decision_function(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+        let weights = match self.weights.as_ref(){
+            Some(w) => w,
+            None => return Err(ModelError::NotFitted),
+        };
+        let bias = self.bias.unwrap_or(0.0);
+
+        Ok(x.dot(weights) + bias)
+    }
+}

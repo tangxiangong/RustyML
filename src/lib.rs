@@ -1,5 +1,5 @@
 /// Error types that can occur during model operations
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ModelError {
     /// Indicates that the model has not been fitted yet
     NotFitted,
