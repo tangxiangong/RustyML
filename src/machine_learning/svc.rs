@@ -82,6 +82,9 @@ pub struct SVC {
     /// Small value for numerical stability in calculations
     /// Helps prevent division by zero and other numerical issues
     eps: f64,
+
+    /// Number of iterations the algorithm ran for after fitting
+    n_iter: Option<usize>,
 }
 
 /// Kernel function types for Support Vector Machine
@@ -116,6 +119,7 @@ impl Default for SVC {
             tol: 0.001,
             max_iter: 1000,
             eps: 1e-8,
+            n_iter: None,
         }
     }
 }
@@ -148,6 +152,7 @@ impl SVC {
             tol,
             max_iter,
             eps: 1e-8,
+            n_iter: None,
         }
     }
 
@@ -237,6 +242,18 @@ impl SVC {
     /// * `f64` - The epsilon value
     pub fn get_eps(&self) -> f64 {
         self.eps
+    }
+
+    /// Returns the epsilon parameter used for numerical stability
+    ///
+    /// # Returns
+    /// - `Ok(usize)` - number of iterations the algorithm ran for after fitting
+    /// - `Err(ModelError::NotFitted)` - If the model hasn't been fitted yet
+    pub fn get_n_iter(&self) -> Result<usize, ModelError> {
+        match &self.n_iter {
+            Some(n_iter) => Ok(*n_iter),
+            None => Err(ModelError::NotFitted),
+        }
     }
 
     /// Calculates the kernel function value between two vectors
@@ -353,8 +370,10 @@ impl SVC {
         let mut iter = 0;
         let mut num_changed_alphas = 0;
         let mut examine_all = true;
+        let mut n_iter = 0;
 
         while (iter < self.max_iter) && (num_changed_alphas > 0 || examine_all) {
+            n_iter += 1;
             num_changed_alphas = 0;
 
             if examine_all {
@@ -409,6 +428,7 @@ impl SVC {
         self.support_vectors = Some(support_vectors);
         self.support_vector_labels = Some(support_vector_labels);
         self.bias = Some(b);
+        self.n_iter = Some(n_iter);
 
         Ok(self)
     }
