@@ -6,3 +6,4 @@ mod meanshift_test;
 mod dbscan_test;
 mod decision_tree_test;
 mod isolation_forest_test;
+mod svc_test;

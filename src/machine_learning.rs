@@ -543,6 +543,62 @@ pub mod decision_tree;
 /// IEEE International Conference on Data Mining (pp. 413-422). IEEE.
 pub mod isolation_forest;
 
+/// # Support Vector Classification (SVC)
+///
+/// This module provides an implementation of Support Vector Classification, a powerful
+/// supervised machine learning algorithm used for classification tasks.
+///
+/// ## Overview
+///
+/// Support Vector Classification works by finding the hyperplane that best separates different
+/// classes in the feature space. It aims to maximize the margin between the closest data points
+/// (support vectors) of different classes.
+///
+/// ## Features
+///
+/// - Multiple kernel functions: Linear, Polynomial, RBF (Radial Basis Function), and Sigmoid
+/// - Configurable regularization parameter (C)
+/// - SMO (Sequential Minimal Optimization) algorithm for efficient training
+/// - Support for binary classification tasks
+///
+/// ## Example
+///
+/// ```
+/// use rustyml::machine_learning::svc::{SVC, KernelType};
+/// use ndarray::{Array1, Array2};
+///
+/// // Create a new SVC with RBF kernel
+/// let mut classifier = SVC::new(
+///     KernelType::RBF { gamma: 0.1 },
+///     1.0,  // regularization parameter
+///     1e-3, // tolerance
+///     100   // maximum iterations
+/// );
+///
+/// // Training data (features)
+/// let x = Array2::from_shape_vec((4, 2), vec![
+///     0.0, 0.0,
+///     0.0, 1.0,
+///     1.0, 0.0,
+///     1.0, 1.0,
+/// ]).unwrap();
+///
+/// // Labels (XOR problem)
+/// let y = Array1::from_vec(vec![-1.0, 1.0, 1.0, -1.0]);
+///
+/// // Train the model
+/// classifier.fit(&x, &y).unwrap();
+///
+/// // Make predictions
+/// let predictions = classifier.predict(&x).unwrap();
+/// ```
+///
+/// ## References
+///
+/// 1. Cortes, C., & Vapnik, V. (1995). Support-vector networks. Machine learning, 20(3), 273-297.
+/// 2. Platt, J. (1998). Sequential minimal optimization: A fast algorithm for training support vector machines.
+pub mod svc;
+
 /// Performs validation checks on the input data matrices.
 ///
 /// This function validates that:
