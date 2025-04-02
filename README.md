@@ -42,6 +42,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Logistic Regression | 逻辑回归
     - KNN | K邻近值聚类
     - Decision Tree | 决策树
+    - Support Vector Classification | 支持向量机分类
 
   - Unsupervised Learning | 无监督学习:
     - KMeans | K均值聚类
