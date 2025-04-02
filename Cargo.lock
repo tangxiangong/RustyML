@@ -856,6 +856,7 @@ checksum = "917ce264624a4b4db1c364dcc35bfca9ded014d0a958cd47ad3e960e988ea51c"
 name = "rustyml"
 version = "0.2.1"
 dependencies = [
+ "approx",
  "ndarray",
  "ndarray-linalg",
  "rand 0.9.0",

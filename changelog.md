@@ -8,6 +8,7 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ## [v0.2.1] - 2025-4-2
 ### Added
 - Add LinearSVC support
+- Add KernelPCA support
 
 ### Changed
 - Change the location of function `standardize` from `crate::utility::principal_component_analysis` to `crate::utility`
