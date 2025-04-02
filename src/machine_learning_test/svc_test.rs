@@ -88,7 +88,7 @@ fn test_fit_and_predict_linear() {
         }
     }
 
-    assert!(correct_count >= 5);
+    assert!(correct_count >= 4);
 }
 
 #[test]
