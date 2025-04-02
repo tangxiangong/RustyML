@@ -9,6 +9,9 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ### Added
 - Add LinearSVC support
 
+### Changed
+- Change the location of function `standardize` from `crate::utility::principal_component_analysis` to `crate::utility`
+
 ## [v0.2.1] - 2025-4-1
 ### Added
 - Add SVC(Support Vector Classification) support
