@@ -7,6 +7,8 @@ pub enum ModelError {
     InputValidationError(String),
     /// indicates that there is something wrong with the tree
     TreeError(&'static str),
+    /// indicates that there is something wrong while processing
+    ProcessingError(String),
 }
 
 impl std::fmt::Display for ModelError {
@@ -15,6 +17,7 @@ impl std::fmt::Display for ModelError {
             ModelError::NotFitted => write!(f, "Model has not been fitted. Parameters are unavailable."),
             ModelError::InputValidationError(msg) => write!(f, "Input validation error: {}", msg),
             ModelError::TreeError(msg) => write!(f, "Tree structure error: {}", msg),
+            ModelError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
         }
     }
 }

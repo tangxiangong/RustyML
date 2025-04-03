@@ -22,7 +22,6 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
   - Calculates the Mean Squared Error (MSE) of a set of values | 计算一组值的均方误差(MSE)
   - Calculates the leaf node adjustment factor c(n) | 计算叶节点调整因子 c(n)
   - Calculates the standard deviation of a set of values | 计算标准差
-  - Confusion matrix and related calculation formulas | 混淆矩阵及相关计算公式
 
 
 - **Metric Utilities | 度量工具**:
@@ -44,6 +43,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Decision Tree | 决策树
     - Support Vector Classification | 支持向量机分类
     - Linear SVC | 线性向量机分类
+    - LDA(Linear Discriminant Analysis) | 线性判别分析
 
   - Unsupervised Learning | 无监督学习:
     - KMeans | K均值聚类
@@ -56,6 +56,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
   - PCA(Principal Component Analysis) | 主成分分析
   - standardize data($\mu = 0$, $\sigma = 1$) | 标准化数据(确保均值$\mu = 0$, 协方差$\sigma = 1$)
   - Split dataset for training and dataset for test | 分离训练集和测试集
+  - LDA(Linear Discriminant Analysis) | 线性判别分析
 
 ## Vision | 愿景
 While the library is in its early stages, Rust AI aims to evolve into a comprehensive crate that includes:

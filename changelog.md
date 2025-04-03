@@ -9,6 +9,8 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ### Added
 - Add LinearSVC support
 - Add KernelPCA support
+- Add `ProcessingError(String)` to `crate::ModelError` 
+- Add LDA(Linear Discriminant Analysis) support
 
 ### Changed
 - Change the location of function `standardize` from `crate::utility::principal_component_analysis` to `crate::utility`

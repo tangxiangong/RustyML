@@ -136,6 +136,49 @@ pub mod train_test_split;
 /// 4. Projecting data onto the principal components in the feature space
 pub mod kernel_pca;
 
+/// # Linear Discriminant Analysis (LDA)
+///
+/// This module provides an implementation of Linear Discriminant Analysis, a supervised
+/// dimensionality reduction technique that finds a linear combination of features that
+/// characterizes or separates two or more classes.
+///
+/// LDA works by finding a projection that maximizes the distance between the means of different
+/// classes while minimizing the variance within each class.
+///
+/// ## Features
+///
+/// - Dimensionality reduction for classification problems
+/// - Projection of data onto a lower-dimensional space
+/// - Statistical classification based on the Bayes rule
+///
+/// ## Example
+///
+/// ```rust
+/// use ndarray::{Array1, Array2};
+/// use rustyml::utility::linear_discriminant_analysis::LDA;
+///
+/// // Create feature matrix and class labels
+/// let x = Array2::from_shape_vec((6, 2), vec![1.0, 2.0, 1.5, 2.5, 2.0, 3.0, 5.0, 5.0, 5.5, 4.5, 6.0, 5.0]).unwrap();
+/// let y = Array1::from_vec(vec![0, 0, 0, 1, 1, 1]);
+///
+/// // Create and fit LDA model
+/// let mut lda = LDA::new();
+/// lda.fit(&x, &y).unwrap();
+///
+/// // Make predictions
+/// let x_new = Array2::from_shape_vec((2, 2), vec![1.2, 2.2, 5.2, 4.8]).unwrap();
+/// let predictions = lda.predict(&x_new).unwrap();
+///
+/// // Transform data to lower dimension
+/// let x_transformed = lda.transform(&x, 1).unwrap();
+/// ```
+///
+/// ## References
+///
+/// - Fisher, R. A. (1936). "The use of multiple measurements in taxonomic problems"
+/// - Rao, C. R. (1948). "The utilization of multiple measurements in problems of biological classification"
+pub mod linear_discriminant_analysis;
+
 /// Standardizes data to have zero mean and unit variance
 ///
 /// This function transforms input data by subtracting the mean and dividing

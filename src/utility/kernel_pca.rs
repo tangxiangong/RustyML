@@ -241,7 +241,7 @@ impl KernelPCA {
     /// - n_components is 0
     /// - n_components is greater than the number of samples
     /// - Eigendecomposition fails
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
+    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn std::error::Error>> {
         if x.is_empty() {
             return Err(Box::new(ModelError::InputValidationError("Input data cannot be empty".to_string())));
         }
@@ -312,10 +312,10 @@ impl KernelPCA {
             selected_eigenvectors.column_mut(i).assign(&normalized_vec);
         }
         self.eigenvalues = Some(selected_eigenvalues);
-        self.eigenvectors = Some(selected_eigenvectors.clone());
+        self.eigenvectors = Some(selected_eigenvectors);
 
         // Return the projection of training data in the new space (each row corresponds to n_components features of a sample)
-        Ok(selected_eigenvectors)
+        Ok(self)
     }
 
     /// Transforms new data using the fitted KernelPCA model.
