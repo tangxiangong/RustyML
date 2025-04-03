@@ -33,6 +33,16 @@ pub fn train_test_split(
     test_size: Option<f64>,
     random_state: Option<u64>,
 ) -> Result<(Array2<f64>, Array2<f64>, Array1<f64>, Array1<f64>), ModelError> {
+    /// Extract a subset from Array2 based on indices using ndarray's select method
+    fn create_subset_array2(array: &Array2<f64>, indices: &[usize]) -> Array2<f64> {
+        array.select(Axis(0), indices)
+    }
+
+    /// Extract a subset from Array1 based on indices using ndarray's select method
+    fn create_subset_array1(array: &Array1<f64>, indices: &[usize]) -> Array1<f64> {
+        array.select(Axis(0), indices)
+    }
+
     let n_samples = x.nrows();
 
     // Ensure x and y have the same number of samples
@@ -82,14 +92,4 @@ pub fn train_test_split(
     let y_test = create_subset_array1(&y, test_indices);
 
     Ok((x_train, x_test, y_train, y_test))
-}
-
-/// Extract a subset from Array2 based on indices using ndarray's select method
-fn create_subset_array2(array: &Array2<f64>, indices: &[usize]) -> Array2<f64> {
-    array.select(Axis(0), indices)
-}
-
-/// Extract a subset from Array1 based on indices using ndarray's select method
-fn create_subset_array1(array: &Array1<f64>, indices: &[usize]) -> Array1<f64> {
-    array.select(Axis(0), indices)
 }

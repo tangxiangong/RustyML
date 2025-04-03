@@ -179,6 +179,45 @@ pub mod kernel_pca;
 /// - Rao, C. R. (1948). "The utilization of multiple measurements in problems of biological classification"
 pub mod linear_discriminant_analysis;
 
+/// # t-SNE (t-distributed Stochastic Neighbor Embedding)
+///
+/// This module provides an implementation of the t-SNE algorithm for dimensionality reduction.
+/// t-SNE is particularly well-suited for visualizing high-dimensional data in 2D or 3D spaces
+/// while preserving local structures in the data.
+///
+/// ## Algorithm Overview
+///
+/// t-SNE works by converting similarities between data points to joint probabilities and
+/// minimizing the Kullback-Leibler divergence between the joint probabilities of the
+/// low-dimensional embedding and the high-dimensional data.
+///
+/// ## Example
+///
+/// ```rust
+/// use ndarray::Array2;
+/// use rustyml::utility::t_sne::TSNE;
+///
+/// // Create a 100x10 data matrix (100 samples, 10 features)
+/// let data = Array2::<f64>::zeros((100, 10));
+///
+/// // Create a t-SNE model with default parameters and 2D output
+/// let tsne = TSNE::default();
+///
+/// // Transform the data to 2D representation
+/// let result = tsne.fit_transform(&data).unwrap();
+///
+/// // Result is a 100x2 matrix containing the 2D coordinates
+/// assert_eq!(result.shape(), &[100, 2]);
+/// ```
+///
+/// ## References
+///
+/// - van der Maaten, L., & Hinton, G. (2008). Visualizing data using t-SNE.
+///   Journal of Machine Learning Research, 9(Nov), 2579-2605.
+/// - van der Maaten, L. (2014). Accelerating t-SNE using tree-based algorithms.
+///   Journal of Machine Learning Research, 15(Oct), 3221-3245.
+pub mod t_sne;
+
 /// Standardizes data to have zero mean and unit variance
 ///
 /// This function transforms input data by subtracting the mean and dividing
