@@ -260,13 +260,9 @@ impl LogisticRegression {
             weights = &weights - self.learning_rate * &gradients;
 
             // Calculate loss function using math module's logistic_loss
-            let raw_preds: Vec<f64> = x_train.dot(&weights)
-                .iter()
-                .copied()
-                .collect();
+            let raw_preds = x_train.dot(&weights);
 
-            let y_vec: Vec<f64> = y.iter().copied().collect();
-            let cost = crate::math::logistic_loss(&raw_preds, &y_vec)?;
+            let cost = crate::math::logistic_loss(raw_preds.view(), y.view())?;
             final_cost = cost;
 
             // Check convergence

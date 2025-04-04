@@ -217,16 +217,16 @@ impl KMeans {
     ///
     /// * `(usize, f64)` - A tuple containing the index of the closest centroid and the squared distance to it
     fn closest_centroid(&self, x: &ArrayView2<f64>) -> (usize, f64) {
-        use crate::math::squared_euclidean_distance;
+        use crate::math::squared_euclidean_distance_row;
+
+        let sample = x.row(0);
         let centroids = self.centroids.as_ref().unwrap();
 
         let mut min_dist = f64::MAX;
         let mut min_idx = 0;
 
         for (i, centroid) in centroids.outer_iter().enumerate() {
-            let centroid_shaped = centroid.to_shape((1, centroid.len())).unwrap();
-            let centroid_view = centroid_shaped.view();
-            let dist = squared_euclidean_distance(&x, &centroid_view);
+            let dist = squared_euclidean_distance_row(sample, centroid);
             if dist < min_dist {
                 min_dist = dist;
                 min_idx = i;
@@ -242,7 +242,7 @@ impl KMeans {
     ///
     /// * `data` - Training data as a 2D array
     fn init_centroids(&mut self, data: &Array2<f64>) {
-        use crate::math::squared_euclidean_distance;
+        use crate::math::squared_euclidean_distance_row;
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
 
@@ -253,7 +253,6 @@ impl KMeans {
             Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
             None => rand::rngs::StdRng::seed_from_u64(0),
         };
-
 
         // k-means++ initialization method
 
@@ -268,18 +267,14 @@ impl KMeans {
             let mut total_dist = 0.0;
 
             for i in 0..n_samples {
-                let row_i = data.row(i);
-                let sample_shaped = row_i.to_shape((1, n_features)).unwrap();
-                let sample_view = sample_shaped.view();
+                let sample = data.row(i);
 
                 // Find the closest already selected center point
                 let mut min_dist = f64::MAX;
 
                 for j in 0..k {
-                    let row_j = centroids.row(j);
-                    let centroid_shaped = row_j.to_shape((1, n_features)).unwrap();
-                    let centroid_view = centroid_shaped.view();
-                    let dist = squared_euclidean_distance(&sample_view, &centroid_view);
+                    let centroid = centroids.row(j);
+                    let dist = squared_euclidean_distance_row(sample, centroid);
                     if dist < min_dist {
                         min_dist = dist;
                     }

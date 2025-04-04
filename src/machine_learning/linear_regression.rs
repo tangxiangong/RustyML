@@ -224,10 +224,7 @@ impl LinearRegression {
             }
 
             // Calculate mean squared error
-            let sse = math::sum_of_squared_errors(
-                predictions.as_slice().expect("predictions should be contiguous"),
-                y.as_slice().expect("y should be contiguous")
-            )?;
+            let sse = math::sum_of_squared_errors(predictions.view(), y.view())?;
 
             let cost = sse / (2.0 * n_samples as f64); // Mean squared error divided by 2
             final_cost = cost;

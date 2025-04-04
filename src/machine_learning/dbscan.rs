@@ -165,20 +165,20 @@ impl DBSCAN {
         /// # Returns
         /// * `Vec<usize>` - Vector of indices of all neighbors of point p
         fn region_query(dbscan: &DBSCAN, data: &Array2<f64>, p: usize, metric: Metric) -> Vec<usize> {
-            use crate::math::{squared_euclidean_distance, manhattan_distance, minkowski_distance};
+            use crate::math::{squared_euclidean_distance_row, manhattan_distance_row, minkowski_distance_row};
 
             let mut neighbors = Vec::new();
 
             for q in 0..data.nrows() {
                 // 1D to 2D
-                let p_row = data.row(p).insert_axis(ndarray::Axis(0));
-                let q_row = data.row(q).insert_axis(ndarray::Axis(0));
+                let p_row = data.row(p);
+                let q_row = data.row(q);
 
                 // Choose distance formula based on metric
                 let dist = match metric {
-                    Metric::Euclidean => squared_euclidean_distance(&p_row.view(), &q_row.view()).sqrt(),
-                    Metric::Manhattan => manhattan_distance(&p_row.view(), &q_row.view()),
-                    Metric::Minkowski => minkowski_distance(&p_row.view(), &q_row.view(), 3.0), // Default p=3
+                    Metric::Euclidean => squared_euclidean_distance_row(p_row, q_row).sqrt(),
+                    Metric::Manhattan => manhattan_distance_row(p_row, q_row),
+                    Metric::Minkowski => minkowski_distance_row(p_row, q_row, 3.0), // Default p=3
                 };
 
                 if dist <= dbscan.eps {
@@ -270,7 +270,7 @@ impl DBSCAN {
     /// New points are assigned to the nearest cluster if they are within `eps` distance
     /// of a core point, otherwise they are labeled as noise (-1)
     pub fn predict(&self, data: &Array2<f64>, new_data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
-        use crate::math::squared_euclidean_distance;
+        use crate::math::squared_euclidean_distance_row;
         
         // Ensure the model is trained
         let labels = match &self.labels_ {
@@ -291,9 +291,7 @@ impl DBSCAN {
                     continue; // Skip noise points
                 }
 
-                let row_2d = row.view().insert_axis(ndarray::Axis(0));
-                let orig_row_2d = orig_row.view().insert_axis(ndarray::Axis(0));
-                let dist = squared_euclidean_distance(&row_2d.view(), &orig_row_2d.view());
+                let dist = squared_euclidean_distance_row(row.view(), orig_row.view());
 
                 if dist < min_dist {
                     min_dist = dist;

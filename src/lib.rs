@@ -53,14 +53,15 @@ impl std::error::Error for ModelError {}
 /// # Examples
 ///
 /// ```
-/// use rustyml::math::{sum_of_squared_errors};
+/// use rustyml::math::sum_of_squared_errors;
+/// use ndarray::array;
 ///
 /// // Example data
-/// let predicted = vec![2.1, 3.8, 5.2, 7.1];
-/// let actual = vec![2.0, 4.0, 5.0, 7.0];
+/// let predicted = array![2.1, 3.8, 5.2, 7.1];
+/// let actual = array![2.0, 4.0, 5.0, 7.0];
 ///
 /// // Calculate error metrics
-/// let sse = sum_of_squared_errors(&predicted, &actual);
+/// let sse = sum_of_squared_errors(predicted.view(), actual.view());
 /// ```
 pub mod math;
 
@@ -217,21 +218,21 @@ mod utility_test;
 ///
 /// ```
 /// use rustyml::metric::*;
-/// use ndarray::Array1;
+/// use ndarray::{Array1, array};
 ///
 /// // Regression metrics example
-/// let predictions = vec![3.0, 2.0, 3.5, 4.1];
-/// let actuals = vec![2.8, 2.1, 3.3, 4.2];
+/// let predictions = array![3.0, 2.0, 3.5, 4.1];
+/// let actuals = array![2.8, 2.1, 3.3, 4.2];
 ///
-/// let rmse = root_mean_squared_error(&predictions, &actuals);
-/// let mae = mean_absolute_error(&predictions, &actuals);
-/// let r2 = r2_score(&predictions, &actuals);
+/// let rmse = root_mean_squared_error(predictions.view(), actuals.view());
+/// let mae = mean_absolute_error(predictions.view(), actuals.view());
+/// let r2 = r2_score(predictions.view(), actuals.view());
 ///
 /// // Classification metrics example
 /// let predicted = Array1::from(vec![1.0, 0.0, 1.0, 1.0, 0.0]);
 /// let actual = Array1::from(vec![1.0, 0.0, 0.0, 1.0, 1.0]);
 ///
-/// let cm = ConfusionMatrix::new(&predicted, &actual).unwrap();
+/// let cm = ConfusionMatrix::new(predicted.view(), actual.view()).unwrap();
 /// println!("{}", cm.summary());
 /// ```
 pub mod metric;

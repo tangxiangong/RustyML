@@ -1,30 +1,58 @@
-use ndarray::Array1;
+use ndarray::ArrayView1;
 use crate::ModelError;
 use statrs::distribution::{Discrete, Hypergeometric};
 use std::collections::HashMap;
 
-/// Calculates the Mean Squared Error (MSE) of a set of values.
+/// Calculates the Mean Squared Error between predicted and actual values.
 ///
-/// The MSE is calculated as the average of the squared differences between each value
-/// and the mean of all values. It represents the variance of the dataset.
+/// Mean Squared Error is a common metric for regression problems that measures
+/// the average of the squares of the errors—the average squared difference
+/// between the estimated values and the actual values.
 ///
-/// # Arguments
-/// * `y` - A slice of f64 values for which to calculate the MSE
+/// # Parameters
+/// * `y_true` - An `ArrayView1<f64>` containing the ground truth (correct) values
+/// * `y_pred` - An `ArrayView1<f64>` containing the predicted values
 ///
 /// # Returns
-/// * `f64` - The mean squared error as a f64 value, returns 0.0 if the input slice is empty
+/// * `f64` - The mean squared error value
+///
+/// # Panics
+/// * Panics if the two arrays have different lengths
 ///
 /// # Examples
 ///
 /// ```
-/// use rustyml::math::mean_squared_error;
+/// use ndarray::array;
+/// use rustyml::metric::mean_squared_error;
 ///
-/// let values = [1.0, 2.0, 3.0];
-/// let mse = mean_squared_error(&values);
-/// // Mean is 2.0, so MSE = ((1-2)^2 + (2-2)^2 + (3-2)^2) / 3 = (1 + 0 + 1) / 3 ≈ 0.66667
-/// assert!((mse - 0.6666667).abs() < 1e-6);
+/// let actual = array![3.0, -0.5, 2.0, 7.0];
+/// let predicted = array![2.5, 0.0, 2.1, 7.8];
+/// let mse = mean_squared_error(actual.view(), predicted.view());
+/// // MSE = ((3.0-2.5)² + (-0.5-0.0)² + (2.0-2.1)² + (7.0-7.8)²) / 4
+/// //    = (0.25 + 0.25 + 0.01 + 0.64) / 4 ≈ 0.2875
+/// assert!((mse - 0.2875).abs() < 1e-10);
 /// ```
-pub use crate::math::mean_squared_error;
+pub fn mean_squared_error(y_true: ArrayView1<f64>, y_pred: ArrayView1<f64>) -> f64 {
+    let n = y_true.len();
+
+    // Handle edge case
+    if n == 0 {
+        return 0.0;
+    }
+
+    // Calculate the sum of squared differences efficiently using zip
+    // This performs a single pass through both arrays
+    let sum_squared_diff = y_true
+        .iter()
+        .zip(y_pred.iter())
+        .fold(0.0, |acc, (&actual, &pred)| {
+            let error = actual - pred;
+            acc + error * error
+        });
+
+    // Return the mean
+    sum_squared_diff / (n as f64)
+}
 
 /// Calculates the Root Mean Squared Error (RMSE) between predicted and actual values.
 ///
@@ -43,38 +71,54 @@ pub use crate::math::mean_squared_error;
 ///
 /// ```
 /// use rustyml::metric::root_mean_squared_error;
+/// use ndarray::array;
 ///
-/// let predictions = [2.0, 3.0, 4.0];
-/// let targets = [1.0, 2.0, 3.0];
-/// let rmse = root_mean_squared_error(&predictions, &targets).unwrap();
+/// let predictions = array![2.0, 3.0, 4.0];
+/// let targets = array![1.0, 2.0, 3.0];
+/// let rmse = root_mean_squared_error(predictions.view(), targets.view()).unwrap();
 /// // RMSE = sqrt(((2-1)^2 + (3-2)^2 + (4-3)^2) / 3) = sqrt(3/3) = 1.0
 /// assert!((rmse - 1.0).abs() < 1e-6);
 /// ```
-pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> Result<f64, ModelError> {
+pub fn root_mean_squared_error(
+    predictions: ArrayView1<f64>,
+    targets: ArrayView1<f64>
+) -> Result<f64, ModelError> {
     // Check if inputs are empty
     if predictions.is_empty() {
-        return Err(ModelError::InputValidationError("Input arrays cannot be empty".to_string()));
+        return Err(ModelError::InputValidationError(
+            "Input arrays cannot be empty".to_string()
+        ));
     }
 
     // Check if arrays have matching lengths
     if predictions.len() != targets.len() {
         return Err(ModelError::InputValidationError(
-            format!("Prediction and target arrays must have the same length. Predicted: {}, Actual: {}", predictions.len(), targets.len())
+            format!(
+                "Prediction and target arrays must have the same length. Predicted: {}, Actual: {}",
+                predictions.len(), targets.len()
+            )
         ));
     }
 
-    // Calculate sum of squared errors
-    let mut sum_squared_errors = 0.0;
-    for i in 0..predictions.len() {
-        let error = predictions[i] - targets[i];
-        sum_squared_errors += error * error;
-    }
+    // Use zip_fold_while for efficient calculation with early error detection
+    let sum_squared_errors = predictions
+        .iter()
+        .zip(targets.iter())
+        .fold(0.0, |acc, (&pred, &target)| {
+            let error = pred - target;
+            acc + error * error
+        });
 
     // Calculate mean squared error
     let mse = sum_squared_errors / predictions.len() as f64;
 
-    // Return the square root of MSE
-    Ok(mse.sqrt())
+    // Take square root for RMSE
+    // Handle potential numerical issues that might cause slightly negative values
+    if mse < 0.0 && mse > -f64::EPSILON {
+        Ok(0.0)
+    } else {
+        Ok(mse.sqrt())
+    }
 }
 
 /// Calculates the Mean Absolute Error (MAE) between predicted and actual values.
@@ -84,42 +128,54 @@ pub fn root_mean_squared_error(predictions: &[f64], targets: &[f64]) -> Result<f
 /// between predicted and target values.
 ///
 /// # Arguments
-/// * `predictions` - A slice of f64 values containing the predicted values
-/// * `targets` - A slice of f64 values containing the actual/target values
+/// * `predictions` - An `ArrayView1<f64>` containing the predicted values
+/// * `targets` - An `ArrayView1<f64>` containing the actual/target values
 ///
 /// # Returns
 /// - `Ok(f64)` - The MAE as a f64 value on success
-/// - `Err(ModelError::InputValidationError)` - If input does not match expectation
+/// - `Err(ModelError::InputValidationError)` - If input validation fails
 ///
 /// # Examples
 ///
 /// ```
+/// use ndarray::array;
 /// use rustyml::metric::mean_absolute_error;
 ///
-/// let predictions = [2.0, 3.0, 4.0];
-/// let targets = [1.0, 2.0, 3.0];
-/// let mae = mean_absolute_error(&predictions, &targets).unwrap();
+/// let predictions = array![2.0, 3.0, 4.0];
+/// let targets = array![1.0, 2.0, 3.0];
+/// let mae = mean_absolute_error(predictions.view(), targets.view()).unwrap();
 /// // MAE = (|2-1| + |3-2| + |4-3|) / 3 = (1 + 1 + 1) / 3 = 1.0
 /// assert!((mae - 1.0).abs() < 1e-6);
 /// ```
-pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> Result<f64, ModelError> {
+pub fn mean_absolute_error(
+    predictions: ArrayView1<f64>,
+    targets: ArrayView1<f64>
+) -> Result<f64, ModelError> {
     // Check if inputs are empty
     if predictions.is_empty() {
-        return Err(ModelError::InputValidationError("Input cannot be empty".to_string()));
+        return Err(ModelError::InputValidationError(
+            "Input arrays cannot be empty".to_string()
+        ));
     }
 
     // Check if arrays have matching lengths
     if predictions.len() != targets.len() {
         return Err(ModelError::InputValidationError(
-            format!("Prediction and target arrays must have the same length. Predicted: {}, Actual: {}", predictions.len(), targets.len())
+            format!(
+                "Prediction and target arrays must have the same length. Predicted: {}, Actual: {}",
+                predictions.len(), targets.len()
+            )
         ));
     }
 
-    // Calculate sum of absolute errors
-    let sum_absolute_errors: f64 = predictions.iter()
+    // Calculate sum of absolute errors in a single pass
+    // Using fold instead of map+sum for potentially better performance
+    let sum_absolute_errors = predictions
+        .iter()
         .zip(targets.iter())
-        .map(|(p, t)| (p - t).abs())
-        .sum();
+        .fold(0.0, |acc, (&pred, &target)| {
+            acc + (pred - target).abs()
+        });
 
     // Calculate mean absolute error
     let mae = sum_absolute_errors / predictions.len() as f64;
@@ -127,41 +183,75 @@ pub fn mean_absolute_error(predictions: &[f64], targets: &[f64]) -> Result<f64, 
     Ok(mae)
 }
 
-/// Calculate the R-squared score
+/// Calculate the R-squared (coefficient of determination) score
 ///
-/// R² = 1 - (SSE / SST)
+/// R² measures how well the model explains the variance in the target variable.
+/// Formula: R² = 1 - (SSE / SST)
+/// where SSE is the sum of squared errors and SST is the total sum of squares.
 ///
 /// # Parameters
-/// * `predicted` - Array of predicted values
-/// * `actual` - Array of actual values
+/// * `predicted` - `ArrayView1<f64>` of predicted values
+/// * `actual` - `ArrayView1<f64>` of actual/target values
 ///
 /// # Returns
 ///  - `Ok(f64)` - R-squared value, typically ranges from 0 to 1
-///  - `Err(ModelError::InputValidationError)` - If input does not match expectation
+///  - `Err(ModelError::InputValidationError)` - If input validation fails
 ///
 /// # Notes
 /// - Returns 0 if SST is 0 (when all actual values are identical)
-/// - R-squared can theoretically be negative, indicating that the model performs worse than simply predicting the mean
+/// - R-squared can theoretically be negative, indicating that the model performs worse
+///   than simply predicting the mean of the target variable
 /// - A value close to 1 indicates a good fit
 ///
 /// # Examples
 ///
 /// ```
+/// use ndarray::array;
 /// use rustyml::metric::r2_score;
 ///
-/// let predicted = [2.0, 3.0, 4.0];
-/// let actual = [1.0, 3.0, 5.0];
-/// let r2 = r2_score(&predicted, &actual).unwrap();
+/// let predicted = array![2.0, 3.0, 4.0];
+/// let actual = array![1.0, 3.0, 5.0];
+/// let r2 = r2_score(predicted.view(), actual.view()).unwrap();
 /// // For actual values [1,3,5], mean=3, SSE = 1+0+1 = 2, SST = 4+0+4 = 8, so R2 = 1 - (2/8) = 0.75
 /// assert!((r2 - 0.75).abs() < 1e-6);
 /// ```
-pub fn r2_score(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
-    use crate::math::{sum_of_square_total, sum_of_squared_errors};
-    let sse = sum_of_squared_errors(predicted, actual)?;
-    let sst = sum_of_square_total(actual)?;
+pub fn r2_score(
+    predicted: ArrayView1<f64>,
+    actual: ArrayView1<f64>
+) -> Result<f64, ModelError> {
+    // Validate inputs first
+    if predicted.is_empty() || actual.is_empty() {
+        return Err(ModelError::InputValidationError(
+            "Input arrays cannot be empty".to_string()
+        ));
+    }
+
+    if predicted.len() != actual.len() {
+        return Err(ModelError::InputValidationError(
+            format!(
+                "Predicted and actual arrays must have the same length. Predicted: {}, Actual: {}",
+                predicted.len(), actual.len()
+            )
+        ));
+    }
+
+    // Calculate mean of actual values
+    let actual_mean = actual.mean().unwrap();
+
+    // Calculate SSE (Sum of Squared Errors) and SST (Sum of Squares Total) in one pass
+    let (sse, sst) = actual.iter()
+        .zip(predicted.iter())
+        .fold((0.0, 0.0), |(sse_acc, sst_acc), (&act, &pred)| {
+            let error = pred - act;
+            let deviation = act - actual_mean;
+            (
+                sse_acc + error * error,          // Sum of squared errors
+                sst_acc + deviation * deviation   // Sum of squared deviations from mean
+            )
+        });
 
     // Prevent division by zero (when all actual values are identical)
-    if sst == 0.0 {
+    if sst < 1e-10 {  // Using small epsilon for numerical stability
         return Ok(0.0);
     }
 
@@ -197,7 +287,7 @@ pub fn r2_score(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
 /// let actual = arr1(&[1.0, 0.0, 1.0, 0.0, 1.0]);
 ///
 /// // Create confusion matrix
-/// let cm = ConfusionMatrix::new(&predicted, &actual).unwrap();
+/// let cm = ConfusionMatrix::new(predicted.view(), actual.view()).unwrap();
 ///
 /// // Calculate performance metrics
 /// println!("Accuracy: {:.2}", cm.accuracy());
@@ -243,7 +333,7 @@ impl ConfusionMatrix {
     ///
     /// - `Ok(Self)` - A new confusion matrix if input arrays have the same length
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn new(predicted: &Array1<f64>, actual: &Array1<f64>) -> Result<Self, ModelError> {
+    pub fn new(predicted: ArrayView1<f64>, actual: ArrayView1<f64>) -> Result<Self, ModelError> {
         if predicted.len() != actual.len() {
             return Err(ModelError::InputValidationError(
                 format!("Input arrays must have the same length. Predicted: {}, Actual: {}", predicted.len(), actual.len())

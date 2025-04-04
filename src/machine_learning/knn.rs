@@ -244,13 +244,12 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     /// # Notes
     /// Minkowski distance with p=3
     fn calculate_distance(&self, a: ArrayView1<f64>, b: ArrayView1<f64>) -> f64 {
-        use crate::math::{squared_euclidean_distance, manhattan_distance, minkowski_distance};
-        let a = a.insert_axis(ndarray::Axis(0));
-        let b = b.insert_axis(ndarray::Axis(0));
+        use crate::math::{squared_euclidean_distance_row, manhattan_distance_row, minkowski_distance_row};
+
         match self.metric {
-            Metric::Euclidean => squared_euclidean_distance(&a, &b).sqrt(),
-            Metric::Manhattan => manhattan_distance(&a, &b),
-            Metric::Minkowski => minkowski_distance(&a, &b, 3.0),
+            Metric::Euclidean => squared_euclidean_distance_row(a, b).sqrt(),
+            Metric::Manhattan => manhattan_distance_row(a, b),
+            Metric::Minkowski => minkowski_distance_row(a, b, 3.0),
         }
     }
 

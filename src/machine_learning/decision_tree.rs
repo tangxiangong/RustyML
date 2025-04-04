@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, s, Axis};
+use ndarray::{Array1, Array2, s, Axis, ArrayView1};
 use std::collections::{HashMap, HashSet};
 use crate::ModelError;
 
@@ -394,29 +394,27 @@ impl DecisionTree {
                   algorithm: &str,
                   build_child_tree: fn(&Self, &Array2<f64>, &Array1<f64>, usize, &str) -> Box<Node>
     ) -> Box<Node> {
-        let y_slice = y.as_slice().unwrap();
-
         // Termination conditions
-        if y_slice.is_empty() ||
+        if y.is_empty() ||
             (self.params.max_depth.is_some() && depth >= self.params.max_depth.unwrap()) ||
-            y_slice.len() < self.params.min_samples_split {
-            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            y.len() < self.params.min_samples_split {
+            let (value, class) = calculate_leaf_value(y.view(), self.is_classifier);
             return Box::new(Node::new_leaf(value, class, None));
         }
 
         // Check if all samples belong to the same class
-        let first_val = y_slice[0];
-        if y_slice.iter().all(|&val| val == first_val) {
-            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+        let first_val = y[0];
+        if y.iter().all(|&val| val == first_val) {
+            let (value, class) = calculate_leaf_value(y.view(), self.is_classifier);
             return Box::new(Node::new_leaf(value, class, None));
         }
 
         // Find the best split point, passing algorithm type
-        let (feature_idx, threshold, left_indices, right_indices) = find_best_split(x, y_slice, self.is_classifier, algorithm);
+        let (feature_idx, threshold, left_indices, right_indices) = find_best_split(x, y.view(), self.is_classifier, algorithm);
 
         // If no good split was found
         if left_indices.is_empty() || right_indices.is_empty() {
-            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            let (value, class) = calculate_leaf_value(y.view(), self.is_classifier);
             return Box::new(Node::new_leaf(value, class, None));
         }
 
@@ -515,15 +513,13 @@ impl DecisionTree {
     /// # Returns
     /// A boxed Node representing the root of the constructed (sub)tree
     fn build_cart_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
-        let y_slice = y.as_slice().unwrap();
-
         // Termination conditions
-        if y_slice.is_empty() ||
+        if y.is_empty() ||
             (self.params.max_depth.is_some() && depth >= self.params.max_depth.unwrap()) ||
-            y_slice.len() < self.params.min_samples_split {
-            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            y.len() < self.params.min_samples_split {
+            let (value, class) = calculate_leaf_value(y.view(), self.is_classifier);
             let probabilities = if self.is_classifier && self.n_classes.is_some() {
-                Some(calculate_class_probabilities(y_slice, self.n_classes.unwrap()))
+                Some(calculate_class_probabilities(y.view(), self.n_classes.unwrap()))
             } else {
                 None
             };
@@ -531,11 +527,11 @@ impl DecisionTree {
         }
 
         // Check if all samples belong to the same value
-        let first_val = y_slice[0];
-        if y_slice.iter().all(|&val| val == first_val) {
-            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+        let first_val = y[0];
+        if y.iter().all(|&val| val == first_val) {
+            let (value, class) = calculate_leaf_value(y.view(), self.is_classifier);
             let probabilities = if self.is_classifier && self.n_classes.is_some() {
-                Some(calculate_class_probabilities(y_slice, self.n_classes.unwrap()))
+                Some(calculate_class_probabilities(y.view(), self.n_classes.unwrap()))
             } else {
                 None
             };
@@ -543,15 +539,15 @@ impl DecisionTree {
         }
 
         // Find the best split point, explicitly specifying CART algorithm
-        let (feature_idx, threshold, left_indices, right_indices) = find_best_split(x, y_slice, self.is_classifier, "CART");
+        let (feature_idx, threshold, left_indices, right_indices) = find_best_split(x, y.view(), self.is_classifier, "CART");
 
         // If no good split was found
         if left_indices.is_empty() || right_indices.is_empty() ||
             left_indices.len() < self.params.min_samples_leaf ||
             right_indices.len() < self.params.min_samples_leaf {
-            let (value, class) = calculate_leaf_value(y_slice, self.is_classifier);
+            let (value, class) = calculate_leaf_value(y.view(), self.is_classifier);
             let probabilities = if self.is_classifier && self.n_classes.is_some() {
-                Some(calculate_class_probabilities(y_slice, self.n_classes.unwrap()))
+                Some(calculate_class_probabilities(y.view(), self.n_classes.unwrap()))
             } else {
                 None
             };
@@ -945,8 +941,9 @@ impl DecisionTree {
 /// * `f64` - The threshold value for the split
 /// * `Vec<usize>` - Indices of samples going to the left child node
 /// * `Vec<usize>` - Indices of samples going to the right child node
-fn find_best_split(x: &Array2<f64>, y: &[f64], is_classifier: bool, algorithm: &str) -> (usize, f64, Vec<usize>, Vec<usize>) {
-    use crate::math::{gini, information_gain, gain_ratio, mean_squared_error};
+fn find_best_split(x: &Array2<f64>, y: ArrayView1<f64>, is_classifier: bool, algorithm: &str) -> (usize, f64, Vec<usize>, Vec<usize>) {
+    use crate::math::{gini, information_gain, gain_ratio, variance};
+    use ndarray::Array1;
 
     let n_features = x.ncols();
     let mut best_feature = 0;
@@ -986,26 +983,25 @@ fn find_best_split(x: &Array2<f64>, y: &[f64], is_classifier: bool, algorithm: &
                 continue;
             }
 
-            // Extract labels for left and right subsets
-            let left_y: Vec<f64> = left_indices.iter().map(|&i| y[i]).collect();
-            let right_y: Vec<f64> = right_indices.iter().map(|&i| y[i]).collect();
+            let left_y = Array1::from_iter(left_indices.iter().map(|&i| y[i]));
+            let right_y = Array1::from_iter(right_indices.iter().map(|&i| y[i]));
 
             // Calculate split quality based on the selected algorithm
             let criterion = if is_classifier {
                 match algorithm {
-                    "ID3" => information_gain(y, &left_y, &right_y),
-                    "C4.5" => gain_ratio(y, &left_y, &right_y),
+                    "ID3" => information_gain(y, left_y.view(), right_y.view()),
+                    "C4.5" => gain_ratio(y, left_y.view(), right_y.view()),
                     _ => {
                         // CART algorithm uses Gini impurity
-                        gini(y) - (left_y.len() as f64 / y.len() as f64) * gini(&left_y) -
-                            (right_y.len() as f64 / y.len() as f64) * gini(&right_y)
+                        gini(y) - (left_y.len() as f64 / y.len() as f64) * gini(left_y.view()) -
+                            (right_y.len() as f64 / y.len() as f64) * gini(right_y.view())
                     }
                 }
             } else {
                 // Regression uses MSE reduction
-                let total_mse = mean_squared_error(y);
-                let weighted_child_mse = (left_y.len() as f64 / y.len() as f64) * mean_squared_error(&left_y) +
-                    (right_y.len() as f64 / y.len() as f64) * mean_squared_error(&right_y);
+                let total_mse = variance(y);
+                let weighted_child_mse = (left_y.len() as f64 / y.len() as f64) * variance(left_y.view()) +
+                    (right_y.len() as f64 / y.len() as f64) * variance(right_y.view());
                 total_mse - weighted_child_mse
             };
 
@@ -1037,7 +1033,7 @@ fn find_best_split(x: &Array2<f64>, y: &[f64], is_classifier: bool, algorithm: &
 /// A tuple containing:
 /// * `f64` - The prediction value for this leaf node
 /// * `Option<usize>` - For classification tasks, the class index as `Some(usize)`; for regression, `None`
-fn calculate_leaf_value(y: &[f64], is_classifier: bool) -> (f64, Option<usize>) {
+fn calculate_leaf_value(y: ArrayView1<f64>, is_classifier: bool) -> (f64, Option<usize>) {
     if y.is_empty() {
         return (0.0, None);
     }
@@ -1078,7 +1074,7 @@ fn calculate_leaf_value(y: &[f64], is_classifier: bool) -> (f64, Option<usize>) 
 ///
 /// # Returns
 /// `Vec<f64>` - A vector of probabilities for each class, summing to 1.0
-fn calculate_class_probabilities(y: &[f64], n_classes: usize) -> Vec<f64> {
+fn calculate_class_probabilities(y: ArrayView1<f64>, n_classes: usize) -> Vec<f64> {
     let mut probas = vec![0.0; n_classes];
     let total = y.len() as f64;
 

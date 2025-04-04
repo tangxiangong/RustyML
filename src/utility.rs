@@ -197,17 +197,16 @@ pub mod linear_discriminant_analysis;
 /// use ndarray::Array2;
 /// use rustyml::utility::t_sne::TSNE;
 ///
-/// // Create a 100x10 data matrix (100 samples, 10 features)
-/// let data = Array2::<f64>::zeros((100, 10));
+/// let tsne = TSNE::new(None, None, Some(100), 3, None, None, None, None, None, None);
 ///
-/// // Create a t-SNE model with default parameters and 2D output
-/// let tsne = TSNE::default();
+/// // Generate some high-dimensional data
+/// let data = Array2::<f64>::ones((100, 50));
 ///
-/// // Transform the data to 2D representation
-/// let result = tsne.fit_transform(&data).unwrap();
+/// // Apply t-SNE dimensionality reduction
+/// let embedding = tsne.fit_transform(&data).unwrap();
 ///
-/// // Result is a 100x2 matrix containing the 2D coordinates
-/// assert_eq!(result.shape(), &[100, 2]);
+/// // `embedding` now contains 100 samples in 3 dimensions
+/// assert_eq!(embedding.shape(), &[100, 3]);
 /// ```
 ///
 /// ## References
@@ -251,8 +250,7 @@ pub fn standardize(x: &Array2<f64>) -> Array2<f64> {
 
     let mut stds = Array1::<f64>::zeros(n_features);
     for i in 0..n_features {
-        let col_vec: Vec<f64> = x.column(i).iter().cloned().collect();
-        stds[i] = standard_deviation(&col_vec);
+        stds[i] = standard_deviation(x.column(i));
 
         // Handle case where standard deviation is zero
         if stds[i] < 1e-10 {

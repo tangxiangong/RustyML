@@ -5,6 +5,17 @@ This change log records updates after 2025-3-24.
 
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
+## [v0.2.1] - 2025-4-4
+### Added
+- Add variance calculation in math module
+- Add MSE calculation in metric module
+
+### Changed
+- Refactor functions in math module and metric module to use `ArrayView1` for improved efficiency
+
+### Removed
+- Remove MSE calculation(named mean_squared_error, but actually calculate variance) in math module
+
 ## [v0.2.1] - 2025-4-3
 ### Added
 - Add t-Distributed Stochastic Neighbor Embedding (t-SNE) implementation

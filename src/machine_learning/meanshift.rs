@@ -216,13 +216,10 @@ impl MeanShift {
     ///
     /// * `f64` - The squared Euclidean distance between the two vectors
     fn calculate_distance(&self, x: &Array1<f64>, y: &Array1<f64>) -> f64 {
-        use crate::math::squared_euclidean_distance;
-        // Convert 1D arrays to 2D array views
-        let x_2d = x.view().insert_axis(ndarray::Axis(0));
-        let y_2d = y.view().insert_axis(ndarray::Axis(0));
+        use crate::math::squared_euclidean_distance_row;
 
         // Use the provided function to calculate the distance
-        squared_euclidean_distance(&x_2d, &y_2d)
+        squared_euclidean_distance_row(x.view(), y.view())
     }
 
     /// Fits the MeanShift clustering model to the input data.
