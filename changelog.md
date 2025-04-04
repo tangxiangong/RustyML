@@ -9,6 +9,9 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ### Added
 - Add t-Distributed Stochastic Neighbor Embedding (t-SNE) implementation
 
+### Changed
+- Remove gaussian kernel calculation function, put gaussian kernel calculation directly in function `fit` of struct `MeanShift`
+
 ## [v0.2.1] - 2025-4-2
 ### Added
 - Add LinearSVC support

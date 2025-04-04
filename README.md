@@ -14,7 +14,6 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
   - Calculate the squared Euclidean distance between two points | 计算两点之间的欧几里得距离平方
   - Calculate the Manhattan distance between two points ｜ 计算两点间的曼哈顿距离
   - Calculate the Minkowski distance between two points ｜ 计算两点间的闵可夫斯基距离
-  - Calculate the Gaussian kernel (RBF kernel) | 计算高斯核(RBF核)
   - Calculates the entropy of a label set | 计算标签集的熵
   - Calculates the Gini impurity of a label set | 计算标签集的基尼不纯度
   - Calculates the information gain when splitting a dataset | 计算数据集分割时的信息增益

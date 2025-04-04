@@ -259,37 +259,6 @@ pub fn minkowski_distance(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, p: f64) ->
     sum.powf(1.0 / p)
 }
 
-/// Calculate the Gaussian kernel (RBF kernel)
-///
-/// # Parameters
-/// * `x1` - View of the first input vector/matrix
-/// * `x2` - View of the second input vector/matrix
-/// * `gamma` - Kernel width parameter, controls the "width" of the Gaussian function
-///
-/// # Returns
-/// * The Gaussian kernel value between the two points
-///
-/// # Examples
-///
-/// ```
-/// use rustyml::math::gaussian_kernel;
-///
-/// use ndarray::array;
-/// let a = array![[1.0, 2.0]];
-/// let b = array![[1.0, 2.0]];
-/// let gamma = 0.5;
-/// let kernel = gaussian_kernel(&a.view(), &b.view(), gamma);
-/// // For identical points, squared distance is 0, so kernel = exp(0) = 1.0
-/// assert!((kernel - 1.0).abs() < 1e-6);
-/// ```
-pub fn gaussian_kernel(x1: &ArrayView2<f64>, x2: &ArrayView2<f64>, gamma: f64) -> f64 {
-    // Calculate the squared Euclidean distance between the two points
-    let squared_distance = squared_euclidean_distance(x1, x2);
-
-    // Apply the Gaussian formula: K(x, y) = exp(-gamma * ||x - y||²)
-    (-gamma * squared_distance).exp()
-}
-
 /// Calculates the entropy of a label set.
 ///
 /// Entropy is a measure of impurity in a dataset, commonly used in decision tree algorithms

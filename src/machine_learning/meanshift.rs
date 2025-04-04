@@ -246,7 +246,6 @@ impl MeanShift {
             return Err(ModelError::InputValidationError("tol must be positive".to_string()));
         }
 
-        use crate::math::gaussian_kernel;
         use super::preliminary_check;
 
         preliminary_check(&x, None)?;
@@ -289,19 +288,13 @@ impl MeanShift {
                 // Convert to ndarray
                 let distances = Array1::from(distances);
 
-                // Apply Gaussian kernel
+                // Apply Gaussian kernel - 直接计算，不使用外部函数
                 let mut weights = Array1::zeros(n_samples);
                 let gamma = 1.0 / (2.0 * self.bandwidth.powi(2));
-                let zero_matrix = Array2::<f64>::zeros((1, 1));
-                let zero_view = zero_matrix.view();
 
                 for i in 0..n_samples {
-                    // turn to 2D View
-                    let dist_matrix = Array2::<f64>::from_elem((1, 1), distances[i]);
-                    let dist_view = dist_matrix.view();
-
-                    // use function `gaussian_kernel`
-                    weights[i] = gaussian_kernel(&zero_view, &dist_view, gamma);
+                    // exp(-gamma * distance)
+                    weights[i] = (-gamma * distances[i]).exp();
                 }
 
                 // Calculate weighted average
@@ -365,7 +358,6 @@ impl MeanShift {
             }
         }
 
-
         // Create cluster_centers array
         let n_clusters = unique_centers.len();
         let mut cluster_centers = Array2::zeros((n_clusters, n_features));
@@ -402,7 +394,7 @@ impl MeanShift {
 
         // print training info
         println!("Mean shift model training finished at iteration {}, number of clusters: {}",
-                self.n_iter.unwrap_or(0), n_clusters);
+                 self.n_iter.unwrap_or(0), n_clusters);
 
         Ok(self)
     }

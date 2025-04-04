@@ -12,20 +12,20 @@ fn create_test_data() -> Array2<f64> {
 
     // First cluster
     for i in 0..100 {
-        data[[i, 0]] = rng.random_range(-5.0..=-3.0);
-        data[[i, 1]] = rng.random_range(-5.0..=-3.0);
+        data[[i, 0]] = rng.random_range(-20.0..=-10.0);
+        data[[i, 1]] = rng.random_range(-20.0..=-10.0);
     }
 
     // Second cluster
     for i in 100..200 {
-        data[[i, 0]] = rng.random_range(0.0..=2.0);
-        data[[i, 1]] = rng.random_range(0.0..=2.0);
+        data[[i, 0]] = rng.random_range(0.0..=10.0);
+        data[[i, 1]] = rng.random_range(0.0..=10.0);
     }
 
     // Third cluster
     for i in 200..300 {
-        data[[i, 0]] = rng.random_range(3.0..=5.0);
-        data[[i, 1]] = rng.random_range(3.0..=5.0);
+        data[[i, 0]] = rng.random_range(20.0..=30.0);
+        data[[i, 1]] = rng.random_range(20.0..=30.0);
     }
 
     data
@@ -92,9 +92,9 @@ fn test_meanshift_predict() {
 
     // Create some new test points
     let test_points = arr2(&[
-        [-4.0, -4.0], // Should belong to the first cluster
-        [1.0, 1.0],   // Should belong to the second cluster
-        [4.0, 4.0]    // Should belong to the third cluster
+        [-15.0, -15.0], // Should belong to the first cluster
+        [5.0, 5.0],   // Should belong to the second cluster
+        [25.0, 25.0]    // Should belong to the third cluster
     ]);
 
     let predictions = ms.predict(&test_points).unwrap();
