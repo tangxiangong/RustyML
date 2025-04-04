@@ -9,6 +9,7 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 ### Added
 - Add variance calculation in math module
 - Add MSE calculation in metric module
+- Print info after training completes for `fit` functions of struct `LDA`, `SVC`, `LinearSVC` and `PCA`
 
 ### Changed
 - Refactor functions in math module and metric module to use `ArrayView1` for improved efficiency

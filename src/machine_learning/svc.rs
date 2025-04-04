@@ -424,6 +424,8 @@ impl SVC {
             support_vector_alphas[i] = alphas[idx];
         }
 
+        println!("SVC model training finished at iteration {}", n_iter);
+
         self.alphas = Some(support_vector_alphas);
         self.support_vectors = Some(support_vectors);
         self.support_vector_labels = Some(support_vector_labels);

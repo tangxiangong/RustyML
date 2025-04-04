@@ -249,6 +249,8 @@ impl LDA {
         }
         self.projection = Some(w);
 
+        println!("LDA model training finished");
+
         Ok(self)
     }
 

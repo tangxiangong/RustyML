@@ -376,6 +376,8 @@ impl LinearSVC {
             prev_bias = bias;
         }
 
+        println!("Linear SVC model training finished at iteration {}", n_iter);
+
         self.weights = Some(weights);
         self.bias = Some(bias);
         self.n_iter = Some(n_iter);

@@ -172,8 +172,6 @@ impl PCA {
         let total_var = eigvals.sum();
         let explained_variance_ratio = explained_variance.map(|&v| v / total_var);
 
-        println!("Finish PCA");
-
         self.components = Some(components);
         self.mean = Some(mean);
         self.explained_variance = Some(explained_variance);
