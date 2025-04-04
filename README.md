@@ -92,6 +92,7 @@ While the library is in its early stages, Rust AI aims to evolve into a comprehe
 - [rand](https://crates.io/crates/rand) (0.9.0): Random number generators and other randomness functionality for Rust | Rust的随机数生成器和其他随机性功能
 - [ndarray-linalg](https://crates.io/crates/ndarray-linalg)(0.17.0): Linear algebra package for rust-ndarray | 给 Rust ndarray使用的线性代数包
 - [statrs](https://crates.io/crates/statrs)(0.18.0): A host of statistical utilities for Rust scientific computing | Rust 科学计算的一整套统计工具
+- [rand_distr](https://crates.io/crates/rand_distr) Sampling from random number distributions | 从随机数分布中采样
 
 ## Getting Started | 开始使用
 Add the library to your `Cargo.toml`:
