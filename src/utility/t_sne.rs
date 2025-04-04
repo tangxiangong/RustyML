@@ -228,6 +228,8 @@ impl TSNE {
     /// * `Ok(Array2<f64>)` - Either a matrix of reduced dimensionality representations where each row corresponds to the original sample
     /// - `Err(ModelError::InputValidationError)` - If input does not match expectation
     pub fn fit_transform(&self, x: &Array2<f64>) -> Result<Array2<f64>, ModelError> {
+        use crate::math::squared_euclidean_distance_row;
+
         fn validate_param<T: PartialOrd + Copy + std::fmt::Display>(
             value: Option<T>,
             default: T,
@@ -317,8 +319,7 @@ impl TSNE {
         let mut distances = Array2::<f64>::zeros((n_samples, n_samples));
         for i in 0..n_samples {
             for j in 0..n_samples {
-                let diff = &x.row(i) - &x.row(j);
-                distances[[i, j]] = diff.dot(&diff);
+                distances[[i, j]] = squared_euclidean_distance_row(x.row(i), x.row(j));
             }
         }
 
