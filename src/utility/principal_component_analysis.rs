@@ -2,6 +2,7 @@ use ndarray::{Array1, Array2};
 use std::error::Error;
 use ndarray_linalg::Eigh;
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # PCA structure for implementing Principal Component Analysis
 ///
@@ -101,86 +102,6 @@ impl PCA {
         }
     }
 
-    /// Fits the PCA model
-    ///
-    /// # Parameters
-    ///
-    /// * `x` - The input data matrix, where rows are samples and columns are features
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(&mut Self)` - The instance
-    /// - `Err(Box<dyn std::error::Error>)` - If something goes wrong
-    ///
-    /// # Implementation Details
-    ///
-    /// - Computes the mean of each feature
-    /// - Centers the data by subtracting the mean
-    /// - Computes the covariance matrix
-    /// - Calculates eigenvalues and eigenvectors
-    /// - Sorts components by explained variance
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn Error>> {
-        use crate::machine_learning::preliminary_check;
-
-        preliminary_check(&x, None)?;
-
-        let n_samples = x.nrows();
-        let n_features = x.ncols();
-
-        if self.n_components <= 0 {
-            return Err(Box::new(ModelError::InputValidationError("Number of components must be positive.".to_string())));
-        }
-
-        // Calculate mean
-        let mut mean = Array1::<f64>::zeros(n_features);
-        for i in 0..n_features {
-            mean[i] = x.column(i).mean().unwrap_or(0.0);
-        }
-
-        // Center the data
-        let mut x_centered = x.clone();
-        for i in 0..n_samples {
-            for j in 0..n_features {
-                x_centered[[i, j]] -= mean[j];
-            }
-        }
-
-        // Calculate covariance matrix
-        let cov = x_centered.t().dot(&x_centered) / (n_samples as f64 - 1.0);
-
-        // Calculate eigenvalues and eigenvectors
-        let (eigvals, eigvecs) = cov.eigh(ndarray_linalg::UPLO::Upper)?;
-
-        // Sort by eigenvalue in descending order
-        let mut indices: Vec<usize> = (0..eigvals.len()).collect();
-        indices.sort_by(|&a, &b| eigvals[b].partial_cmp(&eigvals[a]).unwrap());
-
-        // Get top n_components eigenvectors
-        let n = self.n_components.min(n_features);
-        let mut components = Array2::<f64>::zeros((n, n_features));
-        let mut explained_variance = Array1::<f64>::zeros(n);
-        let mut singular_values = Array1::<f64>::zeros(n);
-
-        for i in 0..n {
-            let idx = indices[i];
-            explained_variance[i] = eigvals[idx];
-            singular_values[i] = eigvals[idx].sqrt() * ((n_samples as f64 - 1.0).sqrt());
-            components.row_mut(i).assign(&eigvecs.column(idx));
-        }
-
-        // Calculate explained variance ratio
-        let total_var = eigvals.sum();
-        let explained_variance_ratio = explained_variance.map(|&v| v / total_var);
-
-        self.components = Some(components);
-        self.mean = Some(mean);
-        self.explained_variance = Some(explained_variance);
-        self.explained_variance_ratio = Some(explained_variance_ratio);
-        self.singular_values = Some(singular_values);
-
-        Ok(self)
-    }
-
     /// Gets the components matrix
     ///
     /// # Returns
@@ -233,6 +154,96 @@ impl PCA {
         }
     }
 
+    /// Fits the PCA model
+    ///
+    /// # Parameters
+    ///
+    /// * `x` - The input data matrix, where rows are samples and columns are features
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(&mut Self)` - The instance
+    /// - `Err(Box<dyn std::error::Error>)` - If something goes wrong
+    ///
+    /// # Implementation Details
+    ///
+    /// - Computes the mean of each feature
+    /// - Centers the data by subtracting the mean
+    /// - Computes the covariance matrix
+    /// - Calculates eigenvalues and eigenvectors
+    /// - Sorts components by explained variance
+    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn Error>> {
+        use crate::machine_learning::preliminary_check;
+
+        preliminary_check(&x, None)?;
+
+        let n_samples = x.nrows();
+        let n_features = x.ncols();
+
+        if self.n_components <= 0 {
+            return Err(Box::new(ModelError::InputValidationError("Number of components must be positive.".to_string())));
+        }
+
+        // Calculate mean using parallel iteration
+        let mean: Array1<f64> = (0..n_features)
+            .into_par_iter()
+            .map(|i| x.column(i).mean().unwrap_or(0.0))
+            .collect::<Vec<f64>>()
+            .into();
+
+        // Center the data in parallel
+        let mut x_centered = x.clone();
+        x_centered
+            .axis_iter_mut(ndarray::Axis(0))
+            .into_par_iter()
+            .enumerate()
+            .for_each(|(_, mut row)| {
+                for j in 0..n_features {
+                    row[j] -= mean[j];
+                }
+            });
+
+        // Calculate covariance matrix
+        let cov = x_centered.t().dot(&x_centered) / (n_samples as f64 - 1.0);
+
+        // Calculate eigenvalues and eigenvectors
+        let (eigvals, eigvecs) = cov.eigh(ndarray_linalg::UPLO::Upper)?;
+
+        // Sort by eigenvalue in descending order
+        let mut indices: Vec<usize> = (0..eigvals.len()).collect();
+        indices.sort_by(|&a, &b| eigvals[b].partial_cmp(&eigvals[a]).unwrap());
+
+        // Get top n_components eigenvectors
+        let n = self.n_components.min(n_features);
+        let mut components = Array2::<f64>::zeros((n, n_features));
+        let mut explained_variance = Array1::<f64>::zeros(n);
+        let mut singular_values = Array1::<f64>::zeros(n);
+
+        for i in 0..n {
+            let idx = indices[i];
+            explained_variance[i] = eigvals[idx];
+            singular_values[i] = eigvals[idx].sqrt() * ((n_samples as f64 - 1.0).sqrt());
+
+            let mut row = components.row_mut(i);
+            for (j, &val) in eigvecs.column(idx).iter().enumerate() {
+                row[j] = val;
+            }
+        }
+
+        // Calculate explained variance ratio
+        let total_var = eigvals.sum();
+        let explained_variance_ratio = explained_variance.map(|&v| v / total_var);
+
+        self.components = Some(components);
+        self.mean = Some(mean);
+        self.explained_variance = Some(explained_variance);
+        self.explained_variance_ratio = Some(explained_variance_ratio);
+        self.singular_values = Some(singular_values);
+
+        Ok(self)
+    }
+
+
     /// Transforms data into principal component space
     ///
     /// # Parameters
@@ -250,16 +261,25 @@ impl PCA {
         let components = self.components.as_ref().ok_or(ModelError::NotFitted)?;
         let mean = self.mean.as_ref().ok_or(ModelError::NotFitted)?;
 
-        let n_samples = x.nrows();
-        let n_features = x.ncols();
+        // Use ndarray's vectorized operations for centering
+        // This creates a view instead of cloning the entire array
+        let x_centered = x.view().outer_iter()
+            .into_par_iter()
+            .map(|row| {
+                // Subtract the mean from each row
+                let mut centered_row = row.to_owned();
+                for (i, &m) in mean.iter().enumerate() {
+                    centered_row[i] -= m;
+                }
+                centered_row
+            })
+            .collect::<Vec<_>>();
 
-        // Center the data
-        let mut x_centered = x.clone();
-        for i in 0..n_samples {
-            for j in 0..n_features {
-                x_centered[[i, j]] -= mean[j];
-            }
-        }
+        // Convert the vector collection back to Array2
+        let x_centered = Array2::from_shape_vec(
+            (x.nrows(), x.ncols()),
+            x_centered.into_iter().flat_map(|row| row.into_iter().collect::<Vec<_>>()).collect()
+        )?;
 
         // Transform to principal component space
         let transformed = x_centered.dot(&components.t());
@@ -298,18 +318,18 @@ impl PCA {
         let components = self.components.as_ref().ok_or("PCA model not fitted yet")?;
         let mean = self.mean.as_ref().ok_or("PCA model not fitted yet")?;
 
-        let n_samples = x.nrows();
-
         // Transform back to original feature space
-        let x_orig = x.dot(components);
+        let mut x_restored = x.dot(components);
+        let n_features = mean.len();
 
-        // Add mean back
-        let mut x_restored = x_orig.clone();
-        for i in 0..n_samples {
-            for j in 0..mean.len() {
-                x_restored[[i, j]] += mean[j];
-            }
-        }
+        x_restored
+            .axis_chunks_iter_mut(ndarray::Axis(0), 1)
+            .into_par_iter()
+            .for_each(|mut chunk| {
+                for j in 0..n_features {
+                    chunk[[0, j]] += mean[j];
+                }
+            });
 
         Ok(x_restored)
     }

@@ -2,6 +2,7 @@ use ndarray::{Array2};
 use std::collections::{HashSet, VecDeque};
 use crate::ModelError;
 use super::DistanceCalculationMetric as Metric;
+use rayon::prelude::*;
 
 /// # DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm implementation
 ///
@@ -143,6 +144,7 @@ impl DBSCAN {
     /// Labels of -1 indicate noise points (outliers).
     pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
+        use crate::math::{squared_euclidean_distance_row, manhattan_distance_row, minkowski_distance_row};
 
         preliminary_check(&data, None)?;
 
@@ -154,83 +156,63 @@ impl DBSCAN {
             return Err(ModelError::InputValidationError("min_samples must be greater than 0".to_string()));
         }
 
-        /// Find all neighbors of point p (points within eps distance)
-        ///
-        /// # Parameters
-        /// * `dbscan` - The DBSCAN instance
-        /// * `data` - The dataset
-        /// * `p` - Index of the point to find neighbors for
-        /// * `metric` - Distance metric to use
-        ///
-        /// # Returns
-        /// * `Vec<usize>` - Vector of indices of all neighbors of point p
+        /// Parallelized version of region_query: find all neighbors of point `p` (points within eps distance)
         fn region_query(dbscan: &DBSCAN, data: &Array2<f64>, p: usize, metric: Metric) -> Vec<usize> {
-            use crate::math::{squared_euclidean_distance_row, manhattan_distance_row, minkowski_distance_row};
-
-            let mut neighbors = Vec::new();
-
-            for q in 0..data.nrows() {
-                // 1D to 2D
-                let p_row = data.row(p);
-                let q_row = data.row(q);
-
-                // Choose distance formula based on metric
-                let dist = match metric {
-                    Metric::Euclidean => squared_euclidean_distance_row(p_row, q_row).sqrt(),
-                    Metric::Manhattan => manhattan_distance_row(p_row, q_row),
-                    Metric::Minkowski => minkowski_distance_row(p_row, q_row, 3.0), // Default p=3
-                };
-
-                if dist <= dbscan.eps {
-                    neighbors.push(q);
-                }
-            }
-
-            neighbors
+            // Pre-compute row p (read-only view) to avoid fetching it repeatedly in each iteration
+            let p_row = data.row(p);
+            // Parallel iteration through all rows, calculating distances and filtering points that satisfy the eps condition
+            (0..data.nrows())
+                .into_par_iter()
+                .filter_map(|q| {
+                    let q_row = data.row(q);
+                    let dist = match metric {
+                        Metric::Euclidean => squared_euclidean_distance_row(p_row, q_row).sqrt(),
+                        Metric::Manhattan => manhattan_distance_row(p_row, q_row),
+                        Metric::Minkowski => minkowski_distance_row(p_row, q_row, 3.0), // Default p=3
+                    };
+                    if dist <= dbscan.eps {
+                        Some(q)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
         }
 
         let n_samples = data.nrows();
-        let mut labels = vec![-1; n_samples]; // -1 means unclassified (noise)
+        let mut labels = vec![-1; n_samples]; // -1 represents unclassified or noise
         let mut core_samples = HashSet::new();
         let mut cluster_id = 0;
 
-        // Process each point
+        // Main loop processes each point sequentially, the algorithm as a whole remains sequential
         for p in 0..n_samples {
-            // Skip already processed points
             if labels[p] != -1 {
                 continue;
             }
 
-            // Find neighbors of point p
             let neighbors = region_query(&self, data, p, self.metric.clone());
-
-            // If number of neighbors is less than min_samples, mark as noise
             if neighbors.len() < self.min_samples {
-                labels[p] = -1;
+                labels[p] = -1; // Mark as noise
                 continue;
             }
 
-            // Otherwise start a new cluster
+            // Start a new cluster
             labels[p] = cluster_id;
             core_samples.insert(p);
-
-            // Expand the cluster
             let mut seeds = VecDeque::from(neighbors);
+
+            // Expand cluster (the expansion process is still sequential)
             while let Some(q) = seeds.pop_front() {
-                // Skip already classified points (non-noise)
+                // Skip if q has already been assigned to another cluster
                 if labels[q] >= 0 && labels[q] != cluster_id {
                     continue;
                 }
 
-                // Mark as current cluster
                 if labels[q] == -1 {
                     labels[q] = cluster_id;
                 }
 
-                // Find neighbors of q
                 let q_neighbors = region_query(&self, data, q, self.metric.clone());
-
-                // If q is a core point, add it to core samples and expand cluster
                 if q_neighbors.len() >= self.min_samples {
                     core_samples.insert(q);
                     for &r in &q_neighbors {
@@ -244,10 +226,9 @@ impl DBSCAN {
                 }
             }
 
-            // Increment cluster ID
             cluster_id += 1;
         }
-        
+
         println!("DBSCAN model computing finished");
 
         self.labels_ = Some(labels);
@@ -271,42 +252,48 @@ impl DBSCAN {
     /// of a core point, otherwise they are labeled as noise (-1)
     pub fn predict(&self, data: &Array2<f64>, new_data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
         use crate::math::squared_euclidean_distance_row;
-        
-        // Ensure the model is trained
+
+        // Ensure the model has been trained
         let labels = match &self.labels_ {
             Some(l) => l,
             None => return Err(ModelError::NotFitted),
         };
 
-        let mut predictions = vec![-1; new_data.nrows()];
+        // Get core sample indices
+        let core_samples = self.core_sample_indices_.as_ref().unwrap();
 
-        // Predict for each new data point
-        for (i, row) in new_data.rows().into_iter().enumerate() {
-            let mut min_dist = f64::MAX;
-            let mut closest_label = -1;
+        // Process each row in parallel, collecting into Vec<i32>
+        let predictions: Vec<i32> = new_data.rows()
+            .into_iter()
+            .enumerate()
+            .par_bridge() // Convert sequential iterator to parallel iterator
+            .map(|(_, row)| {
+                let mut min_dist = f64::MAX;
+                let mut closest_label = -1;
 
-            // Find the closest classified data point
-            for (j, orig_row) in data.rows().into_iter().enumerate() {
-                if labels[j] == -1 {
-                    continue; // Skip noise points
+                // Find the closest classified data point
+                for (j, orig_row) in data.rows().into_iter().enumerate() {
+                    if labels[j] == -1 {
+                        continue; // Skip noise points
+                    }
+
+                    let dist = squared_euclidean_distance_row(row.view(), orig_row.view());
+
+                    if dist < min_dist {
+                        min_dist = dist;
+                        closest_label = labels[j];
+                    }
+
+                    // If a core point is found within eps range, assign its label directly
+                    if dist <= self.eps && core_samples.contains(&j) {
+                        closest_label = labels[j];
+                        break;
+                    }
                 }
 
-                let dist = squared_euclidean_distance_row(row.view(), orig_row.view());
-
-                if dist < min_dist {
-                    min_dist = dist;
-                    closest_label = labels[j];
-                }
-
-                // If a core point is found within eps, assign its label directly
-                if dist <= self.eps && self.core_sample_indices_.as_ref().unwrap().contains(&j) {
-                    closest_label = labels[j];
-                    break;
-                }
-            }
-
-            predictions[i] = closest_label;
-        }
+                closest_label
+            })
+            .collect();
 
         Ok(predictions)
     }

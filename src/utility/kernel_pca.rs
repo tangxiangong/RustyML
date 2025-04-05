@@ -2,6 +2,7 @@ use ndarray::{Array1, Array2, ArrayView1, Axis};
 use ndarray_linalg::eigh::Eigh;
 pub use crate::machine_learning::svc::KernelType;
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # A Kernel Principal Component Analysis implementation.
 ///
@@ -265,12 +266,24 @@ impl KernelPCA {
 
         // Calculate the kernel matrix: k_matrix[i, j] = kernel(x[i], x[j])
         let mut k_matrix = Array2::<f64>::zeros((n_samples, n_samples));
-        for i in 0..n_samples {
-            for j in i..n_samples {
-                let k_val = compute_kernel(&x.row(i), &x.row(j), &self.kernel);
-                k_matrix[[i, j]] = k_val;
-                k_matrix[[j, i]] = k_val;
-            }
+
+        // Use Rayon to compute kernel values for upper triangular matrix in parallel, avoiding direct modification of k_matrix in closure
+        let kernel_vals: Vec<((usize, usize), f64)> = (0..n_samples)
+            .into_par_iter()
+            .flat_map(|i| {
+                let mut local_results = Vec::new();
+                for j in i..n_samples {
+                    let k_val = compute_kernel(&x.row(i), &x.row(j), &self.kernel);
+                    local_results.push(((i, j), k_val));
+                }
+                local_results
+            })
+            .collect();
+
+        // Fill the kernel matrix
+        for ((i, j), k_val) in kernel_vals {
+            k_matrix[[i, j]] = k_val;
+            k_matrix[[j, i]] = k_val;
         }
 
         // Calculate row means and total mean
@@ -281,10 +294,23 @@ impl KernelPCA {
 
         // Center the k_matrix: k_centered[i,j] = k_matrix[i,j] - row_means[i] - row_means[j] + total_mean
         let mut k_centered = k_matrix.clone();
-        for i in 0..n_samples {
-            for j in 0..n_samples {
-                k_centered[[i, j]] = k_matrix[[i, j]] - row_means[i] - row_means[j] + total_mean;
-            }
+
+        // Similarly avoid direct modification of k_centered in parallel closure
+        let centered_vals: Vec<((usize, usize), f64)> = (0..n_samples)
+            .into_par_iter()
+            .flat_map(|i| {
+                let mut local_results = Vec::new();
+                for j in 0..n_samples {
+                    let centered_val = k_matrix[[i, j]] - row_means[i] - row_means[j] + total_mean;
+                    local_results.push(((i, j), centered_val));
+                }
+                local_results
+            })
+            .collect();
+
+        // Fill the centered matrix
+        for ((i, j), centered_val) in centered_vals {
+            k_centered[[i, j]] = centered_val;
         }
 
         // Perform eigendecomposition on the centered kernel matrix (use eigh for symmetric matrices)
@@ -292,18 +318,23 @@ impl KernelPCA {
         let eigenvalues_all = eig_result.0;
         let eigenvectors_all = eig_result.1; // Each column is an eigenvector
 
-        // Sort eigenvalues and eigenvectors in descending order of eigenvalues
+        // Collect and map eigenvalues and eigenvectors in parallel
         let mut eig_pairs: Vec<(f64, Array1<f64>)> = eigenvalues_all
             .iter()
             .cloned()
             .zip(eigenvectors_all.columns())
+            .par_bridge() // Convert to parallel iterator
             .map(|(val, vec)| (val, vec.to_owned()))
             .collect();
+
+        // Sorting is still sequential since parallel sorting might be unstable
         eig_pairs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
         // Select the top n_components eigenvalues and corresponding eigenvectors, and normalize them
         let mut selected_eigenvalues = Array1::<f64>::zeros(self.n_components);
         let mut selected_eigenvectors = Array2::<f64>::zeros((n_samples, self.n_components));
+
+        // This part could also be parallelized, but since n_components is typically small, parallel benefit is limited
         for i in 0..self.n_components {
             selected_eigenvalues[i] = eig_pairs[i].0;
             // If the eigenvalue is large enough, normalize: normalized_vec = eigenvector / sqrt(eigenvalue)
@@ -311,6 +342,7 @@ impl KernelPCA {
             let normalized_vec = &eig_pairs[i].1 / norm_factor;
             selected_eigenvectors.column_mut(i).assign(&normalized_vec);
         }
+
         self.eigenvalues = Some(selected_eigenvalues);
         self.eigenvectors = Some(selected_eigenvectors);
 
@@ -344,22 +376,52 @@ impl KernelPCA {
         let n_new = x.nrows();
         let mut k_new = Array2::<f64>::zeros((n_train, n_new));
 
-        // Calculate the kernel matrix between training data and new data: k_new[i,j] = kernel(x_fit[i], x[j])
-        for i in 0..n_train {
-            for j in 0..n_new {
-                k_new[[i, j]] = compute_kernel(&x_fit.row(i), &x.row(j), &self.kernel);
-            }
+        // Calculate the kernel matrix between training data and new data in parallel
+        let kernel_vals: Vec<((usize, usize), f64)> = (0..n_train)
+            .into_par_iter()
+            .flat_map(|i| {
+                let mut local_results = Vec::new();
+                for j in 0..n_new {
+                    let k_val = compute_kernel(&x_fit.row(i), &x.row(j), &self.kernel);
+                    local_results.push(((i, j), k_val));
+                }
+                local_results
+            })
+            .collect();
+
+        // Fill the kernel matrix
+        for ((i, j), k_val) in kernel_vals {
+            k_new[[i, j]] = k_val;
         }
 
         // Center the new data kernel matrix: k_new_centered[i,j] = k_new[i,j] - row_means[i] - mean(k_new[:,j]) + total_mean
         let row_means = self.row_means.as_ref().unwrap();
         let total_mean = self.total_mean.unwrap();
         let mut k_new_centered = Array2::<f64>::zeros((n_train, n_new));
-        for j in 0..n_new {
-            let mean_new = k_new.column(j).mean().unwrap();
-            for i in 0..n_train {
-                k_new_centered[[i, j]] = k_new[[i, j]] - row_means[i] - mean_new + total_mean;
-            }
+
+        // Precompute column means in parallel
+        let column_means: Vec<f64> = (0..n_new)
+            .into_par_iter()
+            .map(|j| k_new.column(j).mean().unwrap())
+            .collect();
+
+        // Compute centered values in parallel
+        let centered_vals: Vec<((usize, usize), f64)> = (0..n_new)
+            .into_par_iter()
+            .flat_map(|j| {
+                let mean_new = column_means[j];
+                let mut local_results = Vec::new();
+                for i in 0..n_train {
+                    let centered_val = k_new[[i, j]] - row_means[i] - mean_new + total_mean;
+                    local_results.push(((i, j), centered_val));
+                }
+                local_results
+            })
+            .collect();
+
+        // Fill the centered matrix
+        for ((i, j), centered_val) in centered_vals {
+            k_new_centered[[i, j]] = centered_val;
         }
 
         // Project using eigenvectors saved during training: projection = eigenvectors^T * k_new_centered

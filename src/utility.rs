@@ -238,31 +238,47 @@ pub mod t_sne;
 /// - Applies the z-score transformation: (x - mean) / std_dev
 pub fn standardize(x: &Array2<f64>) -> Array2<f64> {
     use crate::math::standard_deviation;
+    use rayon::prelude::*;
 
     let n_samples = x.nrows();
     let n_features = x.ncols();
 
-    // Calculate mean for each column
-    let mut means = Array1::<f64>::zeros(n_features);
-    for i in 0..n_features {
-        means[i] = x.column(i).mean().unwrap_or(0.0);
-    }
+    // Use parallel iteration to calculate mean and standard deviation for each column
+    let feature_indices: Vec<usize> = (0..n_features).collect();
+    let stats: Vec<(f64, f64)> = feature_indices.par_iter()
+        .map(|&i| {
+            let col = x.column(i);
+            let mean = col.mean().unwrap_or(0.0);
+            let std = standard_deviation(col);
+            // Handle cases where standard deviation is zero
+            let std = if std < 1e-10 { 1.0 } else { std };
+            (mean, std)
+        })
+        .collect();
 
-    let mut stds = Array1::<f64>::zeros(n_features);
-    for i in 0..n_features {
-        stds[i] = standard_deviation(x.column(i));
+    // Extract mean and standard deviation arrays
+    let means = Array1::from_iter(stats.iter().map(|&(mean, _)| mean));
+    let stds = Array1::from_iter(stats.iter().map(|&(_, std)| std));
 
-        // Handle case where standard deviation is zero
-        if stds[i] < 1e-10 {
-            stds[i] = 1.0;
-        }
-    }
-
-    // Standardize data
+    // Parallelize data standardization
     let mut x_std = Array2::<f64>::zeros((n_samples, n_features));
-    for i in 0..n_samples {
+
+    // Method 1: Process rows in parallel
+    let row_indices: Vec<usize> = (0..n_samples).collect();
+    let results: Vec<_> = row_indices.par_iter()
+        .map(|&i| {
+            let mut row = Vec::with_capacity(n_features);
+            for j in 0..n_features {
+                row.push((x[[i, j]] - means[j]) / stds[j]);
+            }
+            (i, row)
+        })
+        .collect();
+
+    // Collect results
+    for (i, row) in results {
         for j in 0..n_features {
-            x_std[[i, j]] = (x[[i, j]] - means[j]) / stds[j];
+            x_std[[i, j]] = row[j];
         }
     }
 

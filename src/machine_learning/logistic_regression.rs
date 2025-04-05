@@ -1,5 +1,6 @@
-use ndarray::{Array1, Array2, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView2, s, Axis};
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # Logistic Regression model implementation
 ///
@@ -186,99 +187,98 @@ impl LogisticRegression {
     /// - `Ok(&mut Self)` - A mutable reference to the trained model, allowing for method chaining
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
-        use crate::math::sigmoid;
-
+        use crate::math::{sigmoid, logistic_loss};
         use super::preliminary_check;
 
+        // Preliminary check
         preliminary_check(&x, Some(&y))?;
-
         if self.learning_rate <= 0.0 {
-            return Err(ModelError::InputValidationError("Learning rate must be greater than 0.0".to_string()));
+            return Err(ModelError::InputValidationError(
+                "Learning rate must be greater than 0.0".to_string(),
+            ));
         }
-
         for &val in y.iter() {
             if val != 0.0 && val != 1.0 {
-                return Err(ModelError::InputValidationError("Target vector must contain only 0 or 1".to_string()));
-            }
-        }
-
-        let (n_samples, mut n_features) = x.dim();
-
-        for (i, y_val) in y.iter().enumerate() {
-            if y_val.is_nan() || y_val.is_infinite() {
                 return Err(ModelError::InputValidationError(
-                    format!("Target vector contains NaN or infinite values, at index {}", i)
+                    "Target vector must contain only 0 or 1".to_string(),
                 ));
             }
         }
-
+        let (n_samples, mut n_features) = x.dim();
+        for (i, y_val) in y.iter().enumerate() {
+            if y_val.is_nan() || y_val.is_infinite() {
+                return Err(ModelError::InputValidationError(
+                    format!("Target vector contains NaN or infinite values, at index {}", i),
+                ));
+            }
+        }
         if self.max_iter <= 0 {
-            return Err(ModelError::InputValidationError("Maximum number of iterations must be greater than 0".to_string()));
+            return Err(ModelError::InputValidationError(
+                "Maximum number of iterations must be greater than 0".to_string(),
+            ));
         }
 
-        // If using intercept, add a column of ones
-        let x_train = if self.fit_intercept {
+        // Decide the source of x_train based on whether to use intercept: only allocate new matrix when intercept is needed
+        let x_train_view: ArrayView2<f64>;
+        let _x_train_owned: Option<Array2<f64>>;
+
+        if self.fit_intercept {
             n_features += 1;
             let mut x_with_bias = Array2::ones((n_samples, n_features));
-            for i in 0..n_samples {
-                for j in 0..n_features - 1 {
-                    x_with_bias[[i, j + 1]] = x[[i, j]];
-                }
-            }
-            x_with_bias
+            // Copy the original data to the last n_features-1 columns of the new matrix
+            x_with_bias.slice_mut(s![.., 1..]).assign(x);
+            _x_train_owned = Some(x_with_bias);
+            x_train_view = _x_train_owned.as_ref().unwrap().view();
         } else {
-            x.clone()
-        };
+            // When intercept is not needed, directly use the read-only view of x, no additional memory allocation
+            _x_train_owned = None;
+            x_train_view = x.view();
+        }
 
-        // Initialize weights
+        // Initialize weight vector
         let mut weights = Array1::zeros(n_features);
-
         let mut prev_cost = f64::INFINITY;
-
         let mut final_cost = prev_cost;
-
         let mut n_iter = 0;
 
-        // Gradient descent optimization
+        // Gradient descent iterations
         while n_iter < self.max_iter {
             n_iter += 1;
 
-            let predictions = x_train.dot(&weights);
-            let mut sigmoid_preds = Array1::zeros(n_samples);
+            let predictions = x_train_view.dot(&weights);
+            // Parallel computation of sigmoid activation
+            let sigmoid_preds = (0..n_samples)
+                .into_par_iter()
+                .map(|i| sigmoid(predictions[i]))
+                .collect::<Vec<f64>>();
+            let sigmoid_preds = Array1::from(sigmoid_preds);
 
-            for i in 0..n_samples {
-                sigmoid_preds[i] = sigmoid(predictions[i]);
-            }
-
-            // Calculate error
+            // Calculate prediction errors
             let errors = &sigmoid_preds - y;
-
             // Calculate gradients
-            let gradients = x_train.t().dot(&errors) / n_samples as f64;
-
+            let gradients = x_train_view.t().dot(&errors) / n_samples as f64;
             // Update weights
             weights = &weights - self.learning_rate * &gradients;
 
-            // Calculate loss function using math module's logistic_loss
-            let raw_preds = x_train.dot(&weights);
-
-            let cost = crate::math::logistic_loss(raw_preds.view(), y.view())?;
+            // Calculate loss
+            let raw_preds = x_train_view.dot(&weights);
+            let cost = logistic_loss(raw_preds.view(), y.view())?;
             final_cost = cost;
 
-            // Check convergence
+            // Check convergence condition
             if (prev_cost - cost).abs() < self.tol {
                 break;
             }
-
             prev_cost = cost;
         }
 
         self.weights = Some(weights);
         self.n_iter = Some(n_iter);
 
-        // print training info
-        println!("Logistic regression training finished at iteration {}, cost: {}",
-                 n_iter, final_cost);
+        println!(
+            "Logistic regression training finished at iteration {}, cost: {}",
+            n_iter, final_cost
+        );
 
         Ok(self)
     }
@@ -298,23 +298,27 @@ impl LogisticRegression {
     pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
         let (n_samples, n_features) = x.dim();
 
-        // Handle intercept term
-        let x_test = if self.fit_intercept {
-            let mut x_with_bias = Array2::ones((n_samples, n_features + 1));
-            for i in 0..n_samples {
-                for j in 0..n_features {
-                    x_with_bias[[i, j + 1]] = x[[i, j]];
-                }
-            }
-            x_with_bias
-        } else {
-            x.clone()
-        };
+        // Declare a read-only view for subsequent prediction
+        let x_test_view: ArrayView2<f64>;
+        // If intercept is needed, create a new owned array
+        let x_test_owned;
 
-        let probs = self.predict_proba(&x_test.view());
+        if self.fit_intercept {
+            // Create a matrix with the first column filled with ones
+            let mut x_with_bias = Array2::ones((n_samples, n_features + 1));
+            // Copy the data from x to the last n_features columns of x_with_bias
+            x_with_bias.slice_mut(s![.., 1..]).assign(x);
+            x_test_owned = x_with_bias;
+            x_test_view = x_test_owned.view();
+        } else {
+            // When intercept is not needed, directly use the view of x to avoid cloning data
+            x_test_view = x.view();
+        }
+
+        let probs = self.predict_proba(&x_test_view);
 
         match probs {
-            // Apply threshold (0.5) for classification
+            // Apply a threshold (0.5) for classification
             Ok(probs) => Ok(probs.mapv(|prob| if prob >= 0.5 { 1 } else { 0 })),
             Err(e) => Err(e),
         }
@@ -334,13 +338,14 @@ impl LogisticRegression {
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     fn predict_proba(&self, x: &ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         use crate::math::sigmoid;
+
         if let Some(weights) = &self.weights {
             let mut predictions = x.dot(weights);
 
-            // Apply sigmoid activation function
-            for val in predictions.iter_mut() {
+            // sigmoid
+            predictions.par_iter_mut().for_each(|val| {
                 *val = sigmoid(*val);
-            }
+            });
 
             Ok(predictions)
         } else {
@@ -426,11 +431,16 @@ pub fn generate_polynomial_features(x: &Array2<f64>, degree: usize) -> Array2<f6
     let mut result = Array2::<f64>::ones((n_samples, n_output_features));
 
     // Add first-order features (original features)
-    for i in 0..n_samples {
-        for j in 0..n_features {
-            result[[i, j+1]] = x[[i, j]];
-        }
-    }
+    // Process samples in parallel using Rayon
+    result
+        .axis_iter_mut(Axis(0))
+        .into_par_iter()
+        .enumerate()
+        .for_each(|(i, mut row)| {
+            for j in 0..n_features {
+                row[j + 1] = x[[i, j]];
+            }
+        });
 
     // If degree >= 2, add higher-order features
     if degree >= 2 {
@@ -450,18 +460,27 @@ pub fn generate_polynomial_features(x: &Array2<f64>, degree: usize) -> Array2<f6
         ) {
             // If we've reached the target degree, compute the feature value
             if current_degree == degree {
-                for i in 0..n_samples {
-                    let mut value = 1.0;
-                    for &feat_idx in combination.iter() {
-                        value *= x[[i, feat_idx]];
-                    }
-                    result[[i, *col_idx]] = value;
-                }
+                // Store current column index and increment to avoid race conditions
+                let current_col = *col_idx;
                 *col_idx += 1;
+
+                // Process all samples in parallel
+                result
+                    .axis_iter_mut(Axis(0))
+                    .into_par_iter()
+                    .enumerate()
+                    .for_each(|(i, mut row)| {
+                        let mut value = 1.0;
+                        for &feat_idx in combination.iter() {
+                            value *= x[[i, feat_idx]];
+                        }
+                        row[current_col] = value;
+                    });
                 return;
+
             }
 
-            // Recursively build combinations
+            // Recursively build combinations (sequential since it modifies shared state)
             for j in start_feature..n_features {
                 combination.push(j);
                 add_combinations(

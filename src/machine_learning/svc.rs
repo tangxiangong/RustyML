@@ -1,5 +1,6 @@
 use ndarray::{Array1, Array2, ArrayView1};
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # Support Vector Machine Classifier
 ///
@@ -298,12 +299,25 @@ impl SVC {
         let n_samples = x.nrows();
         let mut kernel_matrix = Array2::<f64>::zeros((n_samples, n_samples));
 
-        for i in 0..n_samples {
-            for j in 0..=i {
-                let k_val = self.kernel_function(x.row(i), x.row(j));
-                kernel_matrix[[i, j]] = k_val;
-                kernel_matrix[[j, i]] = k_val; // Kernel matrix is symmetric
-            }
+        // Compute all values in parallel and collect results
+        let values: Vec<((usize, usize), f64)> = (0..n_samples)
+            .into_par_iter()
+            .flat_map(|i| {
+                let mut row_values = Vec::with_capacity(i + 1);
+                for j in 0..=i {
+                    let k_val = self.kernel_function(x.row(i), x.row(j));
+                    row_values.push(((i, j), k_val));
+                    if i != j {
+                        row_values.push(((j, i), k_val)); // Add symmetric element
+                    }
+                }
+                row_values
+            })
+            .collect();
+
+        // Fill the matrix
+        for ((i, j), val) in values {
+            kernel_matrix[[i, j]] = val;
         }
 
         kernel_matrix
@@ -518,22 +532,23 @@ impl SVC {
         error_cache: &Array1<f64>,
     ) -> usize {
         let n_samples = alphas.len();
-        let mut i1 = i2;
-        let mut max_delta_e = 0.0;
 
-        // Select alpha that maximizes |E1-E2|
-        for i in 0..n_samples {
-            if alphas[i] > 0.0 && alphas[i] < self.regularization_param {
+        // Find the index with maximum |E1-E2| in parallel
+        let result = (0..n_samples)
+            .into_par_iter()
+            .filter(|&i| alphas[i] > 0.0 && alphas[i] < self.regularization_param)
+            .map(|i| {
                 let e1 = error_cache[i];
                 let delta_e = (e1 - e2).abs();
-                if delta_e > max_delta_e {
-                    max_delta_e = delta_e;
-                    i1 = i;
-                }
-            }
-        }
+                (i, delta_e)
+            })
+            .reduce(
+                || (i2, 0.0), // Default to i2 if no better candidate is found
+                |a, b| if b.1 > a.1 { b } else { a }
+            );
 
-        i1
+        // Return the index of the alpha that maximizes |E1-E2|
+        result.0
     }
 
     /// Updates a pair of alpha values in the SMO algorithm
@@ -670,10 +685,12 @@ impl SVC {
         b: f64,
         error_cache: &mut Array1<f64>,
     ) {
-        let n_samples = alphas.len();
-        for i in 0..n_samples {
-            error_cache[i] = self.decision_function_internal(i, alphas, kernel_matrix, y, b);
-        }
+        // Use zip_with_index for parallel updates
+        error_cache.indexed_iter_mut()
+            .par_bridge()
+            .for_each(|(i, error)| {
+                *error = self.decision_function_internal(i, alphas, kernel_matrix, y, b);
+            });
     }
 
     /// Calculates the decision function value for a single training example
@@ -695,12 +712,15 @@ impl SVC {
         y: &Array1<f64>,
         b: f64,
     ) -> f64 {
-        let mut sum = 0.0;
-        for j in 0..alphas.len() {
-            if alphas[j] > 0.0 {
-                sum += alphas[j] * y[j] * kernel_matrix[[i, j]];
-            }
-        }
+        // Create index range
+        let indices: Vec<usize> = (0..alphas.len()).collect();
+
+        // Compute sum in parallel
+        let sum: f64 = indices.par_iter()
+            .filter(|&&j| alphas[j] > 0.0)  // Only consider non-zero alphas
+            .map(|&j| alphas[j] * y[j] * kernel_matrix[[i, j]])
+            .sum();
+
         sum - y[i] + b
     }
 
@@ -713,6 +733,7 @@ impl SVC {
     /// - `Ok(Array1<f64>)` - The predicted class labels (+1 or -1)
     /// - `Err(ModelError::NotFitted)` - If the model hasn't been fitted yet
     pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+        // Check if the model has been fitted
         if self.support_vectors.is_none() || self.support_vector_labels.is_none() || self.alphas.is_none() {
             return Err(ModelError::NotFitted);
         }
@@ -729,16 +750,29 @@ impl SVC {
         let support_vector_labels = self.support_vector_labels.as_ref().unwrap();
         let alphas = self.alphas.as_ref().unwrap();
 
-        for i in 0..n_samples {
-            let mut decision_value = 0.0;
+        // Create an array of indices
+        let indices: Vec<usize> = (0..n_samples).collect();
 
-            for j in 0..support_vectors.nrows() {
-                decision_value += alphas[j] * support_vector_labels[j] *
-                    self.kernel_function(x.row(i), support_vectors.row(j));
-            }
+        // Calculate predictions in parallel
+        let results: Vec<(usize, f64)> = indices.par_iter()
+            .map(|&i| {
+                // Compute the decision value
+                let decision_value = (0..support_vectors.nrows())
+                    .map(|j| {
+                        alphas[j] * support_vector_labels[j] *
+                            self.kernel_function(x.row(i), support_vectors.row(j))
+                    })
+                    .sum::<f64>() + bias;
 
-            decision_value += bias;
-            predictions[i] = if decision_value >= 0.0 { 1.0 } else { -1.0 };
+                // Convert to class label
+                let prediction = if decision_value >= 0.0 { 1.0 } else { -1.0 };
+                (i, prediction)
+            })
+            .collect();
+
+        // Fill the predictions array with results
+        for (i, pred) in results {
+            predictions[i] = pred;
         }
 
         Ok(predictions)
@@ -753,6 +787,7 @@ impl SVC {
     /// - `Ok(Array1<f64>)` - The decision function values
     /// - `Err(ModelError::NotFitted)` - If the model hasn't been fitted yet
     pub fn decision_function(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+        // Check if the model has been fitted
         if self.support_vectors.is_none() || self.support_vector_labels.is_none() || self.alphas.is_none() {
             return Err(ModelError::NotFitted);
         }
@@ -769,17 +804,21 @@ impl SVC {
         let support_vector_labels = self.support_vector_labels.as_ref().unwrap();
         let alphas = self.alphas.as_ref().unwrap();
 
-        for i in 0..n_samples {
-            let mut decision_value = 0.0;
+        // Parallel computation on each element of decision_values
+        decision_values.axis_iter_mut(ndarray::Axis(0))
+            .into_par_iter()
+            .enumerate()
+            .for_each(|(i, mut val)| {
+                let x_i = x.row(i);
+                let sum = (0..support_vectors.nrows())
+                    .map(|j| {
+                        alphas[j] * support_vector_labels[j] *
+                            self.kernel_function(x_i, support_vectors.row(j))
+                    })
+                    .sum::<f64>();
 
-            for j in 0..support_vectors.nrows() {
-                decision_value += alphas[j] * support_vector_labels[j] *
-                    self.kernel_function(x.row(i), support_vectors.row(j));
-            }
-
-            decision_value += bias;
-            decision_values[i] = decision_value;
-        }
+                *val.first_mut().unwrap() = sum + bias;
+            });
 
         Ok(decision_values)
     }

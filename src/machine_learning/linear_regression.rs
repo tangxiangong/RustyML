@@ -1,5 +1,6 @@
 use crate::{math, ModelError};
 use ndarray::{Array1, Array2};
+use rayon::prelude::*;
 
 /// # Linear Regression model implementation
 ///
@@ -210,53 +211,49 @@ impl LinearRegression {
         while n_iter < self.max_iter {
             n_iter += 1;
 
-            // Calculate predictions
-            let mut predictions = Array1::<f64>::zeros(n_samples);
-            for i in 0..n_samples {
-                let mut pred = 0.0;
-                for j in 0..n_features {
-                    pred += x[[i, j]] * weights[j];
-                }
-                if self.fit_intercept {
-                    pred += intercept;
-                }
-                predictions[i] = pred;
-            }
+            // Calculate predictions using parallel iterator
+            let predictions: Array1<f64> = (0..n_samples).into_par_iter()
+                .map(|i| {
+                    let row = x.row(i);
+                    let pred = row.dot(&weights) + if self.fit_intercept { intercept } else { 0.0 };
+                    pred
+                })
+                .collect::<Vec<f64>>()
+                .into();
 
             // Calculate mean squared error
             let sse = math::sum_of_squared_errors(predictions.view(), y.view())?;
-
             let cost = sse / (2.0 * n_samples as f64); // Mean squared error divided by 2
             final_cost = cost;
 
-            // Calculate gradients
-            let mut gradients = Array1::<f64>::zeros(n_features);
-            let mut intercept_gradient = 0.0;
+            // Calculate gradients in parallel
+            let gradients_result: (Array1<f64>, f64) = (0..n_samples).into_par_iter()
+                .map(|i| {
+                    let error = predictions[i] - y[i];
+                    let row = x.row(i);
 
-            for i in 0..n_samples {
-                let error = predictions[i] - y[i];
+                    // Compute weight gradients
+                    let weight_grad = row.to_owned() * error;
 
-                // Update gradients for weights
-                for j in 0..n_features {
-                    gradients[j] += error * x[[i, j]];
-                }
+                    // Compute intercept gradient
+                    let intercept_grad = if self.fit_intercept { error } else { 0.0 };
 
-                // Update gradient for intercept
-                if self.fit_intercept {
-                    intercept_gradient += error;
-                }
-            }
+                    (weight_grad, intercept_grad)
+                })
+                .reduce(
+                    || (Array1::<f64>::zeros(n_features), 0.0),
+                    |(mut acc_w, acc_i), (w_grad, i_grad)| {
+                        acc_w += &w_grad;
+                        (acc_w, acc_i + i_grad)
+                    }
+                );
 
-            // Normalize gradients (divide by number of samples)
-            for j in 0..n_features {
-                gradients[j] /= n_samples as f64;
-            }
-            intercept_gradient /= n_samples as f64;
+            // Extract and normalize gradients
+            let gradients = gradients_result.0 / (n_samples as f64);
+            let intercept_gradient = gradients_result.1 / (n_samples as f64);
 
             // Update parameters
-            for j in 0..n_features {
-                weights[j] -= self.learning_rate * gradients[j];
-            }
+            weights -= &(&gradients * self.learning_rate);
             if self.fit_intercept {
                 intercept -= self.learning_rate * intercept_gradient;
             }
@@ -305,16 +302,13 @@ impl LinearRegression {
             ));
         }
 
-        let mut predictions = Array1::zeros(x.nrows());
-
-        for i in 0..x.nrows() {
-            let mut prediction = intercept;
-            for j in 0..x.ncols() {
-                prediction += x[[i, j]] * coeffs[j];
-            }
-
-            predictions[i] = prediction;
-        }
+        let predictions = (0..x.nrows()).into_par_iter()
+            .map(|i| {
+                let row = x.row(i);
+                intercept + row.dot(coeffs)
+            })
+            .collect::<Vec<f64>>();
+        let predictions = Array1::from(predictions);
 
         Ok(predictions)
     }

@@ -2,6 +2,7 @@ use ndarray::prelude::*;
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// A t-Distributed Stochastic Neighbor Embedding (t-SNE) implementation for dimensionality reduction.
 ///
@@ -315,24 +316,43 @@ impl TSNE {
 
         let n_samples = x.nrows();
 
-        // 1. Compute the squared Euclidean distances between all samples in high-dimensional space
-        let mut distances = Array2::<f64>::zeros((n_samples, n_samples));
-        for i in 0..n_samples {
-            for j in 0..n_samples {
-                distances[[i, j]] = squared_euclidean_distance_row(x.row(i), x.row(j));
-            }
-        }
+        // 1. Calculate the squared Euclidean distance between all samples in high-dimensional space
+        // Fix method: each thread calculates its own row, then merge the results
+        let distances = {
+            let mut distances = Array2::<f64>::zeros((n_samples, n_samples));
 
-        // 2. Use binary search to compute conditional probability distribution p_{j|i} for each sample
+            // Method 1: Use index ranges for parallel computation, each thread is responsible for one row
+            let indices: Vec<usize> = (0..n_samples).collect();
+            let results: Vec<_> = indices.par_iter().map(|&i| {
+                let mut row_dists = Vec::with_capacity(n_samples);
+                for j in 0..n_samples {
+                    row_dists.push(squared_euclidean_distance_row(x.row(i), x.row(j)));
+                }
+                (i, row_dists)
+            }).collect();
+
+            // Collect results
+            for (i, row_dists) in results {
+                for j in 0..n_samples {
+                    distances[[i, j]] = row_dists[j];
+                }
+            }
+
+            distances
+        };
+
+        // 2. Use binary search to calculate conditional probability distribution p_{j|i} for each sample
         let mut p = Array2::<f64>::zeros((n_samples, n_samples));
-        for i in 0..n_samples {
+        let mut rows: Vec<_> = p.axis_iter_mut(Axis(0)).collect();
+
+        rows.par_iter_mut().enumerate().for_each(|(i, row)| {
             let (p_i, _sigma) = binary_search_sigma(&distances.slice(s![i, ..]), perplexity);
             for j in 0..n_samples {
                 if i != j {
-                    p[[i, j]] = p_i[j];
+                    row[j] = p_i[j];
                 }
             }
-        }
+        });
         // Symmetrize p: p_sym = (p + p^T) / (2N)
         let p_sym = (&p + &p.t()) / (2.0 * n_samples as f64);
         // Early exaggeration: amplify p in early iterations
@@ -350,38 +370,71 @@ impl TSNE {
         // 4. Initialize gradient momentum matrix dy
         let mut dy = Array2::<f64>::zeros((n_samples, self.dim));
 
-        // 5. Iterate with gradient descent and momentum updates
+        // 5. Iterate using gradient descent and momentum updates
         for iter in 0..n_iter {
-            // Calculate similarities q between points in low-dimensional space
-            let mut num = Array2::<f64>::zeros((n_samples, n_samples));
-            for i in 0..n_samples {
-                for j in 0..n_samples {
-                    if i != j {
-                        let diff = &y.row(i) - &y.row(j);
-                        let dist = diff.dot(&diff);
-                        num[[i, j]] = 1.0 / (1.0 + dist);
+            // Calculate the similarity q between points in low-dimensional space
+            let num = {
+                let mut num = Array2::<f64>::zeros((n_samples, n_samples));
+
+                // Use the same fix method as before
+                let indices: Vec<usize> = (0..n_samples).collect();
+                let results: Vec<_> = indices.par_iter().map(|&i| {
+                    let mut row_nums = Vec::with_capacity(n_samples);
+                    for j in 0..n_samples {
+                        if i != j {
+                            let diff = &y.row(i) - &y.row(j);
+                            let dist = diff.dot(&diff);
+                            row_nums.push((j, 1.0 / (1.0 + dist)));
+                        } else {
+                            row_nums.push((j, 0.0));
+                        }
+                    }
+                    (i, row_nums)
+                }).collect();
+
+                // Collect results
+                for (i, row_nums) in results {
+                    for (j, val) in row_nums {
+                        num[[i, j]] = val;
                     }
                 }
-            }
+
+                num
+            };
+
             let sum_num = num.sum();
             let q = &num / sum_num;
 
             // Calculate gradient dC/dy
-            let mut grad = Array2::<f64>::zeros((n_samples, self.dim));
-            for i in 0..n_samples {
-                let mut grad_i = Array1::<f64>::zeros(self.dim);
-                for j in 0..n_samples {
-                    if i != j {
-                        let mult = (p_exagg[[i, j]] - q[[i, j]]) * num[[i, j]];
-                        let diff = &y.row(i) - &y.row(j);
-                        grad_i = grad_i + diff.to_owned() * mult;
+            let grad = {
+                let mut grad = Array2::<f64>::zeros((n_samples, self.dim));
+
+                // Use the same fix method as before
+                let indices: Vec<usize> = (0..n_samples).collect();
+                let results: Vec<_> = indices.par_iter().map(|&i| {
+                    let mut grad_i = Array1::<f64>::zeros(self.dim);
+                    for j in 0..n_samples {
+                        if i != j {
+                            let mult = (p_exagg[[i, j]] - q[[i, j]]) * num[[i, j]];
+                            let diff = &y.row(i) - &y.row(j);
+                            grad_i = grad_i + diff.to_owned() * mult;
+                        }
+                    }
+                    let grad_i = grad_i * 4.0;
+                    (i, grad_i)
+                }).collect();
+
+                // Collect results
+                for (i, grad_i) in results {
+                    for d in 0..self.dim {
+                        grad[[i, d]] = grad_i[d];
                     }
                 }
-                // Multiply by factor 4.0 as suggested in the paper
-                grad.row_mut(i).assign(&(grad_i * 4.0));
-            }
 
-            // Choose momentum parameter based on iteration count
+                grad
+            };
+
+            // Select momentum parameter based on iteration count
             let momentum = if iter < momentum_switch_iter {
                 initial_momentum
             } else {
@@ -396,7 +449,7 @@ impl TSNE {
             let mean_y = y.mean_axis(Axis(0)).unwrap();
             y = &y - &mean_y;
 
-            // When reaching the early exaggeration iteration limit, restore normal p
+            // When reaching early exaggeration iteration limit, restore normal p
             if iter == exaggeration_iter {
                 p_exagg = p_sym.clone();
             }

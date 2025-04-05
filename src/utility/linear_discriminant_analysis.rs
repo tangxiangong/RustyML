@@ -1,6 +1,7 @@
 use ndarray::{Array1, Array2, Axis, s};
 use ndarray_linalg::{Eig, Inverse};
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # Linear Discriminant Analysis (LDA)
 ///
@@ -141,8 +142,6 @@ impl LDA {
     /// - `Ok(&mut Self)` - Reference to self
     /// - `Err(Box<dyn std::error::Error>>)` - If something goes wrong
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<i32>) -> Result<&mut Self, Box<dyn std::error::Error>> {
-        // Implementation unchanged...
-
         // Input validation
         if x.nrows() != y.len() {
             return Err(Box::new(ModelError::InputValidationError(
@@ -171,43 +170,65 @@ impl LDA {
         self.classes = Some(classes_arr);
 
         let n_classes = self.classes.as_ref().unwrap().len();
+        let classes = self.classes.as_ref().unwrap();
 
-        // Calculate priors and means.
-        // For means, we create a matrix of shape (n_classes, n_features)
+        // Parallel calculation of each class's prior probability and mean
+        let class_stats: Vec<(usize, f64, Array1<f64>, Vec<usize>)> = classes.iter().enumerate()
+            .map(|(i, &class)| {
+                // Find indices of samples belonging to the current class
+                let indices: Vec<usize> = y
+                    .indexed_iter()
+                    .filter(|&(_, &val)| val == class)
+                    .map(|(idx, _)| idx)
+                    .collect();
+
+                let n_class = indices.len();
+                let prior = n_class as f64 / n_samples as f64;
+                let class_data = x.select(Axis(0), &indices);
+
+                let mean_row = class_data.mean_axis(Axis(0))
+                    .expect("Error computing class mean");
+
+                (i, prior, mean_row, indices)
+            })
+            .collect();
+
+        // Extract prior probabilities and means from computed results
         let mut priors_vec = Vec::with_capacity(n_classes);
         let mut means_mat = Array2::<f64>::zeros((n_classes, n_features));
-        for (i, &class) in self.classes.as_ref().unwrap().iter().enumerate() {
-            // Find indices of samples belonging to the current class
-            let indices: Vec<usize> = y
-                .indexed_iter()
-                .filter(|&(ref _idx, &val)| val == class)
-                .map(|(idx, _)| idx)
-                .collect();
-            let n_class = indices.len();
-            priors_vec.push(n_class as f64 / n_samples as f64);
-            let class_data = x.select(Axis(0), &indices);
-            let mean_row = class_data.mean_axis(Axis(0))
-                .ok_or(ModelError::ProcessingError("Error computing class mean".to_string()))?;
+
+        // Store indices for each class for further calculations
+        let mut class_indices = Vec::with_capacity(n_classes);
+
+        for (i, prior, mean_row, indices) in class_stats {
+            priors_vec.push(prior);
             means_mat.row_mut(i).assign(&mean_row);
+            class_indices.push((i, indices));
         }
+
         self.priors = Some(Array1::from_vec(priors_vec));
         self.means = Some(means_mat);
 
-        // Calculate within-class scatter matrix Sw = sum_c sum_{x in class c} (x - mean_c)(x - mean_c)^T
-        let mut sw = Array2::<f64>::zeros((n_features, n_features));
-        for (i, &class) in self.classes.as_ref().unwrap().iter().enumerate() {
-            let indices: Vec<usize> = y
-                .indexed_iter()
-                .filter(|&(ref _idx, &val)| val == class)
-                .map(|(idx, _)| idx)
-                .collect();
-            let class_data = x.select(Axis(0), &indices);
-            for row in class_data.outer_iter() {
-                let diff = &row - &self.means.as_ref().unwrap().row(i);
-                let diff_col = diff.insert_axis(Axis(1));
-                sw = sw + diff_col.dot(&diff_col.t());
-            }
-        }
+        // Parallel computation of the within-class scatter matrix (Sw)
+        let sw_parts: Vec<Array2<f64>> = class_indices.par_iter()
+            .map(|(i, indices)| {
+                let class_data = x.select(Axis(0), indices);
+                let class_mean = &self.means.as_ref().unwrap().row(*i);
+
+                // For this class, compute the scatter matrix part in parallel
+                class_data.outer_iter()
+                    .fold(Array2::<f64>::zeros((n_features, n_features)), |acc, row| {
+                        let diff = &row - class_mean;
+                        let diff_col = diff.insert_axis(Axis(1));
+                        acc + diff_col.dot(&diff_col.t())
+                    })
+            })
+            .collect();
+
+        // Combine all classes' scatter matrices
+        let sw = sw_parts.into_iter()
+            .fold(Array2::<f64>::zeros((n_features, n_features)), |acc, matrix| acc + matrix);
+
         // Covariance matrix estimation: cov = Sw / (n_samples - n_classes)
         let cov = sw / ((n_samples - n_classes) as f64);
         self.cov_inv = Some(cov.inv()?);
@@ -216,14 +237,21 @@ impl LDA {
         let overall_mean = x.mean_axis(Axis(0))
             .ok_or(ModelError::ProcessingError("Error computing overall mean".to_string()))?;
 
-        // Calculate between-class scatter matrix Sb = sum_c n_c (mean_c - overall_mean)(mean_c - overall_mean)^T
-        let mut sb = Array2::<f64>::zeros((n_features, n_features));
-        for (i, &class) in self.classes.as_ref().unwrap().iter().enumerate() {
-            let count = y.iter().filter(|&&val| val == class).count() as f64;
-            let diff = &self.means.as_ref().unwrap().row(i) - &overall_mean;
-            let diff_col = diff.insert_axis(Axis(1));
-            sb = sb + count * diff_col.dot(&diff_col.t());
-        }
+        // Parallel computation of the between-class scatter matrix (Sb)
+        let sb_parts: Vec<Array2<f64>> = classes.iter().enumerate()
+            .collect::<Vec<_>>()
+            .par_iter()
+            .map(|&(i, &class)| {
+                let count = y.iter().filter(|&&val| val == class).count() as f64;
+                let diff = &self.means.as_ref().unwrap().row(i) - &overall_mean;
+                let diff_col = diff.insert_axis(Axis(1));
+                count * diff_col.dot(&diff_col.t())
+            })
+            .collect();
+
+        // Combine between-class scatter matrices from all classes
+        let sb = sb_parts.into_iter()
+            .fold(Array2::<f64>::zeros((n_features, n_features)), |acc, matrix| acc + matrix);
 
         // Solve the generalized eigenvalue problem: cov_inv * Sb
         let cov_inv = self.cov_inv.as_ref().unwrap();
@@ -277,20 +305,25 @@ impl LDA {
         let priors = self.priors.as_ref().unwrap();
         let n_classes = classes.len();
 
-        let mut predictions = Array1::<i32>::zeros(x.nrows());
-        for (i, row) in x.outer_iter().enumerate() {
-            let mut best_score = f64::NEG_INFINITY;
-            let mut best_class = classes[0];
-            for j in 0..n_classes {
-                let score = self.discriminant_score(&row.to_owned(), &means.row(j).to_owned(), priors[j], cov_inv);
-                if score > best_score {
-                    best_score = score;
-                    best_class = classes[j];
+        // Use Rayon's parallel iteration
+        let predictions: Vec<i32> = x.outer_iter()
+            .into_par_iter()  // Convert to parallel iterator
+            .map(|row| {
+                let mut best_score = f64::NEG_INFINITY;
+                let mut best_class = classes[0];
+                for j in 0..n_classes {
+                    let score = self.discriminant_score(&row.to_owned(), &means.row(j).to_owned(), priors[j], cov_inv);
+                    if score > best_score {
+                        best_score = score;
+                        best_class = classes[j];
+                    }
                 }
-            }
-            predictions[i] = best_class;
-        }
-        Ok(predictions)
+                best_class
+            })
+            .collect();
+
+        // Convert results back to ndarray's Array1
+        Ok(Array1::from(predictions))
     }
 
     /// Transforms data using the trained projection matrix for dimensionality reduction

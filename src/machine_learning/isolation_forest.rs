@@ -4,6 +4,7 @@ use rand::rngs::StdRng;
 use rand::rng;
 use crate::machine_learning::decision_tree::{Node, NodeType};
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # Implementation of Isolation Forest, a decision forest based on randomly generated Isolation Trees
 ///
@@ -160,6 +161,7 @@ impl IsolationForest {
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError>{
         use super::preliminary_check;
+        use std::sync::Arc;
 
         preliminary_check(&x, None)?;
 
@@ -172,30 +174,40 @@ impl IsolationForest {
         }
 
         let n_rows = x.nrows();
-        // Initialize random number generator
-        let mut rng: StdRng = match self.random_state {
-            Some(seed) => StdRng::seed_from_u64(seed),
-            None => StdRng::from_rng(&mut rng()),
-        };
+        // Initialize random number generator with the main seed
+        let main_seed = self.random_state.map_or_else(
+            || {
+                let mut temp_rng = rng();
+                temp_rng.random::<u64>()
+            },
+            |seed| seed
+        );
 
-        self.trees = Some(Vec::with_capacity(self.n_estimators));
+        // Create an Arc to share the input data across threads
+        let x_arc = Arc::new(x.clone());
 
-        for _ in 0..self.n_estimators {
-            // For each tree, sample max_samples rows from the data
-            // (if max_samples is greater than total samples, use all samples)
-            let sample_indices = if self.max_samples < n_rows {
-                let mut indices: Vec<usize> = (0..n_rows).collect();
-                indices.shuffle(&mut rng);
-                indices[..self.max_samples].to_vec()
-            } else {
-                (0..n_rows).collect()
-            };
+        // Generate trees in parallel
+        let trees: Vec<_> = (0..self.n_estimators)
+            .into_par_iter()  // Process each tree in parallel
+            .map(|i| {
+                // Create a new RNG for each tree with a derived seed
+                let mut tree_rng = StdRng::seed_from_u64(main_seed.wrapping_add(i as u64));
 
-            let sample = x.select(Axis(0), &sample_indices);
-            let tree = Self::build_tree(&sample, 0, self.max_depth, &mut rng);
+                // For each tree, sample max_samples rows from the data
+                let sample_indices = if self.max_samples < n_rows {
+                    let mut indices: Vec<usize> = (0..n_rows).collect();
+                    indices.shuffle(&mut tree_rng);
+                    indices[..self.max_samples].to_vec()
+                } else {
+                    (0..n_rows).collect()
+                };
 
-            self.trees.as_mut().unwrap().push(tree);
-        }
+                let sample = x_arc.select(Axis(0), &sample_indices);
+                Self::build_tree(&sample, 0, self.max_depth, &mut tree_rng)
+            })
+            .collect();
+
+        self.trees = Some(trees);
 
         println!("Finished building Isolation Forest");
 
@@ -372,15 +384,22 @@ impl IsolationForest {
     /// - `Ok(Array1<f64>)` - Array of anomaly scores for each input sample
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
-        let mut result = Vec::with_capacity(x.nrows());
-        for i in 0..x.nrows() {
-            let sample = x.slice(s![i, ..]).to_vec();
+        // Convert each row to a vector
+        let samples: Vec<Vec<f64>> = (0..x.nrows())
+            .map(|i| x.slice(s![i, ..]).to_vec())
+            .collect();
 
-            let score = self.anomaly_score(&sample)?;
-            result.push(score);
+        // Use parallel iterator to calculate anomaly scores
+        let result: Result<Vec<f64>, ModelError> = samples
+            .par_iter()
+            .map(|sample| self.anomaly_score(sample))
+            .collect();
+
+        // Handle potential errors and convert results to Array1
+        match result {
+            Ok(scores) => Ok(Array1::from(scores)),
+            Err(e) => Err(e),
         }
-
-        Ok(Array1::from(result))
     }
 
     /// Fits the model and performs anomaly detection in one step

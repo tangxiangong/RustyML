@@ -1,9 +1,11 @@
 # RustyML
 A comprehensive machine learning and deep learning library written in pure Rust.
 一个用纯Rust编写的全面机器学习和深度学习库。
+
 ## Overview | 概述
 Rust AI aims to be a feature-rich machine learning and deep learning framework that leverages Rust's performance, memory safety, and concurrency features. While currently in early development stages with foundational components, the project's long-term vision is to provide a complete ecosystem for machine learning, deep learning, and transformer-based models.
 Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充分利用Rust的性能、内存安全性和并发特性。虽然目前处于早期开发阶段，只实现了基础组件，但项目的长期愿景是提供一个完整的机器学习、深度学习和基于transformer架构的模型生态系统。
+
 ## Current Features | 当前功能
 - **Mathematical Utilities | 数学工具**:
   - Sum of square total (SST) for measuring data variability | 总平方和(SST)，用于衡量数据变异性
@@ -41,7 +43,7 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Logistic Regression | 逻辑回归
     - KNN | K邻近值聚类
     - Decision Tree | 决策树
-    - Support Vector Classification | 支持向量机分类
+    - SVC(Support Vector Classification) | 支持向量机分类
     - Linear SVC | 线性向量机分类
     - LDA(Linear Discriminant Analysis) | 线性判别分析
     - Kernel PCA | 核主成分分析
@@ -92,14 +94,15 @@ While the library is in its early stages, Rust AI aims to evolve into a comprehe
 - [rand](https://crates.io/crates/rand) (0.9.0): Random number generators and other randomness functionality for Rust | Rust的随机数生成器和其他随机性功能
 - [ndarray-linalg](https://crates.io/crates/ndarray-linalg)(0.17.0): Linear algebra package for rust-ndarray | 给 Rust ndarray使用的线性代数包
 - [statrs](https://crates.io/crates/statrs)(0.18.0): A host of statistical utilities for Rust scientific computing | Rust 科学计算的一整套统计工具
-- [rand_distr](https://crates.io/crates/rand_distr) Sampling from random number distributions | 从随机数分布中采样
+- [rand_distr](https://crates.io/crates/rand_distr)(0.5.1) Sampling from random number distributions | 从随机数分布中采样
+- [rayon](https://crates.io/crates/rayon)(1.10.0) a data-parallelism library for Rust | Rust的数据并行库
 
 ## Getting Started | 开始使用
 Add the library to your `Cargo.toml`:
 将库添加到您的`Cargo.toml`文件中：
 ``` toml
 [dependencies]
-rustyml = "0.2.0"
+rustyml = "0.2.1"
 ```
 Example usage | 使用示例:
 ``` rust
@@ -133,6 +136,7 @@ println!("{:?}", model);
 ## Project Status | 项目状态
 This project is in the **early development stage**. Currently, only a small subset of the planned functionality has been implemented. The API is unstable and subject to significant changes as the project evolves.
 该项目处于**早期开发阶段**。目前，仅实现了计划功能的一小部分。API不稳定，随着项目的发展可能会有重大变化。
+
 ## Contribution | 贡献
 Contributions are welcome! If you're interested in helping build a robust machine learning ecosystem in Rust, please feel free to:
 欢迎贡献！如果您有兴趣帮助构建Rust中的强大机器学习生态系统，请随时：

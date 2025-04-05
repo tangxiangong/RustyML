@@ -1,6 +1,7 @@
 use ndarray::{Array1, Array2, s, Axis, ArrayView1};
 use std::collections::{HashMap, HashSet};
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// Represents different decision tree algorithms that can be used for tree construction.
 ///
@@ -594,17 +595,26 @@ impl DecisionTree {
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
     pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
-        let mut predictions = Vec::with_capacity(x.nrows());
-
-        for i in 0..x.nrows() {
-            let row = x.slice(s![i, ..]).to_vec();
-            match self.predict_one(&row) {
-                Ok(prediction) => predictions.push(prediction),
-                Err(e) => return Err(e),
-            }
+        // Get root node, return error if tree is not trained
+        if self.root.is_none() {
+            return Err(ModelError::NotFitted);
         }
 
-        Ok(Array1::from(predictions))
+        // Convert data to a collection of rows
+        let rows: Vec<Vec<f64>> = (0..x.nrows())
+            .map(|i| x.slice(s![i, ..]).to_vec())
+            .collect();
+
+        // Process predictions in parallel
+        let results: Result<Vec<f64>, ModelError> = rows.par_iter()
+            .map(|row| self.predict_one(row))
+            .collect();
+
+        // Handle results
+        match results {
+            Ok(predictions) => Ok(Array1::from(predictions)),
+            Err(e) => Err(e),
+        }
     }
 
     /// Fits the decision tree on training data and makes predictions on test data in a single operation.
@@ -706,23 +716,34 @@ impl DecisionTree {
             Some(n_classes) => n_classes,
             None => return Err(ModelError::TreeError("The model is not trained correctly and the number of classes is missing")),
         };
-        let mut probas = Array2::<f64>::zeros((n_samples, n_classes));
 
-        for i in 0..n_samples {
-            let row = x.slice(s![i, ..]).to_vec();
-            match self.predict_proba_one(&row) {
-                Ok(sample_probas) => {
+        // Convert data to a collection of rows
+        let rows: Vec<Vec<f64>> = (0..n_samples)
+            .map(|i| x.slice(s![i, ..]).to_vec())
+            .collect();
+
+        // Process probability predictions in parallel
+        let results: Result<Vec<Vec<f64>>, ModelError> = rows.par_iter()
+            .map(|row| self.predict_proba_one(row))
+            .collect();
+
+        match results {
+            Ok(all_probas) => {
+                let mut probas = Array2::<f64>::zeros((n_samples, n_classes));
+
+                // Fill the probabilities matrix
+                for (i, sample_probas) in all_probas.iter().enumerate() {
                     for (j, &p) in sample_probas.iter().enumerate() {
                         if j < n_classes {
                             probas[[i, j]] = p;
                         }
                     }
-                },
-                Err(e) => return Err(e),
-            }
-        }
+                }
 
-        Ok(probas)
+                Ok(probas)
+            },
+            Err(e) => Err(e),
+        }
     }
 
     /// Predicts class probabilities for a single sample
@@ -944,15 +965,21 @@ impl DecisionTree {
 fn find_best_split(x: &Array2<f64>, y: ArrayView1<f64>, is_classifier: bool, algorithm: &str) -> (usize, f64, Vec<usize>, Vec<usize>) {
     use crate::math::{gini, information_gain, gain_ratio, variance};
     use ndarray::Array1;
+    use std::sync::Mutex;
 
     let n_features = x.ncols();
-    let mut best_feature = 0;
-    let mut best_threshold = 0.0;
-    let mut best_left_indices = Vec::new();
-    let mut best_right_indices = Vec::new();
-    let mut best_criterion = f64::NEG_INFINITY;
 
-    for feature_idx in 0..n_features {
+    // Use Mutex to wrap the best result for thread-safe updates during parallel processing
+    let best_result = Mutex::new((
+        0,                  // best_feature
+        0.0,                // best_threshold
+        Vec::new(),         // best_left_indices
+        Vec::new(),         // best_right_indices
+        f64::NEG_INFINITY,  // best_criterion
+    ));
+
+    // Process each feature in parallel
+    (0..n_features).into_par_iter().for_each(|feature_idx| {
         // Get all unique values for this feature
         let mut feature_values = Vec::with_capacity(x.nrows());
         for i in 0..x.nrows() {
@@ -965,6 +992,7 @@ fn find_best_split(x: &Array2<f64>, y: ArrayView1<f64>, is_classifier: bool, alg
             .map(|w| (w[0] + w[1]) / 2.0)
             .collect();
 
+        // Can optionally parallelize thresholds too (depends on number of thresholds)
         for &threshold in &thresholds {
             let mut left_indices = Vec::new();
             let mut right_indices = Vec::new();
@@ -1005,16 +1033,22 @@ fn find_best_split(x: &Array2<f64>, y: ArrayView1<f64>, is_classifier: bool, alg
                 total_mse - weighted_child_mse
             };
 
-            // Update best split
-            if criterion > best_criterion {
-                best_criterion = criterion;
-                best_feature = feature_idx;
-                best_threshold = threshold;
-                best_left_indices = left_indices;
-                best_right_indices = right_indices;
+            // Update global best split (using lock to avoid data races)
+            let mut best = best_result.lock().unwrap();
+            if criterion > best.4 {
+                *best = (
+                    feature_idx,
+                    threshold,
+                    left_indices,
+                    right_indices,
+                    criterion
+                );
             }
         }
-    }
+    });
+
+    // Extract final result from Mutex
+    let (best_feature, best_threshold, best_left_indices, best_right_indices, _) = best_result.into_inner().unwrap();
 
     (best_feature, best_threshold, best_left_indices, best_right_indices)
 }
@@ -1075,6 +1109,8 @@ fn calculate_leaf_value(y: ArrayView1<f64>, is_classifier: bool) -> (f64, Option
 /// # Returns
 /// `Vec<f64>` - A vector of probabilities for each class, summing to 1.0
 fn calculate_class_probabilities(y: ArrayView1<f64>, n_classes: usize) -> Vec<f64> {
+    use rayon::prelude::*;
+
     let mut probas = vec![0.0; n_classes];
     let total = y.len() as f64;
 
@@ -1082,11 +1118,38 @@ fn calculate_class_probabilities(y: ArrayView1<f64>, n_classes: usize) -> Vec<f6
         return probas;
     }
 
-    // Count occurrences of each class
-    for &val in y {
-        let class_idx = val as usize;
-        if class_idx < n_classes {
-            probas[class_idx] += 1.0;
+    // Only use parallel processing for large arrays
+    if y.len() > 10000 {
+        // Process data in chunks in parallel, then merge results
+        let chunk_size = std::cmp::max(1, y.len() / rayon::current_num_threads());
+
+        let counts: Vec<Vec<f64>> = y.axis_chunks_iter(Axis(0), chunk_size)
+            .into_par_iter()
+            .map(|chunk| {
+                let mut local_counts = vec![0.0; n_classes];
+                for &val in chunk {
+                    let class_idx = val as usize;
+                    if class_idx < n_classes {
+                        local_counts[class_idx] += 1.0;
+                    }
+                }
+                local_counts
+            })
+            .collect();
+
+        // Merge counts from all chunks
+        for local_counts in counts {
+            for (i, count) in local_counts.iter().enumerate() {
+                probas[i] += count;
+            }
+        }
+    } else {
+        // Standard counting method
+        for &val in y {
+            let class_idx = val as usize;
+            if class_idx < n_classes {
+                probas[class_idx] += 1.0;
+            }
         }
     }
 

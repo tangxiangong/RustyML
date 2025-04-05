@@ -3,6 +3,7 @@ use rand::Rng;
 use rand::SeedableRng;
 use std::ops::AddAssign;
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # KMeans clustering algorithm implementation.
 ///
@@ -321,7 +322,9 @@ impl KMeans {
         let n_features = data.shape()[1];
 
         if n_samples < self.n_clusters {
-            return Err(ModelError::InputValidationError("Number of samples is less than number of clusters".to_string()));
+            return Err(ModelError::InputValidationError(
+                "Number of samples is less than number of clusters".to_string(),
+            ));
         }
 
         // Initialize cluster centers
@@ -329,32 +332,37 @@ impl KMeans {
 
         let mut labels = Array1::<usize>::zeros(n_samples);
         let mut old_inertia = f64::MAX;
-        let mut inertia;
         let mut iter_count = 0;
 
         // Main iteration loop
         for i in 0..self.max_iter {
-            // Assign sample points to the nearest cluster center
-            inertia = 0.0;
+            // Parallel computation: find the closest cluster center and distance for each sample
+            let results: Vec<(usize, f64)> = data
+                .outer_iter()
+                .into_par_iter()
+                .map(|sample| {
+                    // Reshape sample to a view of shape (1, n_features)
+                    let sample_shaped = sample.to_shape((1, n_features)).unwrap();
+                    let sample_view = sample_shaped.view();
+                    self.closest_centroid(&sample_view)
+                })
+                .collect();
 
-            for (idx, sample) in data.outer_iter().enumerate() {
-                let sample_shaped = sample.to_shape((1, n_features)).unwrap();
-                let sample_view = sample_shaped.view();
-                let (closest_idx, dist) = self.closest_centroid(&sample_view);
-                labels[idx] = closest_idx;
-                inertia += dist;
+            // Aggregate inertia and update labels for each sample
+            let inertia: f64 = results.iter().map(|&(_, d)| d).sum();
+            for (i, &(cluster, _)) in results.iter().enumerate() {
+                labels[i] = cluster;
             }
 
-            // Check for convergence
+            // Check convergence condition
             if (old_inertia - inertia).abs() < self.tol * old_inertia {
                 iter_count = i;
                 break;
             }
-
             old_inertia = inertia;
             iter_count = i;
 
-            // Update cluster centers
+            // Update cluster centers (sequential execution)
             let mut new_centroids = Array2::<f64>::zeros((self.n_clusters, n_features));
             let mut counts = vec![0; self.n_clusters];
 
@@ -364,7 +372,7 @@ impl KMeans {
                 counts[cluster_idx] += 1;
             }
 
-            // Calculate the mean of each cluster as a new center
+            // Calculate the mean for each cluster center
             for (idx, count) in counts.iter().enumerate() {
                 if *count > 0 {
                     let count_f = *count as f64;
@@ -372,25 +380,20 @@ impl KMeans {
                 }
             }
 
-            // Handle empty clusters
+            // Handle empty clusters: for empty clusters, select the point furthest from current centers as new center
             for (idx, count) in counts.iter().enumerate() {
                 if *count == 0 {
-                    // If a cluster is empty, select the point furthest from the current centers as the new center
                     let mut max_dist = -1.0;
                     let mut farthest_idx = 0;
-
                     for (sample_idx, sample) in data.outer_iter().enumerate() {
-                        let row_data = sample;
-                        let sample_shaped = row_data.to_shape((1, n_features)).unwrap();
+                        let sample_shaped = sample.to_shape((1, n_features)).unwrap();
                         let sample_view = sample_shaped.view();
                         let (_, dist) = self.closest_centroid(&sample_view);
-
                         if dist > max_dist {
                             max_dist = dist;
                             farthest_idx = sample_idx;
                         }
                     }
-
                     new_centroids.row_mut(idx).assign(&data.row(farthest_idx));
                 }
             }
@@ -402,9 +405,12 @@ impl KMeans {
         self.inertia = Some(old_inertia);
         self.n_iter = Some(iter_count + 1);
 
-        // print training info
-        println!("KMeans model training finished at iteration {}, avg_cost: {}",
-                 iter_count + 1, old_inertia / n_samples as f64);
+        // Print training information
+        println!(
+            "KMeans model training finished at iteration {}, avg_cost: {}",
+            iter_count + 1,
+            old_inertia / n_samples as f64
+        );
 
         Ok(self)
     }
@@ -423,19 +429,19 @@ impl KMeans {
         if self.centroids.is_none(){
             return Err(ModelError::NotFitted);
         }
-        let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
-        let mut labels = Array1::<usize>::zeros(n_samples);
 
-        for (idx, sample) in data.outer_iter().enumerate() {
-            let row_data = sample;
-            let sample_shaped = row_data.to_shape((1, n_features)).unwrap();
-            let sample_view = sample_shaped.view();
-            let (closest_idx, _) = self.closest_centroid(&sample_view);
-            labels[idx] = closest_idx;
-        }
+        let labels: Vec<usize> = data.outer_iter()
+            .into_par_iter()
+            .map(|sample| {
+                let sample_shaped = sample.to_shape((1, n_features)).unwrap();
+                let sample_view = sample_shaped.view();
+                let (closest_idx, _) = self.closest_centroid(&sample_view);
+                closest_idx
+            })
+            .collect();
 
-        Ok(labels)
+        Ok(Array1::from(labels))
     }
 
     /// Fits the model and predicts cluster indices for the input data.

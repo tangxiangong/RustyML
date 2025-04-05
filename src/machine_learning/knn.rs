@@ -2,6 +2,7 @@ use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use std::collections::HashMap;
 use crate::ModelError;
 use super::DistanceCalculationMetric as Metric;
+use rayon::prelude::*;
 
 /// Represents the strategy used for weighting neighbors in KNN algorithm.
 ///
@@ -93,7 +94,7 @@ impl<T: Clone + std::hash::Hash + Eq> Default for KNN<T> {
     }
 }
 
-impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
+impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
     /// Creates a new KNN classifier with the specified parameters
     ///
     /// # Arguments
@@ -220,12 +221,14 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
         let x_train = self.x_train.as_ref().unwrap();
         let y_train = self.y_train.as_ref().unwrap();
 
-        let mut predictions = Vec::with_capacity(x.nrows());
-
-        for i in 0..x.nrows() {
-            let sample = x.row(i);
-            predictions.push(self.predict_one(sample, x_train.view(), y_train));
-        }
+        // Use rayon for parallel prediction
+        let predictions: Vec<T> = (0..x.nrows())
+            .into_par_iter()  // Convert to parallel iterator
+            .map(|i| {
+                let sample = x.row(i);
+                self.predict_one(sample, x_train.view(), y_train)
+            })
+            .collect();
 
         Ok(predictions)
     }
@@ -267,18 +270,21 @@ impl<T: Clone + std::hash::Hash + Eq> KNN<T> {
     fn predict_one(&self, x: ArrayView1<f64>, x_train: ArrayView2<f64>, y_train: &Array1<T>) -> T {
         let n_samples = x_train.nrows();
 
-        // Calculate distances to all training samples
-        let mut distances = Vec::with_capacity(n_samples);
-        for i in 0..n_samples {
-            let distance = self.calculate_distance(x, x_train.row(i));
-            distances.push((distance, i));
-        }
+        // Calculate distances to all training samples in parallel
+        let distances: Vec<(f64, usize)> = (0..n_samples)
+            .into_par_iter()  // Convert to parallel iterator
+            .map(|i| {
+                let distance = self.calculate_distance(x, x_train.row(i));
+                (distance, i)
+            })
+            .collect();
 
         // Sort by distance
-        distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        let mut sorted_distances = distances.clone();
+        sorted_distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
         // Get k nearest neighbors
-        let k_neighbors: Vec<_> = distances.iter().take(self.k).collect();
+        let k_neighbors: Vec<_> = sorted_distances.iter().take(self.k).collect();
 
         // Calculate based on weight strategy
         match self.weights {

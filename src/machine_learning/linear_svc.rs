@@ -3,6 +3,7 @@ use ndarray_linalg::Norm;
 use rand::seq::SliceRandom;
 use rand::rng;
 use crate::ModelError;
+use rayon::prelude::*;
 
 /// # Linear Support Vector Classifier (LinearSVC)
 ///
@@ -330,37 +331,62 @@ impl LinearSVC {
 
         let mut n_iter = 0;
 
+        // Define mini-batch size, can be adjusted based on dataset size
+        let batch_size = std::cmp::max(1, n_samples / 10);
+
         while n_iter < self.max_iter {
             n_iter += 1;
             // Randomly shuffle indices
             indices.shuffle(&mut rng);
 
-            for &idx in &indices {
-                let xi = x.slice(ndarray::s![idx, ..]);
-                let yi = y_binary[idx];
+            // Split data into batches
+            for batch_indices in indices.chunks(batch_size) {
+                // Use Rayon to compute gradients for each sample in parallel
+                let gradients: Vec<(Array1<f64>, f64)> = batch_indices
+                    .par_iter()
+                    .map(|&idx| {
+                        let xi = x.slice(ndarray::s![idx, ..]);
+                        let yi = y_binary[idx];
 
-                // Calculate prediction
-                let margin = xi.dot(&weights) + bias;
+                        // Calculate prediction
+                        let margin = xi.dot(&weights) + bias;
 
-                // If misclassified or on the margin, update weights
-                if yi * margin < 1.0 {
-                    // Gradient update
-                    match self.penalty {
-                        PenaltyType::L2 => {
-                            weights = &weights * (1.0 - self.learning_rate * self.regularization_param) +
-                                &(xi.to_owned() * (self.learning_rate * yi));
-                        },
-                        PenaltyType::L1 => {
-                            // L1 regularization subgradient update
-                            weights = &weights - &(weights.mapv(|w| if w > 0.0 { 1.0 } else if w < 0.0 { -1.0 } else { 0.0 }) *
-                                (self.learning_rate * self.regularization_param)) +
-                                &(xi.to_owned() * (self.learning_rate * yi));
-                        },
-                    }
+                        // If misclassified or on the margin, calculate gradient
+                        if yi * margin < 1.0 {
+                            let weight_grad = xi.to_owned() * yi;
+                            let bias_grad = if self.fit_intercept { yi } else { 0.0 };
+                            (weight_grad, bias_grad)
+                        } else {
+                            (Array1::zeros(n_features), 0.0)
+                        }
+                    })
+                    .collect();
 
-                    if self.fit_intercept {
-                        bias += self.learning_rate * yi;
-                    }
+                // Accumulate gradients and update weights
+                let mut weight_update = Array1::<f64>::zeros(n_features);
+                let mut bias_update = 0.0;
+
+                for (w_grad, b_grad) in gradients {
+                    weight_update = &weight_update + &w_grad;
+                    bias_update += b_grad;
+                }
+
+                // Apply regularization and learning rate
+                match self.penalty {
+                    PenaltyType::L2 => {
+                        weights = &weights * (1.0 - self.learning_rate * self.regularization_param) +
+                            &(weight_update * (self.learning_rate / batch_indices.len() as f64));
+                    },
+                    PenaltyType::L1 => {
+                        // L1 regularization subgradient update
+                        weights = &weights - &(weights.mapv(|w| if w > 0.0 { 1.0 } else if w < 0.0 { -1.0 } else { 0.0 }) *
+                            (self.learning_rate * self.regularization_param)) +
+                            &(weight_update * (self.learning_rate / batch_indices.len() as f64));
+                    },
+                }
+
+                if self.fit_intercept {
+                    bias += self.learning_rate * bias_update / batch_indices.len() as f64;
                 }
             }
 
