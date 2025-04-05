@@ -604,10 +604,10 @@ fn contingency_matrix(
 /// Computes the mutual information (MI) using the formula:
 /// MI = Σ_{i,j} (n_ij/n) * ln((n * n_ij) / (a_i * b_j))
 fn mutual_information(
-    contingency: &Vec<Vec<usize>>,
+    contingency: &[Vec<usize>],
     n: usize,
-    row_sums: &Vec<usize>,
-    col_sums: &Vec<usize>,
+    row_sums: &[usize],
+    col_sums: &[usize],
 ) -> f64 {
     let mut mi = 0.0;
     for (i, row) in contingency.iter().enumerate() {
@@ -880,14 +880,14 @@ pub fn calculate_auc(scores: &[f64], labels: &[bool]) -> Result<f64, ModelError>
         // Calculate the average rank for the tie: for k identical scores, the average rank is (rank + rank+1 + ... + rank+k-1)/k
         let count = (j - i) as f64;
         let avg_rank = (2.0 * rank + count - 1.0) / 2.0;
-        for k in i..j {
-            if pairs[k].1 {
+        pairs.iter().take(j).skip(i).for_each(|(_, label)| {
+            if *label {
                 sum_positive_ranks += avg_rank;
                 pos_count += 1;
             } else {
                 neg_count += 1;
             }
-        }
+        });
         rank += count;
         i = j;
     }
