@@ -1,5 +1,5 @@
-use ndarray::ArrayView1;
 use crate::ModelError;
+use ndarray::ArrayView1;
 use statrs::distribution::{Discrete, Hypergeometric};
 use std::collections::HashMap;
 
@@ -81,33 +81,33 @@ pub fn mean_squared_error(y_true: ArrayView1<f64>, y_pred: ArrayView1<f64>) -> f
 /// ```
 pub fn root_mean_squared_error(
     predictions: ArrayView1<f64>,
-    targets: ArrayView1<f64>
+    targets: ArrayView1<f64>,
 ) -> Result<f64, ModelError> {
     // Check if inputs are empty
     if predictions.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays cannot be empty".to_string()
+            "Input arrays cannot be empty".to_string(),
         ));
     }
 
     // Check if arrays have matching lengths
     if predictions.len() != targets.len() {
-        return Err(ModelError::InputValidationError(
-            format!(
-                "Prediction and target arrays must have the same length. Predicted: {}, Actual: {}",
-                predictions.len(), targets.len()
-            )
-        ));
+        return Err(ModelError::InputValidationError(format!(
+            "Prediction and target arrays must have the same length. Predicted: {}, Actual: {}",
+            predictions.len(),
+            targets.len()
+        )));
     }
 
     // Use zip_fold_while for efficient calculation with early error detection
-    let sum_squared_errors = predictions
-        .iter()
-        .zip(targets.iter())
-        .fold(0.0, |acc, (&pred, &target)| {
-            let error = pred - target;
-            acc + error * error
-        });
+    let sum_squared_errors =
+        predictions
+            .iter()
+            .zip(targets.iter())
+            .fold(0.0, |acc, (&pred, &target)| {
+                let error = pred - target;
+                acc + error * error
+            });
 
     // Calculate mean squared error
     let mse = sum_squared_errors / predictions.len() as f64;
@@ -149,23 +149,22 @@ pub fn root_mean_squared_error(
 /// ```
 pub fn mean_absolute_error(
     predictions: ArrayView1<f64>,
-    targets: ArrayView1<f64>
+    targets: ArrayView1<f64>,
 ) -> Result<f64, ModelError> {
     // Check if inputs are empty
     if predictions.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays cannot be empty".to_string()
+            "Input arrays cannot be empty".to_string(),
         ));
     }
 
     // Check if arrays have matching lengths
     if predictions.len() != targets.len() {
-        return Err(ModelError::InputValidationError(
-            format!(
-                "Prediction and target arrays must have the same length. Predicted: {}, Actual: {}",
-                predictions.len(), targets.len()
-            )
-        ));
+        return Err(ModelError::InputValidationError(format!(
+            "Prediction and target arrays must have the same length. Predicted: {}, Actual: {}",
+            predictions.len(),
+            targets.len()
+        )));
     }
 
     // Calculate sum of absolute errors in a single pass
@@ -173,9 +172,7 @@ pub fn mean_absolute_error(
     let sum_absolute_errors = predictions
         .iter()
         .zip(targets.iter())
-        .fold(0.0, |acc, (&pred, &target)| {
-            acc + (pred - target).abs()
-        });
+        .fold(0.0, |acc, (&pred, &target)| acc + (pred - target).abs());
 
     // Calculate mean absolute error
     let mae = sum_absolute_errors / predictions.len() as f64;
@@ -215,43 +212,41 @@ pub fn mean_absolute_error(
 /// // For actual values [1,3,5], mean=3, SSE = 1+0+1 = 2, SST = 4+0+4 = 8, so R2 = 1 - (2/8) = 0.75
 /// assert!((r2 - 0.75).abs() < 1e-6);
 /// ```
-pub fn r2_score(
-    predicted: ArrayView1<f64>,
-    actual: ArrayView1<f64>
-) -> Result<f64, ModelError> {
+pub fn r2_score(predicted: ArrayView1<f64>, actual: ArrayView1<f64>) -> Result<f64, ModelError> {
     // Validate inputs first
     if predicted.is_empty() || actual.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays cannot be empty".to_string()
+            "Input arrays cannot be empty".to_string(),
         ));
     }
 
     if predicted.len() != actual.len() {
-        return Err(ModelError::InputValidationError(
-            format!(
-                "Predicted and actual arrays must have the same length. Predicted: {}, Actual: {}",
-                predicted.len(), actual.len()
-            )
-        ));
+        return Err(ModelError::InputValidationError(format!(
+            "Predicted and actual arrays must have the same length. Predicted: {}, Actual: {}",
+            predicted.len(),
+            actual.len()
+        )));
     }
 
     // Calculate mean of actual values
     let actual_mean = actual.mean().unwrap();
 
     // Calculate SSE (Sum of Squared Errors) and SST (Sum of Squares Total) in one pass
-    let (sse, sst) = actual.iter()
-        .zip(predicted.iter())
-        .fold((0.0, 0.0), |(sse_acc, sst_acc), (&act, &pred)| {
+    let (sse, sst) = actual.iter().zip(predicted.iter()).fold(
+        (0.0, 0.0),
+        |(sse_acc, sst_acc), (&act, &pred)| {
             let error = pred - act;
             let deviation = act - actual_mean;
             (
-                sse_acc + error * error,          // Sum of squared errors
-                sst_acc + deviation * deviation   // Sum of squared deviations from mean
+                sse_acc + error * error,         // Sum of squared errors
+                sst_acc + deviation * deviation, // Sum of squared deviations from mean
             )
-        });
+        },
+    );
 
     // Prevent division by zero (when all actual values are identical)
-    if sst < 1e-10 {  // Using small epsilon for numerical stability
+    if sst < 1e-10 {
+        // Using small epsilon for numerical stability
         return Ok(0.0);
     }
 
@@ -335,15 +330,17 @@ impl ConfusionMatrix {
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn new(predicted: ArrayView1<f64>, actual: ArrayView1<f64>) -> Result<Self, ModelError> {
         if predicted.len() != actual.len() {
-            return Err(ModelError::InputValidationError(
-                format!("Input arrays must have the same length. Predicted: {}, Actual: {}", predicted.len(), actual.len())
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "Input arrays must have the same length. Predicted: {}, Actual: {}",
+                predicted.len(),
+                actual.len()
+            )));
         }
 
         if predicted.is_empty() {
             return Err(ModelError::InputValidationError(
-                "Input arrays must not be empty".to_string()
-            ))
+                "Input arrays must not be empty".to_string(),
+            ));
         }
 
         let mut tp = 0;
@@ -490,10 +487,16 @@ impl ConfusionMatrix {
         - Recall: {:.4}\n\
         - Specificity: {:.4}\n\
         - F1 Score: {:.4}",
-            self.tp, self.fn_, self.fp, self.tn,
-            self.accuracy(), self.error_rate(),
-            self.precision(), self.recall(),
-            self.specificity(), self.f1_score()
+            self.tp,
+            self.fn_,
+            self.fp,
+            self.tn,
+            self.accuracy(),
+            self.error_rate(),
+            self.precision(),
+            self.recall(),
+            self.specificity(),
+            self.f1_score()
         )
     }
 }
@@ -527,15 +530,17 @@ impl ConfusionMatrix {
 /// ```
 pub fn accuracy(predicted: &[f64], actual: &[f64]) -> Result<f64, ModelError> {
     if predicted.len() != actual.len() {
-        return Err(ModelError::InputValidationError(
-            format!("Input arrays must have the same length. Predicted: {}, Actual: {}", predicted.len(), actual.len())
-        ));
+        return Err(ModelError::InputValidationError(format!(
+            "Input arrays must have the same length. Predicted: {}, Actual: {}",
+            predicted.len(),
+            actual.len()
+        )));
     }
 
     if predicted.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays must not be empty".to_string()
-        ))
+            "Input arrays must not be empty".to_string(),
+        ));
     }
 
     let correct_predictions = predicted
@@ -638,11 +643,7 @@ fn entropy_nats(counts: &Vec<usize>, n: usize) -> f64 {
 ///
 /// EMI = Σ_{i,j} Σ_{k=max(0, a_i+b_j-n)}^{min(a_i, b_j)}
 ///       P(k) * (k/n) * ln((n * k) / (a_i * b_j))
-fn expected_mutual_information(
-    row_sums: &Vec<usize>,
-    col_sums: &Vec<usize>,
-    n: usize,
-) -> f64 {
+fn expected_mutual_information(row_sums: &Vec<usize>, col_sums: &Vec<usize>, n: usize) -> f64 {
     let mut emi = 0.0;
     // For each pair of clusters (ground truth and predicted)
     for &a_i in row_sums {
@@ -703,17 +704,22 @@ fn expected_mutual_information(
 /// let nmi = normalized_mutual_info(&true_labels, &pred_labels).unwrap();
 /// println!("Normalized Mutual Information: {:.4}", nmi);
 /// ```
-pub fn normalized_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> Result<f64, ModelError> {
+pub fn normalized_mutual_info(
+    labels_true: &[usize],
+    labels_pred: &[usize],
+) -> Result<f64, ModelError> {
     if labels_true.len() != labels_pred.len() {
-        return Err(ModelError::InputValidationError(
-            format!("Input arrays must have the same length. Predicted: {}, Actual: {}", labels_true.len(), labels_pred.len())
-        ));
+        return Err(ModelError::InputValidationError(format!(
+            "Input arrays must have the same length. Predicted: {}, Actual: {}",
+            labels_true.len(),
+            labels_pred.len()
+        )));
     }
 
     if labels_true.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays cannot be empty".to_string()
-        ))
+            "Input arrays cannot be empty".to_string(),
+        ));
     }
 
     let n = labels_true.len();
@@ -766,17 +772,22 @@ pub fn normalized_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> R
 /// let ami = adjusted_mutual_info(&true_labels, &pred_labels).unwrap();
 /// println!("Adjusted Mutual Information: {:.4}", ami);
 /// ```
-pub fn adjusted_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> Result<f64, ModelError> {
+pub fn adjusted_mutual_info(
+    labels_true: &[usize],
+    labels_pred: &[usize],
+) -> Result<f64, ModelError> {
     if labels_true.len() != labels_pred.len() {
-        return Err(ModelError::InputValidationError(
-            format!("Input arrays must have the same length. Predicted: {}, Actual: {}", labels_true.len(), labels_pred.len())
-        ));
+        return Err(ModelError::InputValidationError(format!(
+            "Input arrays must have the same length. Predicted: {}, Actual: {}",
+            labels_true.len(),
+            labels_pred.len()
+        )));
     }
 
     if labels_true.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays cannot be empty".to_string()
-        ))
+            "Input arrays cannot be empty".to_string(),
+        ));
     }
 
     let n = labels_true.len();
@@ -828,18 +839,21 @@ pub fn adjusted_mutual_info(labels_true: &[usize], labels_pred: &[usize]) -> Res
 /// mathematically equivalent to the area under the ROC curve.
 pub fn calculate_auc(scores: &[f64], labels: &[bool]) -> Result<f64, ModelError> {
     if scores.len() != labels.len() {
-        return Err(ModelError::InputValidationError(
-            format!("Input arrays must have the same length. Scores: {}, Labels: {}", scores.len(), labels.len())
-        ))
+        return Err(ModelError::InputValidationError(format!(
+            "Input arrays must have the same length. Scores: {}, Labels: {}",
+            scores.len(),
+            labels.len()
+        )));
     }
     if scores.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Input arrays must have at least one element".to_string()
-        ))
+            "Input arrays must have at least one element".to_string(),
+        ));
     }
 
     // Pack the (score, label) pairs into a vector
-    let mut pairs: Vec<(f64, bool)> = scores.iter()
+    let mut pairs: Vec<(f64, bool)> = scores
+        .iter()
         .zip(labels.iter())
         .map(|(s, &l)| (*s, l))
         .collect();
@@ -881,7 +895,7 @@ pub fn calculate_auc(scores: &[f64], labels: &[bool]) -> Result<f64, ModelError>
     // If there are no positive or negative samples, AUC cannot be calculated
     if pos_count == 0 || neg_count == 0 {
         return Err(ModelError::InputValidationError(
-            "Cannot calculate AUC without both positive and negative samples.".to_string()
+            "Cannot calculate AUC without both positive and negative samples.".to_string(),
         ));
     }
 

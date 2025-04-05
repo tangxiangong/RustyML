@@ -1,8 +1,8 @@
-use ndarray::{Array2};
-use std::collections::{HashSet, VecDeque};
-use crate::ModelError;
 use super::DistanceCalculationMetric as Metric;
+use crate::ModelError;
+use ndarray::Array2;
 use rayon::prelude::*;
+use std::collections::{HashSet, VecDeque};
 
 /// # DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm implementation
 ///
@@ -95,7 +95,7 @@ impl DBSCAN {
     /// Returns the distance metric being used
     ///
     /// # Returns
-    /// 
+    ///
     /// * `&Metric` - A reference to the Metric enum used by this instance
     pub fn get_metric(&self) -> &Metric {
         &self.metric
@@ -144,20 +144,31 @@ impl DBSCAN {
     /// Labels of -1 indicate noise points (outliers).
     pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
-        use crate::math::{squared_euclidean_distance_row, manhattan_distance_row, minkowski_distance_row};
+        use crate::math::{
+            manhattan_distance_row, minkowski_distance_row, squared_euclidean_distance_row,
+        };
 
         preliminary_check(&data, None)?;
 
         if self.eps <= 0.0 {
-            return Err(ModelError::InputValidationError("eps must be positive".to_string()));
+            return Err(ModelError::InputValidationError(
+                "eps must be positive".to_string(),
+            ));
         }
 
         if self.min_samples <= 0 {
-            return Err(ModelError::InputValidationError("min_samples must be greater than 0".to_string()));
+            return Err(ModelError::InputValidationError(
+                "min_samples must be greater than 0".to_string(),
+            ));
         }
 
         /// Parallelized version of region_query: find all neighbors of point `p` (points within eps distance)
-        fn region_query(dbscan: &DBSCAN, data: &Array2<f64>, p: usize, metric: Metric) -> Vec<usize> {
+        fn region_query(
+            dbscan: &DBSCAN,
+            data: &Array2<f64>,
+            p: usize,
+            metric: Metric,
+        ) -> Vec<usize> {
             // Pre-compute row p (read-only view) to avoid fetching it repeatedly in each iteration
             let p_row = data.row(p);
             // Parallel iteration through all rows, calculating distances and filtering points that satisfy the eps condition
@@ -170,11 +181,7 @@ impl DBSCAN {
                         Metric::Manhattan => manhattan_distance_row(p_row, q_row),
                         Metric::Minkowski => minkowski_distance_row(p_row, q_row, 3.0), // Default p=3
                     };
-                    if dist <= dbscan.eps {
-                        Some(q)
-                    } else {
-                        None
-                    }
+                    if dist <= dbscan.eps { Some(q) } else { None }
                 })
                 .collect()
         }
@@ -250,7 +257,11 @@ impl DBSCAN {
     /// # Notes
     /// New points are assigned to the nearest cluster if they are within `eps` distance
     /// of a core point, otherwise they are labeled as noise (-1)
-    pub fn predict(&self, data: &Array2<f64>, new_data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
+    pub fn predict(
+        &self,
+        data: &Array2<f64>,
+        new_data: &Array2<f64>,
+    ) -> Result<Vec<i32>, ModelError> {
         use crate::math::squared_euclidean_distance_row;
 
         // Ensure the model has been trained
@@ -263,7 +274,8 @@ impl DBSCAN {
         let core_samples = self.core_sample_indices_.as_ref().unwrap();
 
         // Process each row in parallel, collecting into Vec<i32>
-        let predictions: Vec<i32> = new_data.rows()
+        let predictions: Vec<i32> = new_data
+            .rows()
             .into_iter()
             .enumerate()
             .par_bridge() // Convert sequential iterator to parallel iterator

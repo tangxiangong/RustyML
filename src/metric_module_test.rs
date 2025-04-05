@@ -1,5 +1,5 @@
-use ndarray::{array, Array1};
 use crate::metric::*;
+use ndarray::{Array1, array};
 
 #[test]
 fn test_root_mean_squared_error() {
@@ -7,25 +7,41 @@ fn test_root_mean_squared_error() {
     let predictions = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let targets = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let result = root_mean_squared_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 0.0).abs() < f64::EPSILON, "Expected 0.0, got {}", result);
+    assert!(
+        (result - 0.0).abs() < f64::EPSILON,
+        "Expected 0.0, got {}",
+        result
+    );
 
     // Test calculation with constant error
     let predictions = array![2.0, 3.0, 4.0, 5.0, 6.0];
     let targets = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let result = root_mean_squared_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 1.0).abs() < f64::EPSILON, "Expected 1.0, got {}", result);
+    assert!(
+        (result - 1.0).abs() < f64::EPSILON,
+        "Expected 1.0, got {}",
+        result
+    );
 
     // Test more complex example
     let predictions = array![1.5, 2.5, 3.5, 4.5, 5.5];
     let targets = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let result = root_mean_squared_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 0.5).abs() < f64::EPSILON, "Expected 0.5, got {}", result);
+    assert!(
+        (result - 0.5).abs() < f64::EPSILON,
+        "Expected 0.5, got {}",
+        result
+    );
 
     // Test negative values
     let predictions = array![-1.0, -2.0, -3.0];
     let targets = array![1.0, 2.0, 3.0];
     let result = root_mean_squared_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 4.320493798938574).abs() < f64::EPSILON, "Expected 4.320493798938574, got {}", result);
+    assert!(
+        (result - 4.320493798938574).abs() < f64::EPSILON,
+        "Expected 4.320493798938574, got {}",
+        result
+    );
 }
 
 #[test]
@@ -51,31 +67,51 @@ fn test_mean_absolute_error() {
     let predictions = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let targets = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let result = mean_absolute_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 0.0).abs() < f64::EPSILON, "Expected 0.0, got {}", result);
+    assert!(
+        (result - 0.0).abs() < f64::EPSILON,
+        "Expected 0.0, got {}",
+        result
+    );
 
     // Test constant error
     let predictions = array![2.0, 3.0, 4.0, 5.0, 6.0];
     let targets = array![1.0, 2.0, 3.0, 4.0, 5.0];
     let result = mean_absolute_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 1.0).abs() < f64::EPSILON, "Expected 1.0, got {}", result);
+    assert!(
+        (result - 1.0).abs() < f64::EPSILON,
+        "Expected 1.0, got {}",
+        result
+    );
 
     // Test mixed positive and negative errors
     let predictions = array![1.0, 3.0, 2.0];
     let targets = array![2.0, 1.0, 3.0];
     let result = mean_absolute_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 1.3333333333333333).abs() < f64::EPSILON, "Expected 1.3333333333333333, got {}", result);
+    assert!(
+        (result - 1.3333333333333333).abs() < f64::EPSILON,
+        "Expected 1.3333333333333333, got {}",
+        result
+    );
 
     // Test negative values
     let predictions = array![-1.0, -2.0, -3.0];
     let targets = array![1.0, 2.0, 3.0];
     let result = mean_absolute_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 4.0).abs() < f64::EPSILON, "Expected 4.0, got {}", result);
+    assert!(
+        (result - 4.0).abs() < f64::EPSILON,
+        "Expected 4.0, got {}",
+        result
+    );
 
     // Test decimal values
     let predictions = array![1.5, 2.5, 3.5];
     let targets = array![1.0, 2.0, 3.0];
     let result = mean_absolute_error(predictions.view(), targets.view()).unwrap();
-    assert!((result - 0.5).abs() < f64::EPSILON, "Expected 0.5, got {}", result);
+    assert!(
+        (result - 0.5).abs() < f64::EPSILON,
+        "Expected 0.5, got {}",
+        result
+    );
 }
 
 #[test]
@@ -107,19 +143,25 @@ fn test_r2_score() {
     // Perfect prediction
     let perfect_actual = array![1.0, 2.0, 3.0];
     let perfect_predicted = array![1.0, 2.0, 3.0];
-    assert!((r2_score(perfect_predicted.view(), perfect_actual.view()).unwrap() - 1.0).abs() < f64::EPSILON);
+    assert!(
+        (r2_score(perfect_predicted.view(), perfect_actual.view()).unwrap() - 1.0).abs()
+            < f64::EPSILON
+    );
 
     // When prediction is always the mean, R² should be 0
     let mean_actual = array![1.0, 2.0, 3.0, 4.0, 5.0]; // mean is 3
     let mean_predicted = array![3.0, 3.0, 3.0, 3.0, 3.0];
-    assert!((r2_score(mean_predicted.view(), mean_actual.view()).unwrap() - 0.0).abs() < f64::EPSILON);
+    assert!(
+        (r2_score(mean_predicted.view(), mean_actual.view()).unwrap() - 0.0).abs() < f64::EPSILON
+    );
 
     // When all actual values are the same, R² should be 0
     let same_actual = array![7.0, 7.0, 7.0];
     let same_predicted = array![6.0, 7.0, 8.0];
-    assert!((r2_score(same_predicted.view(), same_actual.view()).unwrap() - 0.0).abs() < f64::EPSILON);
+    assert!(
+        (r2_score(same_predicted.view(), same_actual.view()).unwrap() - 0.0).abs() < f64::EPSILON
+    );
 }
-
 
 fn assert_float_eq(a: f64, b: f64) {
     assert!((a - b).abs() < f64::EPSILON, "Expected {}, got {}", b, a);
@@ -222,7 +264,7 @@ fn test_precision() {
     let pred = array![1.0, 1.0, 1.0, 0.0];
     let actual = array![1.0, 0.0, 1.0, 0.0];
     let cm = ConfusionMatrix::new(pred.view(), actual.view()).unwrap();
-    assert_float_eq(cm.precision(), 2.0/3.0);
+    assert_float_eq(cm.precision(), 2.0 / 3.0);
 
     // No true positives
     let pred = array![1.0, 1.0, 1.0];
@@ -330,7 +372,7 @@ fn test_accuracy() {
     // Test case 3: Multi-class classification
     let predicted = vec![0.0, 1.0, 2.0, 3.0, 2.0, 1.0];
     let actual = vec![0.0, 1.0, 2.0, 2.0, 1.0, 1.0];
-    assert_eq!(accuracy(&predicted, &actual).unwrap(), 2.0/3.0); // 4 out of 6 correct
+    assert_eq!(accuracy(&predicted, &actual).unwrap(), 2.0 / 3.0); // 4 out of 6 correct
 
     // Test case 5: Floating point equality with very small differences
     // (should be considered equal due to epsilon comparison)
@@ -358,8 +400,16 @@ fn test_identical_clusterings() {
     let labels = vec![0, 1, 1, 0, 2, 2];
     let nmi = normalized_mutual_info(&labels, &labels).unwrap();
     let ami = adjusted_mutual_info(&labels, &labels).unwrap();
-    assert!((nmi - 1.0).abs() < 1e-6, "NMI of identical clusterings should be 1.0, got {}", nmi);
-    assert!((ami - 1.0).abs() < 1e-6, "AMI of identical clusterings should be 1.0, got {}", ami);
+    assert!(
+        (nmi - 1.0).abs() < 1e-6,
+        "NMI of identical clusterings should be 1.0, got {}",
+        nmi
+    );
+    assert!(
+        (ami - 1.0).abs() < 1e-6,
+        "AMI of identical clusterings should be 1.0, got {}",
+        ami
+    );
 }
 
 // Test different clusterings using the example provided in the documentation.
@@ -372,14 +422,23 @@ fn test_different_clusterings() {
     let nmi = normalized_mutual_info(&labels_true, &labels_pred).unwrap();
     // The expected NMI is approximately 0.578 (subject to implementation details)
     let expected_nmi = 0.578;
-    assert!((nmi - expected_nmi).abs() < 0.05, "Expected NMI approx {} but got {}", expected_nmi, nmi);
+    assert!(
+        (nmi - expected_nmi).abs() < 0.05,
+        "Expected NMI approx {} but got {}",
+        expected_nmi,
+        nmi
+    );
 
     // Test AMI
     let ami = adjusted_mutual_info(&labels_true, &labels_pred).unwrap();
     // Since EMI calculation may affect the exact value, we assert that:
     // - AMI is less than 1.0 (since the clusterings are not identical)
     // - AMI is non-negative
-    assert!(ami < 1.0, "AMI should be less than 1.0 for different clusterings, got {}", ami);
+    assert!(
+        ami < 1.0,
+        "AMI should be less than 1.0 for different clusterings, got {}",
+        ami
+    );
     assert!(ami >= 0.0, "AMI should be non-negative, got {}", ami);
 }
 
@@ -388,8 +447,14 @@ fn test_different_clusterings() {
 fn test_length_mismatch() {
     let labels_true = vec![0, 1, 1];
     let labels_pred = vec![0, 1];
-    assert!(normalized_mutual_info(&labels_true, &labels_pred).is_err(), "Should return error for length mismatch in NMI");
-    assert!(adjusted_mutual_info(&labels_true, &labels_pred).is_err(), "Should return error for length mismatch in AMI");
+    assert!(
+        normalized_mutual_info(&labels_true, &labels_pred).is_err(),
+        "Should return error for length mismatch in NMI"
+    );
+    assert!(
+        adjusted_mutual_info(&labels_true, &labels_pred).is_err(),
+        "Should return error for length mismatch in AMI"
+    );
 }
 
 // Test the special case when all samples are assigned to the same cluster.

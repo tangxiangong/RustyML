@@ -1,6 +1,6 @@
-use crate::machine_learning::logistic_regression::*;
-use ndarray::{arr1, arr2, Array1, Array2};
 use crate::ModelError;
+use crate::machine_learning::logistic_regression::*;
+use ndarray::{Array1, Array2, arr1, arr2};
 
 #[test]
 fn test_default_constructor() {
@@ -29,8 +29,16 @@ fn test_new_constructor() {
 #[test]
 fn test_fit_and_predict_simple_case() {
     // Simple linearly separable data
-    let x = arr2(&[[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0],
-        [1.0, 1.0], [2.0, 1.0], [3.0, 1.0], [4.0, 1.0]]);
+    let x = arr2(&[
+        [1.0, 2.0],
+        [2.0, 3.0],
+        [3.0, 4.0],
+        [4.0, 5.0],
+        [1.0, 1.0],
+        [2.0, 1.0],
+        [3.0, 1.0],
+        [4.0, 1.0],
+    ]);
     let y = arr1(&[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
 
     let mut model = LogisticRegression::default();
@@ -42,7 +50,8 @@ fn test_fit_and_predict_simple_case() {
     // Predict training data
     let predictions = model.predict(&x).unwrap();
 
-    let correct_predictions = predictions.iter()
+    let correct_predictions = predictions
+        .iter()
         .zip(y.iter())
         .filter(|&(ref pred, &actual)| (**pred as f64) == actual)
         .count();
@@ -75,16 +84,16 @@ fn test_generate_polynomial_features() {
     // Test degree = 1 (should return intercept + original features)
     let poly_features_1 = generate_polynomial_features(&x, 1);
     let expected_degree_1 = arr2(&[
-        [1.0, 1.0, 2.0],  // Intercept + original features
-        [1.0, 3.0, 4.0]
+        [1.0, 1.0, 2.0], // Intercept + original features
+        [1.0, 3.0, 4.0],
     ]);
     assert_eq!(poly_features_1, expected_degree_1);
 
     // Test degree = 2
     let poly_features_2 = generate_polynomial_features(&x, 2);
     let expected_degree_2 = arr2(&[
-        [1.0, 1.0, 2.0, 1.0, 2.0, 4.0],  // Intercept + first-order + second-order terms
-        [1.0, 3.0, 4.0, 9.0, 12.0, 16.0]
+        [1.0, 1.0, 2.0, 1.0, 2.0, 4.0], // Intercept + first-order + second-order terms
+        [1.0, 3.0, 4.0, 9.0, 12.0, 16.0],
     ]);
 
     assert_eq!(poly_features_2.shape(), expected_degree_2.shape());
@@ -92,7 +101,9 @@ fn test_generate_polynomial_features() {
     // Check floating-point values with approximate equality
     for i in 0..poly_features_2.nrows() {
         for j in 0..poly_features_2.ncols() {
-            assert!((poly_features_2[[i, j]] - expected_degree_2[[i, j]]).abs() < f64::EPSILON * 100.0);
+            assert!(
+                (poly_features_2[[i, j]] - expected_degree_2[[i, j]]).abs() < f64::EPSILON * 100.0
+            );
         }
     }
 }
@@ -124,21 +135,29 @@ fn test_fit_predict() {
 
     // Create training data: simple 2D features
     // For example: two features forming two linearly separable classes
-    let train_x = Array2::from_shape_vec((4, 2), vec![
-        0.0, 0.0,  // Class 0
-        0.0, 1.0,  // Class 1
-        1.0, 0.0,  // Class 1
-        1.0, 1.0,  // Class 1
-    ]).unwrap();
+    let train_x = Array2::from_shape_vec(
+        (4, 2),
+        vec![
+            0.0, 0.0, // Class 0
+            0.0, 1.0, // Class 1
+            1.0, 0.0, // Class 1
+            1.0, 1.0, // Class 1
+        ],
+    )
+    .unwrap();
 
     // Corresponding target values: 0 for first class, 1 for second class
     let train_y = Array1::from_vec(vec![0.0, 1.0, 1.0, 1.0]);
 
     // Create test data
-    let test_x = Array2::from_shape_vec((2, 2), vec![
-        0.0, 0.2,  // Should be close to class 0
-        0.9, 0.8   // Should predict class 1
-    ]).unwrap();
+    let test_x = Array2::from_shape_vec(
+        (2, 2),
+        vec![
+            0.0, 0.2, // Should be close to class 0
+            0.9, 0.8, // Should predict class 1
+        ],
+    )
+    .unwrap();
 
     // Use fit_predict method for prediction
     let predictions = model.fit_predict(&train_x, &train_y, &test_x).unwrap();

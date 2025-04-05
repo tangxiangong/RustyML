@@ -700,20 +700,23 @@ pub mod linear_discriminant_analysis;
 ///
 /// - `Ok(())` - If all validation checks pass
 /// - `Err(ModelError::InputValidationError)` - If any validation check fails, with an informative error message
-pub fn preliminary_check(x: &ndarray::Array2<f64>,
-                     y: Option<&ndarray::Array1<f64>>
+pub fn preliminary_check(
+    x: &ndarray::Array2<f64>,
+    y: Option<&ndarray::Array1<f64>>,
 ) -> Result<(), crate::ModelError> {
     if x.nrows() == 0 {
         return Err(crate::ModelError::InputValidationError(
-            "Input data is empty".to_string()));
+            "Input data is empty".to_string(),
+        ));
     }
 
     for (i, row) in x.outer_iter().enumerate() {
         for (j, &val) in row.iter().enumerate() {
             if val.is_nan() || val.is_infinite() {
-                return Err(crate::ModelError::InputValidationError(
-                    format!("Input data contains NaN or infinite value at position [{}][{}]",
-                            i, j)));
+                return Err(crate::ModelError::InputValidationError(format!(
+                    "Input data contains NaN or infinite value at position [{}][{}]",
+                    i, j
+                )));
             }
         }
     }
@@ -721,14 +724,16 @@ pub fn preliminary_check(x: &ndarray::Array2<f64>,
     if let Some(y) = y {
         if y.len() == 0 {
             return Err(crate::ModelError::InputValidationError(
-                "Target vector is empty".to_string()));
+                "Target vector is empty".to_string(),
+            ));
         }
 
         if y.len() != x.nrows() {
-            return Err(crate::ModelError::InputValidationError(
-                format!("Input data and target vector have different lengths, x columns: {}, y length: {}",
-                    x.nrows(), y.len()
-                )));
+            return Err(crate::ModelError::InputValidationError(format!(
+                "Input data and target vector have different lengths, x columns: {}, y length: {}",
+                x.nrows(),
+                y.len()
+            )));
         }
     }
     Ok(())
