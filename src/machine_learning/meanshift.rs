@@ -4,6 +4,7 @@ use rand::rng;
 use std::collections::HashMap;
 use crate::ModelError;
 use rayon::prelude::*;
+use rand::SeedableRng;
 
 /// Mean Shift clustering algorithm implementation.
 ///
@@ -515,9 +516,6 @@ pub fn estimate_bandwidth(
     n_samples: Option<usize>,
     random_state: Option<u64>
 ) -> f64 {
-    use rand::SeedableRng;
-    use rayon::prelude::*;
-
     let quantile = quantile.unwrap_or(0.3);
     if quantile <= 0.0 || quantile >= 1.0 {
         panic!("quantile should be in range ]0, 1[");

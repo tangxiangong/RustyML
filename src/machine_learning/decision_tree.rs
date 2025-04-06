@@ -1109,8 +1109,6 @@ fn calculate_leaf_value(y: ArrayView1<f64>, is_classifier: bool) -> (f64, Option
 /// # Returns
 /// `Vec<f64>` - A vector of probabilities for each class, summing to 1.0
 fn calculate_class_probabilities(y: ArrayView1<f64>, n_classes: usize) -> Vec<f64> {
-    use rayon::prelude::*;
-
     let mut probas = vec![0.0; n_classes];
     let total = y.len() as f64;
 
