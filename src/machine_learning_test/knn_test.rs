@@ -83,12 +83,12 @@ fn test_knn_predict_euclidean_uniform() {
     // Test data: should be classified as class 0
     let x_test1 = Array2::<f64>::from_shape_vec((1, 2), vec![1.5, 1.5]).unwrap();
     let predictions1 = knn.predict(x_test1.view()).unwrap();
-    assert_eq!(predictions1, vec![0]);
+    assert_eq!(predictions1, array![0]);
 
     // Test data: should be classified as class 1
     let x_test2 = Array2::<f64>::from_shape_vec((1, 2), vec![5.5, 5.5]).unwrap();
     let predictions2 = knn.predict(x_test2.view()).unwrap();
-    assert_eq!(predictions2, vec![1]);
+    assert_eq!(predictions2, array![1]);
 }
 
 // Test predict method with manhattan distance
@@ -111,7 +111,7 @@ fn test_knn_predict_manhattan() {
     // Test data: should still be classified as class 0 with manhattan distance
     let x_test1 = Array2::<f64>::from_shape_vec((1, 2), vec![1.5, 1.5]).unwrap();
     let predictions1 = knn.predict(x_test1.view()).unwrap();
-    assert_eq!(predictions1, vec![0]);
+    assert_eq!(predictions1, array![0]);
 }
 
 // Test KNN with k=3
@@ -136,7 +136,7 @@ fn test_knn_with_k3() {
     // So it should predict class 0
     let x_test = Array2::<f64>::from_shape_vec((1, 2), vec![3.0, 3.0]).unwrap();
     let predictions = knn.predict(x_test.view()).unwrap();
-    assert_eq!(predictions, vec![0]);
+    assert_eq!(predictions, array![0]);
 }
 
 // Test KNN with distance weights
@@ -162,7 +162,7 @@ fn test_knn_distance_weights() {
     // because the nearest neighbors are of class 1
     let x_test = Array2::<f64>::from_shape_vec((1, 2), vec![4.0, 4.0]).unwrap();
     let predictions = knn.predict(x_test.view()).unwrap();
-    assert_eq!(predictions, vec![1]);
+    assert_eq!(predictions, array![1]);
 }
 
 // Test case with empty training set
@@ -203,7 +203,7 @@ fn test_knn_string_labels() {
     ]).unwrap();
 
     let predictions = knn.predict(x_test.view()).unwrap();
-    assert_eq!(predictions, vec!["cat".to_string(), "dog".to_string()]);
+    assert_eq!(predictions, array!["cat".to_string(), "dog".to_string()]);
 }
 
 #[test]

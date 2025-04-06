@@ -211,9 +211,9 @@ impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
     ///
     /// # Returns
     ///
-    /// - `Vec<T>` - A vector containing the predicted class labels
+    /// - `Array1<T>` - An array containing the predicted class labels
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Vec<T>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<T>, ModelError> {
         if self.x_train.is_none() || self.y_train.is_none() {
             return Err(ModelError::NotFitted);
         }
@@ -222,13 +222,13 @@ impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
         let y_train = self.y_train.as_ref().unwrap();
 
         // Use rayon for parallel prediction
-        let predictions: Vec<T> = (0..x.nrows())
+        let predictions: Array1<T> = (0..x.nrows())
             .into_par_iter()  // Convert to parallel iterator
             .map(|i| {
                 let sample = x.row(i);
                 self.predict_one(sample, x_train.view(), y_train)
             })
-            .collect();
+            .collect::<Vec<T>>().into();
 
         Ok(predictions)
     }
@@ -333,13 +333,13 @@ impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
     /// * `x_test` - The test feature matrix with shape (n_samples, n_features)
     ///
     /// # Returns
-    /// * `Ok(Vec<T>)` - Vector of predicted values
+    /// * `Ok(Array1<T>)` - Array of predicted values
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self, 
                        x_train: Array2<f64>, 
                        y_train: Array1<T>, 
                        x_test: ArrayView2<f64>
-    ) -> Result<Vec<T>, ModelError> {
+    ) -> Result<Array1<T>, ModelError> {
         self.fit(x_train, y_train)?;
         Ok(self.predict(x_test)?)
     }

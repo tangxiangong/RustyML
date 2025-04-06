@@ -1,4 +1,4 @@
-use ndarray::{Array2};
+use ndarray::{Array2, Array1};
 use std::collections::{HashSet, VecDeque};
 use crate::ModelError;
 use super::DistanceCalculationMetric as Metric;
@@ -36,8 +36,8 @@ pub struct DBSCAN {
     eps: f64,
     min_samples: usize,
     metric: Metric,
-    labels_: Option<Vec<i32>>,
-    core_sample_indices_: Option<Vec<usize>>,
+    labels_: Option<Array1<i32>>,
+    core_sample_indices_: Option<Array1<usize>>,
 }
 
 impl Default for DBSCAN {
@@ -104,9 +104,9 @@ impl DBSCAN {
     /// Returns the cluster labels assigned to each sample
     ///
     /// # Returns
-    /// - `Ok(&Vec<i32>)` - Vector of cluster labels if model has been fitted
+    /// - `Ok(&Array1<i32>)` - Array of cluster labels if model has been fitted
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_labels(&self) -> Result<&Vec<i32>, ModelError> {
+    pub fn get_labels(&self) -> Result<&Array1<i32>, ModelError> {
         if let Some(labels) = &self.labels_ {
             Ok(labels)
         } else {
@@ -120,9 +120,9 @@ impl DBSCAN {
     /// distance `eps` of themselves.
     ///
     /// # Returns
-    /// - `Ok(&Vec<usize>)` - Vector of indices of core samples if model has been fitted
+    /// - `Ok(&Array1<usize>)` - Array of indices of core samples if model has been fitted
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn get_core_sample_indices(&self) -> Result<&Vec<usize>, ModelError> {
+    pub fn get_core_sample_indices(&self) -> Result<&Array1<usize>, ModelError> {
         if let Some(core_sample_indices) = &self.core_sample_indices_ {
             Ok(core_sample_indices)
         } else {
@@ -136,7 +136,7 @@ impl DBSCAN {
     /// * `data` - Input data as a 2D array where each row is a sample
     ///
     /// # Returns
-    /// - `Ok(&Vec<usize>)` - Vector of indices of core samples if model has been fitted
+    /// - `Ok(&mut Self)` - The trained instance
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     ///
     /// # Notes
@@ -180,7 +180,7 @@ impl DBSCAN {
         }
 
         let n_samples = data.nrows();
-        let mut labels = vec![-1; n_samples]; // -1 represents unclassified or noise
+        let mut labels = Array1::from(vec![-1; n_samples]); // -1 represents unclassified or noise
         let mut core_samples = HashSet::new();
         let mut cluster_id = 0;
 
@@ -244,13 +244,13 @@ impl DBSCAN {
     /// * `new_data` - New data points to classify
     ///
     /// # Returns
-    /// - `Ok(Vec<i32>)` - Vector of predicted cluster labels
+    /// - `Ok(Array1<i32>)` - Array of predicted cluster labels
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     ///
     /// # Notes
     /// New points are assigned to the nearest cluster if they are within `eps` distance
     /// of a core point, otherwise they are labeled as noise (-1)
-    pub fn predict(&self, data: &Array2<f64>, new_data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
+    pub fn predict(&self, data: &Array2<f64>, new_data: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
         use crate::math::squared_euclidean_distance_row;
 
         // Ensure the model has been trained
@@ -263,7 +263,7 @@ impl DBSCAN {
         let core_samples = self.core_sample_indices_.as_ref().unwrap();
 
         // Process each row in parallel, collecting into Vec<i32>
-        let predictions: Vec<i32> = new_data.rows()
+        let predictions: Array1<i32> = new_data.rows()
             .into_iter()
             .enumerate()
             .par_bridge() // Convert sequential iterator to parallel iterator
@@ -285,7 +285,7 @@ impl DBSCAN {
                     }
 
                     // If a core point is found within eps range, assign its label directly
-                    if dist <= self.eps && core_samples.contains(&j) {
+                    if dist <= self.eps && core_samples.iter().any(|&idx| idx == j) {
                         closest_label = labels[j];
                         break;
                     }
@@ -293,7 +293,8 @@ impl DBSCAN {
 
                 closest_label
             })
-            .collect();
+            .collect::<Vec<i32>>()
+            .into();
 
         Ok(predictions)
     }
@@ -304,13 +305,13 @@ impl DBSCAN {
     /// * `data` - Input data as a 2D array where each row is a sample
     ///
     /// # Returns
-    /// - `Ok(Vec<i32>)` - Vector of cluster labels for each sample
+    /// - `Ok(Array1<i32>)` - Array of cluster labels for each sample
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     ///
     /// # Notes
     /// This is equivalent to calling `fit()` followed by `get_labels()`,
     /// but more convenient when you don't need to reuse the model.
-    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Vec<i32>, ModelError> {
+    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
         self.fit(data)?;
         Ok(self.labels_.as_ref().unwrap().clone())
     }

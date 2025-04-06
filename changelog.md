@@ -5,6 +5,10 @@ This change log records updates after 2025-3-24.
 
 Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more info.
 
+## [v0.3.0] - 2025-4-5
+### Changed
+- Refactor outputs to use `Array` instead of `Vec` in DBSCAN and KNN
+
 ## [v0.2.1] - 2025-4-4
 ### Added
 - Add variance calculation in math module
