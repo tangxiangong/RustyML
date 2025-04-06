@@ -5,8 +5,7 @@ use rayon::prelude::*;
 
 /// # Linear Discriminant Analysis (LDA)
 ///
-/// A classifier and dimensionality reduction technique that projects data onto a
-/// lower-dimensional space while maintaining class separability.
+/// A classifier and dimensionality reduction technique that projects data onto a lower-dimensional space while maintaining class separability.
 ///
 /// ## Fields
 /// * `classes` - Array of unique class labels from training data

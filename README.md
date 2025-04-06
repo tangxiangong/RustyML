@@ -55,12 +55,16 @@ Rust AI 旨在成为一个功能丰富的机器学习和深度学习框架，充
     - Isolation Forest | 隔离森林
 
 
-- **Utility | 工具**:
+- **Utilities | 工具**:
   - PCA(Principal Component Analysis) | 主成分分析
   - standardize data($\mu = 0$, $\sigma = 1$) | 标准化数据(确保均值$\mu = 0$, 协方差$\sigma = 1$)
   - Split dataset for training and dataset for test | 分离训练集和测试集
   - LDA(Linear Discriminant Analysis) | 线性判别分析
   - t-Distributed Stochastic Neighbor Embedding (t-SNE) | t分布随机邻域嵌入
+
+- **Datasets | 数据集**:
+  - Iris dataset | 鸢尾花分类数据集
+  - Diabetes dataset | 糖尿病回归数据集
 
 ## Vision | 愿景
 While the library is in its early stages, Rust AI aims to evolve into a comprehensive crate that includes:

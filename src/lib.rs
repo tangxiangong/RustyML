@@ -79,6 +79,9 @@ mod math_module_test;
 /// - **LogisticRegression**: Binary classification using logistic regression with gradient descent optimization
 /// - **KNN**: K-Nearest Neighbors classifier with customizable distance metrics and weighting strategies
 /// - **DecisionTree**: Decision tree classifier with various splitting criteria and pruning options
+/// - **Support Vector Machines (SVM)**: A set of supervised learning methods used for classification, regression, and outlier detection. This implementation uses the Sequential Minimal Optimization (SMO) algorithm.
+/// - **Linear Support Vector Classifier (LinearSVC)**: Implements a classifier similar to sklearn's LinearSVC, trained using the hinge loss function.
+/// - **Linear Discriminant Analysis (LDA)**: A classifier and dimensionality reduction technique that projects data onto a lower-dimensional space while maintaining class separability
 ///
 /// ## Regression
 /// - **LinearRegression**: Simple and multivariate linear regression with optional intercept fitting
@@ -239,3 +242,25 @@ pub mod metric;
 
 #[cfg(test)]
 mod metric_module_test;
+
+/// # This module provides access to common datasets used for testing and benchmarking machine learning algorithms
+///
+/// The dataset module contains standardized datasets that are frequently used in
+/// machine learning research and education, making it easier to test algorithms
+/// against well-known data.
+///
+/// ## Available Datasets
+///
+/// * `iris` - The famous Iris flower dataset containing measurements for three species of iris
+/// * `diabetes` - The diabetes dataset for regression analysis
+///
+/// ## Usage Example
+///
+/// ```
+/// use rustyml::dataset::iris;
+///
+/// // Load the iris dataset
+/// let (data, target) = iris::load_iris();
+/// println!("Loaded iris dataset with {} samples", data.shape()[0]);
+/// ```
+pub mod dataset;

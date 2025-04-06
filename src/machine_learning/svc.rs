@@ -4,9 +4,7 @@ use rayon::prelude::*;
 
 /// # Support Vector Machine Classifier
 ///
-/// Support Vector Machines (SVM) are a set of supervised learning methods
-/// used for classification, regression, and outlier detection. This implementation
-/// uses the Sequential Minimal Optimization (SMO) algorithm.
+/// Support Vector Machines (SVM) are a set of supervised learning methods used for classification, regression, and outlier detection. This implementation uses the Sequential Minimal Optimization (SMO) algorithm.
 ///
 /// ## Fields
 ///
