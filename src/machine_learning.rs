@@ -722,7 +722,7 @@ pub fn preliminary_check(
     }
 
     if let Some(y) = y {
-        if y.len() == 0 {
+        if y.is_empty() {
             return Err(crate::ModelError::InputValidationError(
                 "Target vector is empty".to_string(),
             ));
