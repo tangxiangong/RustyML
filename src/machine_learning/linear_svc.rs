@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, ArrayView1, ArrayView2};
 use ndarray_linalg::Norm;
 use rand::seq::SliceRandom;
 use rand::rng;
@@ -58,10 +58,10 @@ use rayon::prelude::*;
 ///
 /// let (x_train, x_test, y_train, y_test) = train_test_split(x, y, Some(0.25), Some(42)).unwrap();
 ///
-/// model.fit(&x_train, &y_train).unwrap();
+/// model.fit(x_train.view(), y_train.view()).unwrap();
 ///
 /// // Make predictions
-/// let predictions = model.predict(&x_test).unwrap();
+/// let predictions = model.predict(x_test.view()).unwrap();
 /// ```
 #[derive(Debug, Clone)]
 pub struct LinearSVC {
@@ -281,7 +281,7 @@ impl LinearSVC {
     /// # Returns
     /// - `Ok(&mut Self)`: Reference to self if training succeeds
     /// - `Err(ModelError)`: Error if validation fails or training encounters problems
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, x: ArrayView2<f64>, y: ArrayView1<f64>) -> Result<&mut Self, ModelError> {
         if x.nrows() != y.len() {
             return Err(ModelError::InputValidationError(
                 format!("Input data size mismatch: x.shape={}, y.shape={}", x.nrows(), y.len())
@@ -419,7 +419,7 @@ impl LinearSVC {
     /// # Returns
     /// - `Ok(Array1<f64>)`: Array of predictions (0.0 or 1.0) for each sample
     /// - `Err(ModelError::NotFitted)`: If the model hasn't been trained yet
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         let weights = match self.weights.as_ref() {
             Some(w) => w,
             None => return Err(ModelError::NotFitted),
@@ -443,7 +443,7 @@ impl LinearSVC {
     /// # Returns
     /// - `Ok(Array1<f64>)`: Raw decision scores for each sample
     /// - `Err(ModelError::NotFitted)`: If the model hasn't been trained yet
-    pub fn decision_function(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn decision_function(&self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         let weights = match self.weights.as_ref(){
             Some(w) => w,
             None => return Err(ModelError::NotFitted),

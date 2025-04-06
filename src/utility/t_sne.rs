@@ -1,4 +1,4 @@
-use ndarray::prelude::*;
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis, s};
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use crate::ModelError;
@@ -32,7 +32,7 @@ use rayon::prelude::*;
 /// let data = Array2::<f64>::ones((100, 50));
 ///
 /// // Apply t-SNE dimensionality reduction
-/// let embedding = tsne.fit_transform(&data).unwrap();
+/// let embedding = tsne.fit_transform(data.view()).unwrap();
 ///
 /// // `embedding` now contains 100 samples in 3 dimensions
 /// assert_eq!(embedding.shape(), &[100, 3]);
@@ -228,7 +228,7 @@ impl TSNE {
     /// # Returns
     /// * `Ok(Array2<f64>)` - Either a matrix of reduced dimensionality representations where each row corresponds to the original sample
     /// - `Err(ModelError::InputValidationError)` - If input does not match expectation
-    pub fn fit_transform(&self, x: &Array2<f64>) -> Result<Array2<f64>, ModelError> {
+    pub fn fit_transform(&self, x: ArrayView2<f64>) -> Result<Array2<f64>, ModelError> {
         use crate::math::squared_euclidean_distance_row;
 
         fn validate_param<T: PartialOrd + Copy + std::fmt::Display>(
@@ -346,7 +346,7 @@ impl TSNE {
         let mut rows: Vec<_> = p.axis_iter_mut(Axis(0)).collect();
 
         rows.par_iter_mut().enumerate().for_each(|(i, row)| {
-            let (p_i, _sigma) = binary_search_sigma(&distances.slice(s![i, ..]), perplexity);
+            let (p_i, _sigma) = binary_search_sigma(distances.slice(s![i, ..]), perplexity);
             for j in 0..n_samples {
                 if i != j {
                     row[j] = p_i[j];
@@ -472,7 +472,7 @@ impl TSNE {
 /// * `(Array1<f64>, f64)` - A tuple containing:
 ///   * The normalized probability distribution
 ///   * The found sigma value that achieves the target perplexity
-fn binary_search_sigma(distances: &ArrayView1<f64>, target_perplexity: f64) -> (Array1<f64>, f64) {
+fn binary_search_sigma(distances: ArrayView1<f64>, target_perplexity: f64) -> (Array1<f64>, f64) {
     let tol = 1e-5;
     let mut sigma_min: f64 = 1e-20;
     let mut sigma_max: f64 = 1e20;

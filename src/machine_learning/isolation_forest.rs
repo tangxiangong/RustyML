@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Axis, s};
+use ndarray::{Array1, Array2, Axis, s, ArrayView2};
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use rand::rng;
@@ -37,10 +37,10 @@ use rayon::prelude::*;
 /// let data = Array2::from_shape_vec((100, 2), sample_data).unwrap();
 ///
 /// // Fit the model
-/// model.fit(&data).unwrap();
+/// model.fit(data.view()).unwrap();
 ///
 /// // Or get binary predictions (true for inliers, false for outliers)
-/// let predictions = model.predict(&data);
+/// let predictions = model.predict(data.view());
 /// ```
 #[derive(Debug, Clone)]
 pub struct IsolationForest {
@@ -159,11 +159,11 @@ impl IsolationForest {
     /// # Returns
     /// - `Ok(&mut Self)` - Trained instance
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError>{
+    pub fn fit(&mut self, x: ArrayView2<f64>) -> Result<&mut Self, ModelError>{
         use super::preliminary_check;
         use std::sync::Arc;
 
-        preliminary_check(&x, None)?;
+        preliminary_check(x, None)?;
 
         if self.max_samples <= 0 {
             return Err(ModelError::InputValidationError("max_samples must be greater than 0".to_string()));
@@ -383,7 +383,7 @@ impl IsolationForest {
     /// # Returns
     /// - `Ok(Array1<f64>)` - Array of anomaly scores for each input sample
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         // Convert each row to a vector
         let samples: Vec<Vec<f64>> = (0..x.nrows())
             .map(|i| x.slice(s![i, ..]).to_vec())
@@ -411,7 +411,7 @@ impl IsolationForest {
     /// - `Ok(Array1<f64>)` - If successful, returns anomaly scores for each sample
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn fit_predict(&mut self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         // First, train the model
         self.fit(x)?;
 

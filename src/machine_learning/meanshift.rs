@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, ArrayView2, ArrayView1};
 use rand::seq::SliceRandom;
 use rand::rng;
 use std::collections::HashMap;
@@ -36,7 +36,7 @@ use rayon::prelude::*;
 /// let mut ms = MeanShift::default();
 ///
 /// // Fit the model and predict cluster labels
-/// let labels = ms.fit_predict(&data);
+/// let labels = ms.fit_predict(data.view());
 ///
 /// // Get the cluster centers
 /// let centers = ms.get_cluster_centers().unwrap();
@@ -216,7 +216,7 @@ impl MeanShift {
     /// # Returns
     ///
     /// * `f64` - The squared Euclidean distance between the two vectors
-    fn calculate_distance(&self, x: &Array1<f64>, y: &Array1<f64>) -> f64 {
+    fn calculate_distance(&self, x: ArrayView1<f64>, y: ArrayView1<f64>) -> f64 {
         use crate::math::squared_euclidean_distance_row;
 
         // Use the provided function to calculate the distance
@@ -231,7 +231,7 @@ impl MeanShift {
     /// # Returns
     /// - `Ok(&mut Self)` - A mutable reference to the fitted model
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, x: ArrayView2<f64>) -> Result<&mut Self, ModelError> {
         if self.bandwidth <= 0.0 {
             return Err(ModelError::InputValidationError("bandwidth must be positive".to_string()));
         }
@@ -246,7 +246,7 @@ impl MeanShift {
 
         use super::preliminary_check;
 
-        preliminary_check(&x, None)?;
+        preliminary_check(x, None)?;
 
         let n_samples = x.shape()[0];
         let n_features = x.shape()[1];
@@ -277,7 +277,7 @@ impl MeanShift {
                 let gamma = 1.0 / (2.0 * self.bandwidth.powi(2));
                 let weights: Vec<(usize, f64)> = (0..n_samples).into_par_iter().map(|i| {
                     let point = x.row(i).to_owned();
-                    let dist = self.calculate_distance(&center, &point);
+                    let dist = self.calculate_distance(center.view(), point.view());
                     let weight = (-gamma * dist).exp();
                     (i, weight)
                 }).collect();
@@ -299,7 +299,7 @@ impl MeanShift {
                 }
 
                 // Check convergence
-                let shift = self.calculate_distance(&center, &new_center).sqrt();
+                let shift = self.calculate_distance(center.view(), new_center.view()).sqrt();
                 center = new_center;
 
                 completed_iterations += 1;
@@ -324,7 +324,7 @@ impl MeanShift {
             let mut is_unique = true;
 
             for (i, unique_center) in unique_centers.iter().enumerate() {
-                let distance = self.calculate_distance(&center, unique_center).sqrt();
+                let distance = self.calculate_distance(center.view(), unique_center.view()).sqrt();
                 if distance < self.bandwidth {
                     // Update existing center (weighted average)
                     let count = center_counts[i];
@@ -358,7 +358,7 @@ impl MeanShift {
             let mut label = 0;
 
             for (j, center) in unique_centers.iter().enumerate() {
-                let dist = self.calculate_distance(&point, center);
+                let dist = self.calculate_distance(point.view(), center.view());
                 if dist < min_dist {
                     min_dist = dist;
                     label = j;
@@ -392,7 +392,7 @@ impl MeanShift {
     /// # Returns
     /// - `Ok(Array1<usize>)` - containing the predicted cluster labels.
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<usize>, ModelError> {
         if let Some(centers) = &self.cluster_centers {
 
             let n_samples = x.shape()[0];
@@ -406,7 +406,7 @@ impl MeanShift {
 
                 for j in 0..n_clusters {
                     let center = centers.row(j).to_owned();
-                    let dist = self.calculate_distance(&point, &center);
+                    let dist = self.calculate_distance(point.view(), center.view());
                     if dist < min_dist {
                         min_dist = dist;
                         label = j;
@@ -435,7 +435,7 @@ impl MeanShift {
     /// # Returns
     /// - `Ok(Array1<usize>)` - containing the predicted cluster labels.
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, x: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+    pub fn fit_predict(&mut self, x: ArrayView2<f64>) -> Result<Array1<usize>, ModelError> {
         self.fit(x)?;
         Ok(self.labels.clone().unwrap())
     }
@@ -447,7 +447,7 @@ impl MeanShift {
     ///
     /// # Returns
     /// * `Vec<usize>` - A vector of indices representing the initial seed points.
-    fn get_bin_seeds(&self, x: &Array2<f64>) -> Vec<usize> {
+    fn get_bin_seeds(&self, x: ArrayView2<f64>) -> Vec<usize> {
         let n_samples = x.shape()[0];
         let n_features = x.shape()[1];
 
@@ -510,7 +510,7 @@ impl MeanShift {
 /// # Returns
 /// * `f64` - The estimated bandwidth.
 pub fn estimate_bandwidth(
-    x: &Array2<f64>,
+    x: ArrayView2<f64>,
     quantile: Option<f64>,
     n_samples: Option<usize>,
     random_state: Option<u64>
@@ -536,7 +536,7 @@ pub fn estimate_bandwidth(
 
     // If we have fewer samples than requested, use all samples
     let x_samples = if n_samples >= n_samples_total {
-        x.clone()
+        x.to_owned()
     } else {
         // Random sampling
         use rand::seq::SliceRandom;

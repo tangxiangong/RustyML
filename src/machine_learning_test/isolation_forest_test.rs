@@ -52,7 +52,7 @@ fn test_isolation_forest_fit() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(10, 8, Some(5), Some(42));
-    forest.fit(&data).unwrap();
+    forest.fit(data.view()).unwrap();
 
     // After fitting, we should be able to get the trees
     assert!(forest.get_trees().is_ok());
@@ -78,7 +78,7 @@ fn test_isolation_forest_anomaly_score() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(100, 8, Some(8), Some(42));
-    forest.fit(&data).unwrap();
+    forest.fit(data.view()).unwrap();
 
     // Test anomaly score for a normal point
     let normal_point = vec![0.5, 0.5];
@@ -109,7 +109,7 @@ fn test_isolation_forest_predict() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(100, 8, Some(8), Some(42));
-    forest.fit(&train_data).unwrap();
+    forest.fit(train_data.view()).unwrap();
 
     // Create test data with both normal and anomaly points
     let test_data = Array2::from_shape_vec((4, 2), vec![
@@ -120,7 +120,7 @@ fn test_isolation_forest_predict() {
     ]).unwrap();
 
     // Predict
-    let predictions = forest.predict(&test_data).unwrap();
+    let predictions = forest.predict(test_data.view()).unwrap();
     assert_eq!(predictions.len(), 4);
 
     // The outliers' scores in the predictions array should be higher
@@ -141,7 +141,7 @@ fn test_error_handling() {
 
     // Test calling predict function before fitting
     let test_data = Array2::from_shape_vec((2, 2), vec![0.5, 0.5, 0.7, 0.7]).unwrap();
-    match forest.predict(&test_data) {
+    match forest.predict(test_data.view()) {
         Err(_) => assert!(true), // Expected failure
         Ok(_) => panic!("Should return error when model is not fitted"),
     }
@@ -159,7 +159,7 @@ fn test_dimension_validation() {
     ]).unwrap();
 
     let mut forest = IsolationForest::new(10, 4, Some(5), Some(42));
-    forest.fit(&train_data).unwrap();
+    forest.fit(train_data.view()).unwrap();
 
     // Test with 2D point (should work)
     let correct_sample = vec![0.2, 0.2];
@@ -205,7 +205,7 @@ fn test_fit_predict() {
     let mut forest = IsolationForest::new(100, 25, Some(8), Some(42));
 
     // Using fit_predict to get anomaly scores
-    let scores = forest.fit_predict(&x).unwrap();
+    let scores = forest.fit_predict(x.view()).unwrap();
 
     // We expect 5 outliers to have higher anomaly scores than normal points
     // Let's sort the scores and check the indices
@@ -227,8 +227,8 @@ fn test_fit_predict() {
 
     // Also verify that fit_predict gives the same results as calling fit and predict separately
     let mut forest2 = IsolationForest::new(100, 25, Some(8), Some(42));
-    forest2.fit(&x).unwrap();
-    let scores2 = forest2.predict(&x).unwrap();
+    forest2.fit(x.view()).unwrap();
+    let scores2 = forest2.predict(x.view()).unwrap();
 
     // Compare results (should be identical since we used the same random seed)
     for (s1, s2) in scores.iter().zip(scores2.iter()) {

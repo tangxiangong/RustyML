@@ -34,13 +34,13 @@ fn test_fit_and_predict_simple_case() {
     let y = arr1(&[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
 
     let mut model = LogisticRegression::default();
-    model.fit(&x, &y).unwrap();
+    model.fit(x.view(), y.view()).unwrap();
 
     // Check if weights exist
     assert!(matches!(model.get_weights(), Ok(_)));
 
     // Predict training data
-    let predictions = model.predict(&x).unwrap();
+    let predictions = model.predict(x.view()).unwrap();
 
     let correct_predictions = predictions.iter()
         .zip(y.iter())
@@ -61,10 +61,10 @@ fn test_predict_proba() {
     let x = arr2(&[[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]);
     let y = arr1(&[0.0, 0.0, 0.0, 1.0]);
 
-    model.fit(&x, &y).unwrap();
+    model.fit(x.view(), y.view()).unwrap();
 
     // Check predictions
-    let predictions = model.predict(&x).unwrap();
+    let predictions = model.predict(x.view()).unwrap();
     assert_eq!(predictions.len(), 4);
 }
 
@@ -73,7 +73,7 @@ fn test_generate_polynomial_features() {
     let x = arr2(&[[1.0, 2.0], [3.0, 4.0]]);
 
     // Test degree = 1 (should return intercept + original features)
-    let poly_features_1 = generate_polynomial_features(&x, 1);
+    let poly_features_1 = generate_polynomial_features(x.view(), 1);
     let expected_degree_1 = arr2(&[
         [1.0, 1.0, 2.0],  // Intercept + original features
         [1.0, 3.0, 4.0]
@@ -81,7 +81,7 @@ fn test_generate_polynomial_features() {
     assert_eq!(poly_features_1, expected_degree_1);
 
     // Test degree = 2
-    let poly_features_2 = generate_polynomial_features(&x, 2);
+    let poly_features_2 = generate_polynomial_features(x.view(), 2);
     let expected_degree_2 = arr2(&[
         [1.0, 1.0, 2.0, 1.0, 2.0, 4.0],  // Intercept + first-order + second-order terms
         [1.0, 3.0, 4.0, 9.0, 12.0, 16.0]
@@ -104,14 +104,14 @@ fn test_fit_with_intercept() {
     let y = arr1(&[0.0, 0.0, 1.0, 1.0]);
 
     let mut model_with_intercept = LogisticRegression::new(true, 0.1, 1000, 1e-6);
-    model_with_intercept.fit(&x, &y).unwrap();
+    model_with_intercept.fit(x.view(), y.view()).unwrap();
 
     // Training without intercept
     let mut model_without_intercept = LogisticRegression::new(false, 0.1, 1000, 1e-6);
-    model_without_intercept.fit(&x, &y).unwrap();
+    model_without_intercept.fit(x.view(), y.view()).unwrap();
 
     // Check predictions from both models
-    let predictions_with_intercept = model_with_intercept.predict(&x).unwrap();
+    let predictions_with_intercept = model_with_intercept.predict(x.view()).unwrap();
 
     // The model with intercept should fit this data better
     assert_eq!(predictions_with_intercept, arr1(&[0, 0, 1, 1]));
@@ -141,7 +141,7 @@ fn test_fit_predict() {
     ]).unwrap();
 
     // Use fit_predict method for prediction
-    let predictions = model.fit_predict(&train_x, &train_y, &test_x).unwrap();
+    let predictions = model.fit_predict(train_x.view(), train_y.view(), test_x.view()).unwrap();
 
     // Assert: Check that the predictions are a 1D array of length 2 (number of test samples)
     assert_eq!(predictions.len(), 2);

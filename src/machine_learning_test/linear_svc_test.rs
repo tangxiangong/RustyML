@@ -74,7 +74,7 @@ fn test_fit_predict_simple_case() -> Result<(), ModelError> {
     );
 
     // Fit the model
-    model.fit(&x, &y)?;
+    model.fit(x.view(), y.view())?;
 
     // Test that weights and bias are now available
     assert!(model.get_weights().is_ok());
@@ -82,7 +82,7 @@ fn test_fit_predict_simple_case() -> Result<(), ModelError> {
     assert!(model.get_n_iter().is_ok());
 
     // Test predictions
-    let predictions = model.predict(&x)?;
+    let predictions = model.predict(x.view())?;
     assert_eq!(predictions.len(), 12); // Updated to new number of data points
 
     let mut correct_count = 0;
@@ -110,7 +110,7 @@ fn test_fit_predict_simple_case() -> Result<(), ModelError> {
     let y_expected = arr1(&[1.0, -1.0, 1.0, -1.0]);
 
     // Make predictions on new data
-    let test_predictions = model.predict(&x_test)?;
+    let test_predictions = model.predict(x_test.view())?;
 
     // Check prediction accuracy on new data
     let mut test_correct = 0;
@@ -137,10 +137,10 @@ fn test_decision_function() -> Result<(), ModelError> {
     let y = arr1(&[1.0, -1.0]);
 
     let mut model = LinearSVC::default();
-    model.fit(&x, &y)?;
+    model.fit(x.view(), y.view())?;
 
     // Get decision values
-    let decision_values = model.decision_function(&x)?;
+    let decision_values = model.decision_function(x.view())?;
 
     // Decision values should have the same sign as labels
     assert!(decision_values[0] > 0.0);
@@ -172,8 +172,8 @@ fn test_different_penalties() {
     let y = arr1(&[1.0, 1.0, -1.0, -1.0]);
 
     // Fit both models
-    let _ = model_l1.fit(&x, &y);
-    let _ = model_l2.fit(&x, &y);
+    let _ = model_l1.fit(x.view(), y.view());
+    let _ = model_l2.fit(x.view(), y.view());
 
     // The weights should be different due to the different penalties
     if let (Ok(w1), Ok(w2)) = (model_l1.get_weights(), model_l2.get_weights()) {
@@ -187,10 +187,10 @@ fn test_error_handling() {
 
     // Attempt to predict without fitting should return error
     let x = arr2(&[[1.0, 2.0]]);
-    assert!(model.predict(&x).is_err());
+    assert!(model.predict(x.view()).is_err());
 
     // Attempt to get decision function without fitting should return error
-    assert!(model.decision_function(&x).is_err());
+    assert!(model.decision_function(x.view()).is_err());
 }
 
 #[test]
@@ -206,5 +206,5 @@ fn test_fit_with_invalid_data() {
     // y has 3 samples but x has only 2
     let y = arr1(&[1.0, -1.0, 1.0]);
 
-    assert!(model.fit(&x, &y).is_err());
+    assert!(model.fit(x.view(), y.view()).is_err());
 }

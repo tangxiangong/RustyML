@@ -36,7 +36,7 @@ use ndarray::{Array1, Array2};
 /// ]).unwrap();
 ///
 /// // Fit the PCA model and transform the data
-/// let transformed = pca.fit_transform(&data).unwrap();
+/// let transformed = pca.fit_transform(data.view()).unwrap();
 ///
 /// // Get the explained variance ratio
 /// let variance_ratio = pca.get_explained_variance_ratio().unwrap();
@@ -124,7 +124,7 @@ pub mod train_test_split;
 ///     10.0, 11.0, 12.0,
 ///     13.0, 14.0, 15.0,
 /// ]).unwrap();
-/// let transformed = kpca.fit_transform(&data).unwrap();
+/// let transformed = kpca.fit_transform(data.view()).unwrap();
 /// ```
 ///
 /// ## Mathematical Background
@@ -163,14 +163,14 @@ pub mod kernel_pca;
 ///
 /// // Create and fit LDA model
 /// let mut lda = LDA::new();
-/// lda.fit(&x, &y).unwrap();
+/// lda.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
 /// let x_new = Array2::from_shape_vec((2, 2), vec![1.2, 2.2, 5.2, 4.8]).unwrap();
-/// let predictions = lda.predict(&x_new).unwrap();
+/// let predictions = lda.predict(x_new.view()).unwrap();
 ///
 /// // Transform data to lower dimension
-/// let x_transformed = lda.transform(&x, 1).unwrap();
+/// let x_transformed = lda.transform(x.view(), 1).unwrap();
 /// ```
 ///
 /// ## References
@@ -203,7 +203,7 @@ pub mod linear_discriminant_analysis;
 /// let data = Array2::<f64>::ones((100, 50));
 ///
 /// // Apply t-SNE dimensionality reduction
-/// let embedding = tsne.fit_transform(&data).unwrap();
+/// let embedding = tsne.fit_transform(data.view()).unwrap();
 ///
 /// // `embedding` now contains 100 samples in 3 dimensions
 /// assert_eq!(embedding.shape(), &[100, 3]);

@@ -41,7 +41,7 @@ fn test_knn_fit() {
 
     let y_train = Array1::<i32>::from_vec(vec![0, 0, 1, 1, 1, 1, 1]);
 
-    knn.fit(x_train.clone(), y_train.clone()).unwrap();
+    knn.fit(x_train.view(), y_train.view()).unwrap();
 
     // Verify training data is stored
     assert!(matches!(knn.get_x_train(), Ok(_)));
@@ -78,7 +78,7 @@ fn test_knn_predict_euclidean_uniform() {
 
     let y_train = Array1::<i32>::from_vec(vec![0, 0, 1, 1]);
 
-    knn.fit(x_train, y_train).unwrap();
+    knn.fit(x_train.view(), y_train.view()).unwrap();
 
     // Test data: should be classified as class 0
     let x_test1 = Array2::<f64>::from_shape_vec((1, 2), vec![1.5, 1.5]).unwrap();
@@ -106,7 +106,7 @@ fn test_knn_predict_manhattan() {
 
     let y_train = Array1::<i32>::from_vec(vec![0, 0, 1, 1]);
 
-    knn.fit(x_train, y_train).unwrap();
+    knn.fit(x_train.view(), y_train.view()).unwrap();
 
     // Test data: should still be classified as class 0 with manhattan distance
     let x_test1 = Array2::<f64>::from_shape_vec((1, 2), vec![1.5, 1.5]).unwrap();
@@ -130,7 +130,7 @@ fn test_knn_with_k3() {
 
     let y_train = Array1::<i32>::from_vec(vec![0, 0, 0, 1, 1]);
 
-    knn.fit(x_train, y_train).unwrap();
+    knn.fit(x_train.view(), y_train.view()).unwrap();
 
     // With k=3, this point has 2 nearest neighbors of class 0 and 1 of class 1
     // So it should predict class 0
@@ -156,7 +156,7 @@ fn test_knn_distance_weights() {
 
     let y_train = Array1::<i32>::from_vec(vec![0, 0, 0, 1, 1, 1]);
 
-    knn.fit(x_train, y_train).unwrap();
+    knn.fit(x_train.view(), y_train.view()).unwrap();
 
     // With distance weights, this point should be predicted as class 1
     // because the nearest neighbors are of class 1
@@ -194,7 +194,7 @@ fn test_knn_string_labels() {
         "dog".to_string()
     ]);
 
-    knn.fit(x_train, y_train).unwrap();
+    knn.fit(x_train.view(), y_train.view()).unwrap();
 
     // Test predictions
     let x_test = Array2::<f64>::from_shape_vec((2, 2), vec![
@@ -231,7 +231,7 @@ fn test_fit_predict() {
         ];
 
     // Use fit_predict to get predictions
-    let predictions = knn.fit_predict(x_train, y_train, x_test.view()).unwrap();
+    let predictions = knn.fit_predict(x_train.view(), y_train.view(), x_test.view()).unwrap();
 
     // Verify predictions
     assert_eq!(predictions.len(), 2);
@@ -259,6 +259,6 @@ fn test_fit_predict_empty_data() {
     let x_test = Array2::<f64>::zeros((0, 2));
 
     // Should return empty predictions vector
-    let predictions = knn.fit_predict(x_train, y_train, x_test.view()).unwrap();
+    let predictions = knn.fit_predict(x_train.view(), y_train.view(), x_test.view()).unwrap();
     assert_eq!(predictions.len(), 0);
 }

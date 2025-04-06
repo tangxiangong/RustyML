@@ -44,8 +44,8 @@ pub enum DistanceCalculationMetric {
 /// let y = Array1::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0]);
 ///
 /// // Fit the model and make predictions
-/// model.fit(&x, &y).unwrap();
-/// let predictions = model.predict(&x).unwrap();
+/// model.fit(x.view(), y.view()).unwrap();
+/// let predictions = model.predict(x.view()).unwrap();
 /// ```
 ///
 /// # Performance Considerations
@@ -83,8 +83,8 @@ pub mod linear_regression;
 /// let y = Array1::from_vec(vec![0.0, 0.0, 1.0, 1.0]);
 ///
 /// // Fit the model and predict
-/// model.fit(&x, &y).unwrap();
-/// let predictions = model.predict(&x).unwrap();
+/// model.fit(x.view(), y.view()).unwrap();
+/// let predictions = model.predict(x.view()).unwrap();
 /// ```
 ///
 /// # Note
@@ -130,7 +130,7 @@ pub mod logistic_regression;
 /// ]).unwrap();
 ///
 /// // Fit the model and get cluster labels
-/// model.fit(&data).unwrap();
+/// model.fit(data.view()).unwrap();
 /// let labels = model.get_labels().unwrap();
 /// let centroids = model.get_centroids().unwrap();
 /// let inertia = model.get_inertia().unwrap();
@@ -187,7 +187,7 @@ pub mod kmeans;
 /// let y_train = Array1::from_vec(vec!["A", "A", "B", "B"]);
 ///
 /// // Fit the model and make predictions
-/// model.fit(x_train, y_train).unwrap();
+/// model.fit(x_train.view(), y_train.view()).unwrap();
 ///
 /// // Predict for new data
 /// let x_test = Array2::from_shape_vec((2, 2), vec![1.5, 1.5, 3.5, 3.5]).unwrap();
@@ -245,11 +245,11 @@ pub mod knn;
 /// ]).unwrap();
 ///
 /// // Estimate bandwidth and create model
-/// let bandwidth = estimate_bandwidth(&data, Some(0.2), None, None);
+/// let bandwidth = estimate_bandwidth(data.view(), Some(0.2), None, None);
 /// let mut model = MeanShift::new(bandwidth, None, None, Some(false), Some(true));
 ///
 /// // Fit the model and get cluster labels
-/// model.fit(&data).unwrap();
+/// model.fit(data.view()).unwrap();
 /// let labels = model.get_labels().unwrap();
 /// let centers = model.get_cluster_centers().unwrap();
 /// ```
@@ -323,7 +323,7 @@ pub mod meanshift;
 /// ]).unwrap();
 ///
 /// // Fit the model and get cluster assignments
-/// model.fit(&data).unwrap();
+/// model.fit(data.view()).unwrap();
 /// let labels = model.get_labels().unwrap();
 /// let core_indices = model.get_core_sample_indices().unwrap();
 ///
@@ -424,11 +424,11 @@ pub mod dbscan;
 /// let y = Array1::from_vec(vec![0.0, 0.0, 1.0, 1.0, 1.0, 0.0]);
 ///
 /// // Train the model
-/// clf.fit(&x, &y).unwrap();
+/// clf.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
-/// let predictions = clf.predict(&x).unwrap();
-/// let probabilities = clf.predict_proba(&x).unwrap();
+/// let predictions = clf.predict(x.view()).unwrap();
+/// let probabilities = clf.predict_proba(x.view()).unwrap();
 /// ```
 ///
 /// ## Regression Example
@@ -444,8 +444,8 @@ pub mod dbscan;
 /// let y = Array1::from_vec(vec![2.0, 4.0, 6.0, 8.0, 10.0]);
 ///
 /// // Train and predict
-/// regressor.fit(&x, &y).unwrap();
-/// let predictions = regressor.predict(&x).unwrap();
+/// regressor.fit(x.view(), y.view()).unwrap();
+/// let predictions = regressor.predict(x.view()).unwrap();
 /// ```
 ///
 /// # Tree Structure
@@ -513,10 +513,10 @@ pub mod decision_tree;
 /// let data = Array2::from_shape_vec((100, 2), sample_data).unwrap();
 ///
 /// // Fit the model
-/// model.fit(&data).unwrap();
+/// model.fit(data.view()).unwrap();
 ///
 /// // Or get binary predictions (true for inliers, false for outliers)
-/// let predictions = model.predict(&data);
+/// let predictions = model.predict(data.view());
 /// ```
 ///
 /// # Algorithm Details
@@ -587,10 +587,10 @@ pub mod isolation_forest;
 /// let y = Array1::from_vec(vec![-1.0, 1.0, 1.0, -1.0]);
 ///
 /// // Train the model
-/// classifier.fit(&x, &y).unwrap();
+/// classifier.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
-/// let predictions = classifier.predict(&x).unwrap();
+/// let predictions = classifier.predict(x.view()).unwrap();
 /// ```
 ///
 /// ## References
@@ -631,11 +631,11 @@ pub mod svc;
 /// // Fit the model to training data
 /// let x_train = Array2::<f64>::zeros((100, 5)); // Replace with actual training data
 /// let y_train = Array1::<f64>::zeros(100);      // Replace with actual labels
-/// model.fit(&x_train, &y_train).unwrap();
+/// model.fit(x_train.view(), y_train.view()).unwrap();
 ///
 /// // Make predictions
 /// let x_test = Array2::<f64>::zeros((10, 5));   // Replace with actual test data
-/// let predictions = model.predict(&x_test).unwrap();
+/// let predictions = model.predict(x_test.view()).unwrap();
 /// ```
 pub mod linear_svc;
 
@@ -666,14 +666,14 @@ pub mod linear_svc;
 ///
 /// // Create and fit LDA model
 /// let mut lda = LDA::new();
-/// lda.fit(&x, &y).unwrap();
+/// lda.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
 /// let x_new = Array2::from_shape_vec((2, 2), vec![1.2, 2.2, 5.2, 4.8]).unwrap();
-/// let predictions = lda.predict(&x_new).unwrap();
+/// let predictions = lda.predict(x_new.view()).unwrap();
 ///
 /// // Transform data to lower dimension
-/// let x_transformed = lda.transform(&x, 1).unwrap();
+/// let x_transformed = lda.transform(x.view(), 1).unwrap();
 /// ```
 ///
 /// ## References
@@ -700,8 +700,8 @@ pub mod linear_discriminant_analysis;
 ///
 /// - `Ok(())` - If all validation checks pass
 /// - `Err(ModelError::InputValidationError)` - If any validation check fails, with an informative error message
-pub fn preliminary_check(x: &ndarray::Array2<f64>,
-                     y: Option<&ndarray::Array1<f64>>
+pub fn preliminary_check(x: ndarray::ArrayView2<f64>,
+                     y: Option<ndarray::ArrayView1<f64>>
 ) -> Result<(), crate::ModelError> {
     if x.nrows() == 0 {
         return Err(crate::ModelError::InputValidationError(

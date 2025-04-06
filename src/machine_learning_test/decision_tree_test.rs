@@ -53,14 +53,14 @@ fn test_fit_predict_classifier() {
     let mut dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Train the model
-    dt.fit(&x, &y).unwrap();
+    dt.fit(x.view(), y.view()).unwrap();
 
     // Ensure the model is trained correctly
     assert_eq!(dt.get_n_features(), 2);
     assert!(dt.get_root().is_ok());
 
     // Predict
-    let predictions = dt.predict(&x).unwrap();
+    let predictions = dt.predict(x.view()).unwrap();
     assert_eq!(predictions.len(), 6);
 
     // Check prediction accuracy
@@ -93,14 +93,14 @@ fn test_fit_predict_regressor() {
     let mut dt = DecisionTree::new(Algorithm::CART, false, None);
 
     // Train the model
-    dt.fit(&x, &y).unwrap();
+    dt.fit(x.view(), y.view()).unwrap();
 
     // Ensure the model is trained correctly
     assert_eq!(dt.get_n_features(), 1);
     assert!(dt.get_root().is_ok());
 
     // Predict
-    let predictions = dt.predict(&x).unwrap();
+    let predictions = dt.predict(x.view()).unwrap();
     assert_eq!(predictions.len(), 6);
 
     // Check prediction accuracy (regression might not be exact)
@@ -129,10 +129,10 @@ fn test_predict_proba() {
     let mut dt = DecisionTree::new(Algorithm::CART, true, None);
 
     // Train the model
-    dt.fit(&x, &y).unwrap();
+    dt.fit(x.view(), y.view()).unwrap();
 
     // Test class probability prediction
-    let prob = dt.predict_proba(&x).unwrap();
+    let prob = dt.predict_proba(x.view()).unwrap();
 
     // Check the shape of the probability matrix
     assert_eq!(prob.shape()[0], 6); // 6 samples
@@ -160,18 +160,18 @@ fn test_different_algorithms() {
 
     // Test ID3 algorithm
     let mut dt_id3 = DecisionTree::new(Algorithm::ID3, true, None);
-    dt_id3.fit(&x, &y).unwrap();
-    let pred_id3 = dt_id3.predict(&x).unwrap();
+    dt_id3.fit(x.view(), y.view()).unwrap();
+    let pred_id3 = dt_id3.predict(x.view()).unwrap();
 
     // Test C4.5 algorithm
     let mut dt_c45 = DecisionTree::new(Algorithm::C45, true, None);
-    dt_c45.fit(&x, &y).unwrap();
-    let pred_c45 = dt_c45.predict(&x).unwrap();
+    dt_c45.fit(x.view(), y.view()).unwrap();
+    let pred_c45 = dt_c45.predict(x.view()).unwrap();
 
     // Test CART algorithm
     let mut dt_cart = DecisionTree::new(Algorithm::CART, true, None);
-    dt_cart.fit(&x, &y).unwrap();
-    let pred_cart = dt_cart.predict(&x).unwrap();
+    dt_cart.fit(x.view(), y.view()).unwrap();
+    let pred_cart = dt_cart.predict(x.view()).unwrap();
 
     // Verify that all algorithms correctly predict the training data
     for i in 0..4 {
@@ -195,19 +195,19 @@ fn test_max_depth_parameter() {
     };
 
     let mut dt_limited = DecisionTree::new(Algorithm::CART, true, Some(params_depth1));
-    dt_limited.fit(&x, &y).unwrap();
+    dt_limited.fit(x.view(), y.view()).unwrap();
 
     // Check if tree depth is limited
     // We can't directly check the depth, but we can infer that if the model
     // has only one level of depth, its prediction ability will be limited
 
-    let _predictions = dt_limited.predict(&x).unwrap();
+    let _predictions = dt_limited.predict(x.view()).unwrap();
 
     // Create an unlimited depth tree for comparison
     let mut dt_unlimited = DecisionTree::new(Algorithm::CART, true, None);
-    dt_unlimited.fit(&x, &y).unwrap();
+    dt_unlimited.fit(x.view(), y.view()).unwrap();
 
-    let predictions_unlimited = dt_unlimited.predict(&x).unwrap();
+    let predictions_unlimited = dt_unlimited.predict(x.view()).unwrap();
 
     // The unlimited depth tree should perfectly fit the training data
     for i in 0..8 {
@@ -228,14 +228,14 @@ fn test_error_handling() {
 
     // Trying to predict should fail
     let x = arr2(&[[1.0, 2.0]]);
-    assert!(dt.predict(&x).is_err());
+    assert!(dt.predict(x.view()).is_err());
 
     // Trying to get a single prediction should fail
     let sample = &[1.0, 2.0];
     assert!(dt.predict_one(sample).is_err());
 
     // Trying to get class probabilities should fail
-    assert!(dt.predict_proba(&x).is_err());
+    assert!(dt.predict_proba(x.view()).is_err());
     assert!(dt.predict_proba_one(sample).is_err());
 }
 
@@ -298,7 +298,7 @@ fn test_decision_tree_fit_predict() {
     let mut tree = DecisionTree::new(Algorithm::CART, true, None);
 
     // Use fit_predict method to train and predict
-    let predictions = tree.fit_predict(&x_train, &y_train, &x_test).unwrap();
+    let predictions = tree.fit_predict(x_train.view(), y_train.view(), x_test.view()).unwrap();
 
     // Verify prediction results
     assert_eq!(predictions.len(), 2);
@@ -334,7 +334,7 @@ fn test_decision_tree_with_custom_params() {
     let mut tree = DecisionTree::new(Algorithm::ID3, true, Some(params));
 
     // Train and predict
-    let predictions = tree.fit_predict(&x_train, &y_train, &x_test).unwrap();
+    let predictions = tree.fit_predict(x_train.view(), y_train.view(), x_test.view()).unwrap();
 
     // Verify prediction results length
     assert_eq!(predictions.len(), 2);

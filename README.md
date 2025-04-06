@@ -102,7 +102,7 @@ Add the library to your `Cargo.toml`:
 将库添加到您的`Cargo.toml`文件中：
 ``` toml
 [dependencies]
-rustyml = "0.2.1"
+rustyml = "0.3.0"
 ```
 Example usage | 使用示例:
 ``` rust
@@ -121,11 +121,11 @@ let x = Array2::from_shape_vec((3, 2), raw_x.into_iter().flatten().collect()).un
 let y = Array1::from_vec(raw_y);
 
 // Train the model
-model.fit(&x, &y).unwrap();
+model.fit(x.view(), y.view()).unwrap();
 
 // Make predictions
 let new_data = Array2::from_shape_vec((1, 2), vec![4.0, 5.0]).unwrap();
-let predictions = model.predict(&new_data);
+let predictions = model.predict(new_data.view());
 
 // Since Clone is implemented, the model can be easily cloned
 let model_copy = model.clone();

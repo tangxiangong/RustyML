@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, s, Axis, ArrayView1};
+use ndarray::{Array1, Array2, s, Axis, ArrayView1, ArrayView2};
 use std::collections::{HashMap, HashSet};
 use crate::ModelError;
 use rayon::prelude::*;
@@ -53,11 +53,11 @@ pub enum Algorithm {
 /// let y = Array1::from_vec(vec![0.0, 1.0, 1.0, 0.0]);
 ///
 /// // Train the model
-/// tree.fit(&x, &y).unwrap();
+/// tree.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
 /// let new_sample = Array2::from_shape_vec((1, 2), vec![3.0, 5.0]).unwrap();
-/// let prediction = tree.predict(&new_sample).unwrap();
+/// let prediction = tree.predict(new_sample.view()).unwrap();
 /// ```
 #[derive(Debug, Clone)]
 pub struct DecisionTree {
@@ -342,10 +342,10 @@ impl DecisionTree {
     /// * For classification tasks, the class labels in `y` should be integers starting from 0
     /// * The algorithm used for building the tree is determined by the `algorithm` field set during initialization
     /// * Model hyperparameters like max_depth, min_samples_split etc. control the training process
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, x: ArrayView2<f64>, y: ArrayView1<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
 
-        preliminary_check(&x, Some(&y))?;
+        preliminary_check(x, Some(y))?;
 
         self.n_features = x.ncols();
 
@@ -389,11 +389,11 @@ impl DecisionTree {
     /// * Recursively builds left and right subtrees using the provided build_child_tree function
     /// * Creates leaf nodes when stopping criteria are met
     fn build_tree(&self,
-                  x: &Array2<f64>,
-                  y: &Array1<f64>,
+                  x: ArrayView2<f64>,
+                  y: ArrayView1<f64>,
                   depth: usize,
                   algorithm: &str,
-                  build_child_tree: fn(&Self, &Array2<f64>, &Array1<f64>, usize, &str) -> Box<Node>
+                  build_child_tree: fn(&DecisionTree, ArrayView2<f64>, ArrayView1<f64>, usize, &str) -> Box<Node>
     ) -> Box<Node> {
         // Termination conditions
         if y.is_empty() ||
@@ -429,8 +429,8 @@ impl DecisionTree {
         let mut node = Node::new_internal(feature_idx, threshold);
 
         // Build subtrees using the provided function, and pass algorithm type
-        node.left = Some(build_child_tree(self, &left_x, &left_y, depth + 1, algorithm));
-        node.right = Some(build_child_tree(self, &right_x, &right_y, depth + 1, algorithm));
+        node.left = Some(build_child_tree(self, left_x.view(), left_y.view(), depth + 1, algorithm));
+        node.right = Some(build_child_tree(self, right_x.view(), right_y.view(), depth + 1, algorithm));
 
         Box::new(node)
     }
@@ -447,7 +447,7 @@ impl DecisionTree {
     ///
     /// # Returns
     /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
-    fn build_id3_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
+    fn build_id3_tree(&self, x: ArrayView2<f64>, y: ArrayView1<f64>, depth: usize) -> Box<Node> {
         self.build_tree(x, y, depth, "ID3", Self::build_id3_tree_with_algorithm)
     }
 
@@ -464,7 +464,7 @@ impl DecisionTree {
     ///
     /// # Returns
     /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
-    fn build_id3_tree_with_algorithm(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize, algorithm: &str) -> Box<Node> {
+    fn build_id3_tree_with_algorithm(&self, x: ArrayView2<f64>, y: ArrayView1<f64>, depth: usize, algorithm: &str) -> Box<Node> {
         self.build_tree(x, y, depth, algorithm, Self::build_id3_tree_with_algorithm)
     }
 
@@ -480,7 +480,7 @@ impl DecisionTree {
     ///
     /// # Returns
     /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
-    fn build_c45_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
+    fn build_c45_tree(&self, x: ArrayView2<f64>, y: ArrayView1<f64>, depth: usize) -> Box<Node> {
         self.build_tree(x, y, depth, "C4.5", Self::build_c45_tree_with_algorithm)
     }
 
@@ -497,7 +497,7 @@ impl DecisionTree {
     ///
     /// # Returns
     /// * `Box<Node>` - A boxed Node representing the root of the constructed (sub)tree
-    fn build_c45_tree_with_algorithm(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize, algorithm: &str) -> Box<Node> {
+    fn build_c45_tree_with_algorithm(&self, x: ArrayView2<f64>, y: ArrayView1<f64>, depth: usize, algorithm: &str) -> Box<Node> {
         self.build_tree(x, y, depth, algorithm, Self::build_c45_tree_with_algorithm)
     }
 
@@ -513,7 +513,7 @@ impl DecisionTree {
     ///
     /// # Returns
     /// A boxed Node representing the root of the constructed (sub)tree
-    fn build_cart_tree(&self, x: &Array2<f64>, y: &Array1<f64>, depth: usize) -> Box<Node> {
+    fn build_cart_tree(&self, x: ArrayView2<f64>, y: ArrayView1<f64>, depth: usize) -> Box<Node> {
         // Termination conditions
         if y.is_empty() ||
             (self.params.max_depth.is_some() && depth >= self.params.max_depth.unwrap()) ||
@@ -563,8 +563,8 @@ impl DecisionTree {
 
         // Create internal node
         let mut node = Node::new_internal(feature_idx, threshold);
-        node.left = Some(self.build_cart_tree(&left_x, &left_y, depth + 1));
-        node.right = Some(self.build_cart_tree(&right_x, &right_y, depth + 1));
+        node.left = Some(self.build_cart_tree(left_x.view(), left_y.view(), depth + 1));
+        node.right = Some(self.build_cart_tree(right_x.view(), right_y.view(), depth + 1));
 
         Box::new(node)
     }
@@ -594,7 +594,7 @@ impl DecisionTree {
     /// * `Ok(Array1<f64>)` - Array of predictions
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         // Get root node, return error if tree is not trained
         if self.root.is_none() {
             return Err(ModelError::NotFitted);
@@ -631,9 +631,9 @@ impl DecisionTree {
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self,
-                       x_train: &Array2<f64>,
-                       y_train: &Array1<f64>,
-                       x_test: &Array2<f64>
+                       x_train: ArrayView2<f64>,
+                       y_train: ArrayView1<f64>,
+                       x_test: ArrayView2<f64>
     ) -> Result<Array1<f64>, ModelError> {
         self.fit(x_train, y_train)?;
         self.predict(x_test)
@@ -706,7 +706,7 @@ impl DecisionTree {
     /// # Returns
     /// - `Ok(Array2<f64>)` - Matrix of class probabilities
     /// - `Err(ModelError::TreeError(&str))` - Something wrong with the tree
-    pub fn predict_proba(&self, x: &Array2<f64>) -> Result<Array2<f64>, ModelError> {
+    pub fn predict_proba(&self, x: ArrayView2<f64>) -> Result<Array2<f64>, ModelError> {
         if !self.is_classifier {
             return Err(ModelError::TreeError("Probabilistic prediction is only applicable to classification problems"));
         }
@@ -962,7 +962,7 @@ impl DecisionTree {
 /// * `f64` - The threshold value for the split
 /// * `Vec<usize>` - Indices of samples going to the left child node
 /// * `Vec<usize>` - Indices of samples going to the right child node
-fn find_best_split(x: &Array2<f64>, y: ArrayView1<f64>, is_classifier: bool, algorithm: &str) -> (usize, f64, Vec<usize>, Vec<usize>) {
+fn find_best_split(x: ArrayView2<f64>, y: ArrayView1<f64>, is_classifier: bool, algorithm: &str) -> (usize, f64, Vec<usize>, Vec<usize>) {
     use crate::math::{gini, information_gain, gain_ratio, variance};
     use ndarray::Array1;
     use std::sync::Mutex;

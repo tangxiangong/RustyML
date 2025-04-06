@@ -69,7 +69,7 @@ fn test_fit_and_predict_linear() {
     let mut svc = SVC::new(KernelType::Linear, 10.0, 0.001, 10000);
 
     // Train the model
-    let fit_result = svc.fit(&x, &y);
+    let fit_result = svc.fit(x.view(), y.view());
     assert!(fit_result.is_ok());
 
     // Check that model parameters are available after training
@@ -78,7 +78,7 @@ fn test_fit_and_predict_linear() {
     assert!(svc.get_support_vector_labels().is_ok());
     assert!(svc.get_bias().is_ok());
 
-    let predictions = svc.predict(&x).unwrap();
+    let predictions = svc.predict(x.view()).unwrap();
 
     let mut correct_count = 0;
 
@@ -111,10 +111,10 @@ fn test_fit_and_predict_rbf() {
     let mut svc = SVC::new(KernelType::RBF { gamma: 10.0 }, 10.0, 0.001, 10000);
 
     // Train the model
-    let fit_result = svc.fit(&x, &y);
+    let fit_result = svc.fit(x.view(), y.view());
     assert!(fit_result.is_ok());
 
-    let predictions = svc.predict(&x).unwrap();
+    let predictions = svc.predict(x.view()).unwrap();
 
     let mut correct_count = 0;
 
@@ -136,12 +136,12 @@ fn test_error_handling() {
     let x = arr2(&[[1.0, 2.0], [3.0, 4.0]]);
     let y = arr1(&[1.0, -1.0, 1.0]); // Dimension mismatch
 
-    let result = svc.fit(&x, &y);
+    let result = svc.fit(x.view(), y.view());
     assert!(result.is_err());
 
     // Test prediction error before training
     let test_x = arr2(&[[1.0, 2.0]]);
-    let predict_result = svc.predict(&test_x);
+    let predict_result = svc.predict(test_x.view());
     assert!(predict_result.is_err());
 
     // Test decision function error before training
@@ -194,7 +194,7 @@ fn test_decision_function() {
     let y = arr1(&[1.0, 1.0, -1.0, -1.0]);
 
     let mut svc = SVC::new(KernelType::Linear, 1.0, 0.001, 100);
-    svc.fit(&x, &y).unwrap();
+    svc.fit(x.view(), y.view()).unwrap();
 
     // Get decision scores
     let test_point = arr2(&[[0.0, 0.0]]);

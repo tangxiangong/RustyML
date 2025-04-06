@@ -80,7 +80,7 @@ fn test_fit_transform_dimensions() {
     let x = Array2::<f64>::ones((n_samples, n_features));
     let tsne = TSNE::new(None, None, Some(10), output_dim, None, None, None, None, None, None);
 
-    let result = tsne.fit_transform(&x);
+    let result = tsne.fit_transform(x.view());
     assert!(result.is_ok());
 
     let embedding = result.unwrap();
@@ -96,22 +96,22 @@ fn test_fit_transform_validation() {
 
     // Test invalid perplexity
     let tsne_invalid_perplexity = TSNE::new(Some(-1.0), None, None, 2, None, None, None, None, None, None);
-    let result = tsne_invalid_perplexity.fit_transform(&x);
+    let result = tsne_invalid_perplexity.fit_transform(x.view());
     assert!(result.is_err());
 
     // Test invalid learning_rate
     let tsne_invalid_lr = TSNE::new(None, Some(-0.1), None, 2, None, None, None, None, None, None);
-    let result = tsne_invalid_lr.fit_transform(&x);
+    let result = tsne_invalid_lr.fit_transform(x.view());
     assert!(result.is_err());
 
     // Test invalid n_iter
     let tsne_invalid_iter = TSNE::new(None, None, Some(0), 2, None, None, None, None, None, None);
-    let result = tsne_invalid_iter.fit_transform(&x);
+    let result = tsne_invalid_iter.fit_transform(x.view());
     assert!(result.is_err());
 
     // Test invalid momentum
     let tsne_invalid_momentum = TSNE::new(None, None, None, 2, None, None, None, Some(1.5), None, None);
-    let result = tsne_invalid_momentum.fit_transform(&x);
+    let result = tsne_invalid_momentum.fit_transform(x.view());
     assert!(result.is_err());
 }
 
@@ -124,7 +124,7 @@ fn test_result_is_zero_mean() {
     let x = Array2::<f64>::ones((n_samples, n_features));
     let tsne = TSNE::new(None, None, Some(10), output_dim, Some(42), None, None, None, None, None);
 
-    let result = tsne.fit_transform(&x).unwrap();
+    let result = tsne.fit_transform(x.view()).unwrap();
 
     // Check if result has zero mean
     let mean = result.mean_axis(Axis(0)).unwrap();
@@ -144,8 +144,8 @@ fn test_reproducibility() {
     let tsne1 = TSNE::new(None, None, Some(10), 2, Some(42), None, None, None, None, None);
     let tsne2 = TSNE::new(None, None, Some(10), 2, Some(42), None, None, None, None, None);
 
-    let result1 = tsne1.fit_transform(&x).unwrap();
-    let result2 = tsne2.fit_transform(&x).unwrap();
+    let result1 = tsne1.fit_transform(x.view()).unwrap();
+    let result2 = tsne2.fit_transform(x.view()).unwrap();
 
     // Results should be identical
     for (v1, v2) in result1.iter().zip(result2.iter()) {
@@ -154,7 +154,7 @@ fn test_reproducibility() {
 
     // Using different random seeds should produce different results
     let tsne3 = TSNE::new(None, None, Some(10), 2, Some(24), None, None, None, None, None);
-    let result3 = tsne3.fit_transform(&x).unwrap();
+    let result3 = tsne3.fit_transform(x.view()).unwrap();
 
     // At least one value should be different
     let mut any_different = false;

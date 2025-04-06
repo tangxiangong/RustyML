@@ -61,7 +61,7 @@ fn test_fit_simple_data() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 3, Metric::Euclidean);
-    dbscan.fit(&data).unwrap();
+    dbscan.fit(data.view()).unwrap();
 
     let labels = dbscan.get_labels().unwrap();
     let core_indices = dbscan.get_core_sample_indices().unwrap();
@@ -103,9 +103,9 @@ fn test_predict() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    dbscan.fit(&train_data).unwrap();
+    dbscan.fit(train_data.view()).unwrap();
 
-    let predictions = dbscan.predict(&train_data, &new_data).unwrap();
+    let predictions = dbscan.predict(train_data.view(), new_data.view()).unwrap();
     assert_eq!(predictions.len(), new_data.nrows());
 }
 
@@ -121,7 +121,7 @@ fn test_fit_predict() {
     ]);
 
     let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    let labels = dbscan.fit_predict(&data).unwrap();
+    let labels = dbscan.fit_predict(data.view()).unwrap();
 
     // Verify fit_predict results match fit+get_labels
     assert_eq!(labels, *dbscan.get_labels().unwrap());
@@ -140,7 +140,7 @@ fn test_predict_before_fit() {
     ]);
 
     let dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    match dbscan.predict(&data, &new_data) {
+    match dbscan.predict(data.view(), new_data.view()) {
         Err(ModelError::NotFitted) => assert!(true),
         _ => panic!("Expected NotFitted error"),
     }
@@ -152,7 +152,7 @@ fn test_empty_data() {
     let mut dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
 
     // Test with empty dataset
-    match dbscan.fit(&data) {
+    match dbscan.fit(data.view()) {
         Err(ModelError::InputValidationError(_)) => assert!(true),
         _ => panic!("Expected InputValidationError"),
     }
@@ -170,11 +170,11 @@ fn test_different_metrics() {
 
     // Test with different distance metrics
     let mut euclidean_dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    euclidean_dbscan.fit(&data).unwrap();
+    euclidean_dbscan.fit(data.view()).unwrap();
     let euclidean_labels = euclidean_dbscan.get_labels().unwrap();
 
     let mut manhattan_dbscan = DBSCAN::new(0.5, 2, Metric::Euclidean);
-    manhattan_dbscan.fit(&data).unwrap();
+    manhattan_dbscan.fit(data.view()).unwrap();
     let manhattan_labels = manhattan_dbscan.get_labels().unwrap();
 
     // The clustering results might differ based on the metric

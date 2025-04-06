@@ -1,5 +1,5 @@
 use crate::{math, ModelError};
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, ArrayView2, ArrayView1};
 use rayon::prelude::*;
 
 /// # Linear Regression model implementation
@@ -36,11 +36,11 @@ use rayon::prelude::*;
 /// let y = Array1::from_vec(raw_y);
 ///
 /// // Train the model
-/// model.fit(&x, &y).unwrap();
+/// model.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
 /// let new_data = Array2::from_shape_vec((1, 2), vec![4.0, 5.0]).unwrap();
-/// let predictions = model.predict(&new_data);
+/// let predictions = model.predict(new_data.view());
 ///
 /// // Since Clone is implemented, the model can be easily cloned
 /// let model_copy = model.clone();
@@ -189,11 +189,11 @@ impl LinearRegression {
     /// # Return Value
     /// - `Ok(&mut self)` - Returns mutable reference to self for method chaining
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, x: ArrayView2<f64>, y: ArrayView1<f64>) -> Result<&mut Self, ModelError> {
         // Ensure x and y have the same number of samples
         use super::preliminary_check;
 
-        preliminary_check(&x, Some(&y))?;
+        preliminary_check(x, Some(y))?;
 
         let n_samples = x.nrows();
         let n_features = x.ncols();
@@ -287,7 +287,7 @@ impl LinearRegression {
     /// - `Ok(Vec<f64>)` - A vector of predictions
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
     /// - `Err(ModelError::InputValidationError)` - If number of features does not match training data
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         if self.coefficients.is_none() {
             return Err(ModelError::NotFitted);
         }
@@ -327,7 +327,7 @@ impl LinearRegression {
     /// A Result containing either:
     /// - `Ok(Vec<f64>)` - The predicted values for the input data
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn fit_predict(&mut self, x: ArrayView2<f64>, y: ArrayView1<f64>) -> Result<Array1<f64>, ModelError> {
         self.fit(x, y)?;
         Ok(self.predict(x)?)
     }

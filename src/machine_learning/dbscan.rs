@@ -1,4 +1,4 @@
-use ndarray::{Array2, Array1};
+use ndarray::{Array1, ArrayView2};
 use std::collections::{HashSet, VecDeque};
 use crate::ModelError;
 use super::DistanceCalculationMetric as Metric;
@@ -29,7 +29,7 @@ use rayon::prelude::*;
 /// ]).unwrap();
 ///
 /// let mut dbscan = DBSCAN::new(0.5, 2, DistanceCalculationMetric::Euclidean);
-/// let labels = dbscan.fit_predict(&data);
+/// let labels = dbscan.fit_predict(data.view());
 /// ```
 #[derive(Debug, Clone)]
 pub struct DBSCAN {
@@ -142,11 +142,11 @@ impl DBSCAN {
     /// # Notes
     /// After fitting, cluster labels can be accessed via `get_labels()` method.
     /// Labels of -1 indicate noise points (outliers).
-    pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, data: ArrayView2<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
         use crate::math::{squared_euclidean_distance_row, manhattan_distance_row, minkowski_distance_row};
 
-        preliminary_check(&data, None)?;
+        preliminary_check(data, None)?;
 
         if self.eps <= 0.0 {
             return Err(ModelError::InputValidationError("eps must be positive".to_string()));
@@ -157,7 +157,7 @@ impl DBSCAN {
         }
 
         /// Parallelized version of region_query: find all neighbors of point `p` (points within eps distance)
-        fn region_query(dbscan: &DBSCAN, data: &Array2<f64>, p: usize, metric: Metric) -> Vec<usize> {
+        fn region_query(dbscan: &DBSCAN, data: ArrayView2<f64>, p: usize, metric: Metric) -> Vec<usize> {
             // Pre-compute row p (read-only view) to avoid fetching it repeatedly in each iteration
             let p_row = data.row(p);
             // Parallel iteration through all rows, calculating distances and filtering points that satisfy the eps condition
@@ -250,7 +250,7 @@ impl DBSCAN {
     /// # Notes
     /// New points are assigned to the nearest cluster if they are within `eps` distance
     /// of a core point, otherwise they are labeled as noise (-1)
-    pub fn predict(&self, data: &Array2<f64>, new_data: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
+    pub fn predict(&self, trained_data: ArrayView2<f64>, new_data: ArrayView2<f64>) -> Result<Array1<i32>, ModelError> {
         use crate::math::squared_euclidean_distance_row;
 
         // Ensure the model has been trained
@@ -272,7 +272,7 @@ impl DBSCAN {
                 let mut closest_label = -1;
 
                 // Find the closest classified data point
-                for (j, orig_row) in data.rows().into_iter().enumerate() {
+                for (j, orig_row) in trained_data.rows().into_iter().enumerate() {
                     if labels[j] == -1 {
                         continue; // Skip noise points
                     }
@@ -311,7 +311,7 @@ impl DBSCAN {
     /// # Notes
     /// This is equivalent to calling `fit()` followed by `get_labels()`,
     /// but more convenient when you don't need to reuse the model.
-    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
+    pub fn fit_predict(&mut self, data: ArrayView2<f64>) -> Result<Array1<i32>, ModelError> {
         self.fit(data)?;
         Ok(self.labels_.as_ref().unwrap().clone())
     }

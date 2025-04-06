@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, ArrayView1, Axis};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
 use ndarray_linalg::eigh::Eigh;
 pub use crate::machine_learning::svc::KernelType;
 use crate::ModelError;
@@ -41,7 +41,7 @@ use rayon::prelude::*;
 /// );
 ///
 /// // Fit the model and transform the data
-/// let transformed = kpca.fit_transform(&data).unwrap();
+/// let transformed = kpca.fit_transform(data.view()).unwrap();
 ///
 /// // The transformed data now has 2 columns instead of 3
 /// assert_eq!(transformed.ncols(), 2);
@@ -52,7 +52,7 @@ use rayon::prelude::*;
 ///     [2.0, 3.0, 4.0],
 ///     [5.0, 6.0, 7.0],
 /// ]);
-/// let new_transformed = kpca.transform(&new_data).unwrap();
+/// let new_transformed = kpca.transform(new_data.view()).unwrap();
 /// assert_eq!(new_transformed.ncols(), 2);
 /// assert_eq!(new_transformed.nrows(), 2);
 /// ```
@@ -242,7 +242,7 @@ impl KernelPCA {
     /// - n_components is 0
     /// - n_components is greater than the number of samples
     /// - Eigendecomposition fails
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn std::error::Error>> {
+    pub fn fit(&mut self, x: ArrayView2<f64>) -> Result<&mut Self, Box<dyn std::error::Error>> {
         if x.is_empty() {
             return Err(Box::new(ModelError::InputValidationError("Input data cannot be empty".to_string())));
         }
@@ -262,7 +262,7 @@ impl KernelPCA {
 
         let n_samples = x.nrows();
         // Save a clone of the training data
-        self.x_fit = Some(x.clone());
+        self.x_fit = Some(x.to_owned());
 
         // Calculate the kernel matrix: k_matrix[i, j] = kernel(x[i], x[j])
         let mut k_matrix = Array2::<f64>::zeros((n_samples, n_samples));
@@ -366,7 +366,7 @@ impl KernelPCA {
     /// # Errors
     ///
     /// Returns an error if the model hasn't been fitted
-    pub fn transform(&self, x: &Array2<f64>) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
+    pub fn transform(&self, x: ArrayView2<f64>) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
         // Model must be fitted first
         if self.x_fit.is_none() || self.eigenvectors.is_none() || self.row_means.is_none() || self.total_mean.is_none() {
             return Err(Box::new(ModelError::NotFitted));
@@ -448,7 +448,7 @@ impl KernelPCA {
     /// # Errors
     ///
     /// Returns an error if fit() or transform() fails
-    pub fn fit_transform(&mut self, x: &Array2<f64>) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
+    pub fn fit_transform(&mut self, x: ArrayView2<f64>) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
         self.fit(x)?;
         match self.transform(x) {
             Ok(transformed) => Ok(transformed),

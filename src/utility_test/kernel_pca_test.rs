@@ -98,17 +98,17 @@ fn test_fit_invalid_inputs() {
 
     // Test empty input
     let empty = Array2::<f64>::zeros((0, 5));
-    assert!(kpca.fit(&empty).is_err());
+    assert!(kpca.fit(empty.view()).is_err());
 
     // Test case where n_components is 0
     let mut kpca_zero = KernelPCA::new(KernelType::Linear, 0);
     let data = Array2::<f64>::zeros((10, 3));
-    assert!(kpca_zero.fit(&data).is_err());
+    assert!(kpca_zero.fit(data.view()).is_err());
 
     // Test case where sample count is less than n_components
     let mut kpca_large = KernelPCA::new(KernelType::Linear, 5);
     let small_data = Array2::<f64>::zeros((3, 3));
-    assert!(kpca_large.fit(&small_data).is_err());
+    assert!(kpca_large.fit(small_data.view()).is_err());
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn test_fit_simple_case() {
         10.0, 11.0, 12.0
     ]).unwrap();
 
-    let result = kpca.fit(&data);
+    let result = kpca.fit(data.view());
     assert!(result.is_ok());
 
     // Verify that the model is correctly fitted
@@ -140,7 +140,7 @@ fn test_transform_not_fitted() {
     let kpca = KernelPCA::default();
     let data = Array2::<f64>::zeros((5, 3));
 
-    assert!(kpca.transform(&data).is_err());
+    assert!(kpca.transform(data.view()).is_err());
 }
 
 #[test]
@@ -153,7 +153,7 @@ fn test_fit_transform() {
         10.0, 11.0, 12.0
     ]).unwrap();
 
-    let result = kpca.fit_transform(&data);
+    let result = kpca.fit_transform(data.view());
     assert!(result.is_ok());
 
     let transformed = result.unwrap();
@@ -172,7 +172,7 @@ fn test_fit_and_transform() {
     ]).unwrap();
 
     // First fit
-    let fit_result = kpca.fit(&train_data);
+    let fit_result = kpca.fit(train_data.view());
     assert!(fit_result.is_ok());
 
     // Then transform new data
@@ -181,7 +181,7 @@ fn test_fit_and_transform() {
         5.0, 6.0, 7.0
     ]).unwrap();
 
-    let transform_result = kpca.transform(&test_data);
+    let transform_result = kpca.transform(test_data.view());
     assert!(transform_result.is_ok());
 
     let transformed = transform_result.unwrap();
@@ -208,7 +208,7 @@ fn test_different_kernel_types() {
 
     for kernel in kernels {
         let mut kpca = KernelPCA::new(kernel, 2);
-        let result = kpca.fit_transform(&data);
+        let result = kpca.fit_transform(data.view());
         assert!(result.is_ok());
     }
 }

@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, ArrayView1};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use crate::ModelError;
 use rayon::prelude::*;
 
@@ -39,11 +39,11 @@ use rayon::prelude::*;
 /// );
 ///
 /// // Train the model
-/// svc.fit(&x_train, &y_train).expect("Failed to train SVM");
+/// svc.fit(x_train.view(), y_train.view()).expect("Failed to train SVM");
 ///
 /// // Make predictions
 /// let x_test = Array2::from_shape_vec((2, 2), vec![0.5, 0.5, 0.8, 0.8]).unwrap();
-/// let predictions = svc.predict(&x_test).expect("Failed to predict");
+/// let predictions = svc.predict(x_test.view()).expect("Failed to predict");
 /// println!("Predictions: {:?}", predictions);
 /// ```
 #[derive(Debug, Clone)]
@@ -295,7 +295,7 @@ impl SVC {
     ///
     /// # Returns
     /// * `Array2<f64>` - The computed kernel matrix
-    fn compute_kernel_matrix(&self, x: &Array2<f64>) -> Array2<f64> {
+    fn compute_kernel_matrix(&self, x: ArrayView2<f64>) -> Array2<f64> {
         let n_samples = x.nrows();
         let mut kernel_matrix = Array2::<f64>::zeros((n_samples, n_samples));
 
@@ -332,7 +332,7 @@ impl SVC {
     /// # Returns
     /// - `Ok(&mut Self)` - The fitted model (for method chaining)
     /// - `Err(ModelError)` - If there's an error during fitting
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, x: ArrayView2<f64>, y: ArrayView1<f64>) -> Result<&mut Self, ModelError> {
         if x.nrows() != y.len() {
             return Err(ModelError::InputValidationError(
                 "x and y have different number of rows".to_string()
@@ -466,7 +466,7 @@ impl SVC {
         i2: usize,
         alphas: &mut Array1<f64>,
         kernel_matrix: &Array2<f64>,
-        y: &Array1<f64>,
+        y: ArrayView1<f64>,
         b: &mut f64,
         error_cache: &mut Array1<f64>,
     ) -> usize {
@@ -570,7 +570,7 @@ impl SVC {
         i2: usize,
         alphas: &mut Array1<f64>,
         kernel_matrix: &Array2<f64>,
-        y: &Array1<f64>,
+        y: ArrayView1<f64>,
         b: &mut f64,
         error_cache: &mut Array1<f64>,
     ) -> bool {
@@ -681,7 +681,7 @@ impl SVC {
         &self,
         alphas: &Array1<f64>,
         kernel_matrix: &Array2<f64>,
-        y: &Array1<f64>,
+        y: ArrayView1<f64>,
         b: f64,
         error_cache: &mut Array1<f64>,
     ) {
@@ -709,7 +709,7 @@ impl SVC {
         i: usize,
         alphas: &Array1<f64>,
         kernel_matrix: &Array2<f64>,
-        y: &Array1<f64>,
+        y: ArrayView1<f64>,
         b: f64,
     ) -> f64 {
         // Create index range
@@ -732,7 +732,7 @@ impl SVC {
     /// # Returns
     /// - `Ok(Array1<f64>)` - The predicted class labels (+1 or -1)
     /// - `Err(ModelError::NotFitted)` - If the model hasn't been fitted yet
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<f64>, ModelError> {
         // Check if the model has been fitted
         if self.support_vectors.is_none() || self.support_vector_labels.is_none() || self.alphas.is_none() {
             return Err(ModelError::NotFitted);

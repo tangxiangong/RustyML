@@ -54,7 +54,7 @@ fn test_fit() {
     let data = create_test_data();
 
     // Test fit method
-    kmeans.fit(&data).unwrap();
+    kmeans.fit(data.view()).unwrap();
 
     // Verify state after fitting
     assert!(matches!(kmeans.get_centroids(), Ok(_)));
@@ -69,10 +69,10 @@ fn test_predict() {
     let data = create_test_data();
 
     // Fit first
-    kmeans.fit(&data).unwrap();
+    kmeans.fit(data.view()).unwrap();
 
     // Test prediction
-    let predictions = kmeans.predict(&data).unwrap();
+    let predictions = kmeans.predict(data.view()).unwrap();
 
     // Verify prediction results
     assert_eq!(predictions.len(), 20);
@@ -107,7 +107,7 @@ fn test_fit_predict() {
     let data = create_test_data();
 
     // Test fit_predict method
-    let predictions = kmeans.fit_predict(&data).unwrap();
+    let predictions = kmeans.fit_predict(data.view()).unwrap();
 
     // Verify results
     assert_eq!(predictions.len(), 20);
@@ -132,7 +132,7 @@ fn test_getters() {
     assert!(matches!(kmeans.get_n_iter(), Err(ModelError::NotFitted)));
 
     // State after fitting
-    kmeans.fit(&data).unwrap();
+    kmeans.fit(data.view()).unwrap();
     assert!(matches!(kmeans.get_centroids(), Ok(_)));
     assert!(matches!(kmeans.get_labels(), Ok(_)));
     assert!(matches!(kmeans.get_inertia(), Ok(_)));
@@ -145,11 +145,11 @@ fn test_different_cluster_counts() {
 
     // Test with k=1
     let mut kmeans_k1 = KMeans::new(1, 100, 0.0001, Some(42));
-    kmeans_k1.fit(&data).unwrap();
+    kmeans_k1.fit(data.view()).unwrap();
     assert_eq!(kmeans_k1.get_centroids().unwrap().shape(), &[1, 2]);
 
     // Test with k=3
     let mut kmeans_k3 = KMeans::new(3, 100, 0.0001, Some(42));
-    kmeans_k3.fit(&data).unwrap();
+    kmeans_k3.fit(data.view()).unwrap();
     assert_eq!(kmeans_k3.get_centroids().unwrap().shape(), &[3, 2]);
 }

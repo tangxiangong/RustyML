@@ -58,7 +58,7 @@ pub enum WeightingStrategy {
 /// let mut knn = KNN::new(3, WeightingStrategy::Uniform, Metric::Euclidean);
 ///
 /// // Fit the model
-/// knn.fit(x_train, y_train).unwrap();
+/// knn.fit(x_train.view(), y_train.view()).unwrap();
 ///
 /// // Predict new samples
 /// let x_test = array![
@@ -183,10 +183,10 @@ impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
     /// # Notes
     /// 
     /// KNN is a lazy learning algorithm, and the calculation is done in the prediction phase.
-    pub fn fit(&mut self, x: Array2<f64>, y: Array1<T>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, x: ArrayView2<f64>, y: ArrayView1<T>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
 
-        preliminary_check(&x, None)?;
+        preliminary_check(x, None)?;
 
         if x.nrows() != y.len() {
             return Err(ModelError::InputValidationError(
@@ -197,8 +197,8 @@ impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
             return Err(ModelError::InputValidationError("The number of samples is less than k".to_string()))
         }
 
-        self.x_train = Some(x);
-        self.y_train = Some(y);
+        self.x_train = Some(x.to_owned());
+        self.y_train = Some(y.to_owned());
 
         Ok(self)
     }
@@ -336,8 +336,8 @@ impl<T: Clone + std::hash::Hash + Eq + Send + Sync> KNN<T> {
     /// * `Ok(Array1<T>)` - Array of predicted values
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
     pub fn fit_predict(&mut self, 
-                       x_train: Array2<f64>, 
-                       y_train: Array1<T>, 
+                       x_train: ArrayView2<f64>,
+                       y_train: ArrayView1<T>,
                        x_test: ArrayView2<f64>
     ) -> Result<Array1<T>, ModelError> {
         self.fit(x_train, y_train)?;

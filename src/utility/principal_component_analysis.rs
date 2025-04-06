@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, ArrayView2};
 use std::error::Error;
 use ndarray_linalg::Eigh;
 use crate::ModelError;
@@ -36,10 +36,10 @@ use rayon::prelude::*;
 /// let mut pca = PCA::new(2);
 ///
 /// // Fit the model to the data
-/// pca.fit(&data).expect("Failed to fit PCA model");
+/// pca.fit(data.view()).expect("Failed to fit PCA model");
 ///
 /// // Transform the data to the principal component space
-/// let transformed = pca.transform(&data).expect("Failed to transform data");
+/// let transformed = pca.transform(data.view()).expect("Failed to transform data");
 /// println!("Transformed data:\n{:?}", transformed);
 ///
 /// // Get the explained variance ratio
@@ -47,7 +47,7 @@ use rayon::prelude::*;
 /// println!("Explained variance ratio: {:?}", variance_ratio);
 ///
 /// // Transform back to original space
-/// let reconstructed = pca.inverse_transform(&transformed).expect("Failed to inverse transform");
+/// let reconstructed = pca.inverse_transform(transformed.view()).expect("Failed to inverse transform");
 /// println!("Reconstructed data:\n{:?}", reconstructed);
 /// ```
 ///
@@ -172,10 +172,10 @@ impl PCA {
     /// - Computes the covariance matrix
     /// - Calculates eigenvalues and eigenvectors
     /// - Sorts components by explained variance
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, Box<dyn Error>> {
+    pub fn fit(&mut self, x: ArrayView2<f64>) -> Result<&mut Self, Box<dyn Error>> {
         use crate::machine_learning::preliminary_check;
 
-        preliminary_check(&x, None)?;
+        preliminary_check(x, None)?;
 
         let n_samples = x.nrows();
         let n_features = x.ncols();
@@ -192,7 +192,7 @@ impl PCA {
             .into();
 
         // Center the data in parallel
-        let mut x_centered = x.clone();
+        let mut x_centered = x.to_owned();
         x_centered
             .axis_iter_mut(ndarray::Axis(0))
             .into_par_iter()
@@ -257,7 +257,7 @@ impl PCA {
     /// # Errors
     ///
     /// Returns an error if the model hasn't been fitted yet
-    pub fn transform(&self, x: &Array2<f64>) -> Result<Array2<f64>, Box<dyn Error>> {
+    pub fn transform(&self, x: ArrayView2<f64>) -> Result<Array2<f64>, Box<dyn Error>> {
         let components = self.components.as_ref().ok_or(ModelError::NotFitted)?;
         let mean = self.mean.as_ref().ok_or(ModelError::NotFitted)?;
 
@@ -296,7 +296,7 @@ impl PCA {
     /// # Returns
     ///
     /// * `Result<Array2<f64>, Box<dyn Error>>` - The transformed data if successful
-    pub fn fit_transform(&mut self, x: &Array2<f64>) -> Result<Array2<f64>, Box<dyn Error>> {
+    pub fn fit_transform(&mut self, x: ArrayView2<f64>) -> Result<Array2<f64>, Box<dyn Error>> {
         self.fit(x)?;
         self.transform(x)
     }
@@ -314,7 +314,7 @@ impl PCA {
     /// # Errors
     ///
     /// Returns an error if the model hasn't been fitted yet
-    pub fn inverse_transform(&self, x: &Array2<f64>) -> Result<Array2<f64>, Box<dyn Error>> {
+    pub fn inverse_transform(&self, x: ArrayView2<f64>) -> Result<Array2<f64>, Box<dyn Error>> {
         let components = self.components.as_ref().ok_or("PCA model not fitted yet")?;
         let mean = self.mean.as_ref().ok_or("PCA model not fitted yet")?;
 

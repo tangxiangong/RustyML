@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Axis, s};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis, s};
 use ndarray_linalg::{Eig, Inverse};
 use crate::ModelError;
 use rayon::prelude::*;
@@ -27,14 +27,14 @@ use rayon::prelude::*;
 ///
 /// // Create and fit LDA model
 /// let mut lda = LDA::new();
-/// lda.fit(&x, &y).unwrap();
+/// lda.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
 /// let x_new = Array2::from_shape_vec((2, 2), vec![1.2, 2.2, 5.2, 4.8]).unwrap();
-/// let predictions = lda.predict(&x_new).unwrap();
+/// let predictions = lda.predict(x_new.view()).unwrap();
 ///
 /// // Transform data to lower dimension
-/// let x_transformed = lda.transform(&x, 1).unwrap();
+/// let x_transformed = lda.transform(x.view(), 1).unwrap();
 /// ```
 #[derive(Debug, Clone)]
 pub struct LDA {
@@ -141,7 +141,7 @@ impl LDA {
     /// # Returns
     /// - `Ok(&mut Self)` - Reference to self
     /// - `Err(Box<dyn std::error::Error>>)` - If something goes wrong
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<i32>) -> Result<&mut Self, Box<dyn std::error::Error>> {
+    pub fn fit(&mut self, x: ArrayView2<f64>, y: ArrayView1<i32>) -> Result<&mut Self, Box<dyn std::error::Error>> {
         // Input validation
         if x.nrows() != y.len() {
             return Err(Box::new(ModelError::InputValidationError(
@@ -291,7 +291,7 @@ impl LDA {
     /// - `Ok(Array1<i32>)` - Array of predicted class labels
     /// - `Err(ModelError::InputValidationError)` - If input does not match the expectation
     /// - `Err(ModelError::NotFitted)` - If not fitted
-    pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
+    pub fn predict(&self, x: ArrayView2<f64>) -> Result<Array1<i32>, ModelError> {
         if x.nrows() == 0 || x.ncols() == 0 {
             return Err(ModelError::InputValidationError("Input array is empty".to_string()));
         }
@@ -335,7 +335,7 @@ impl LDA {
     /// # Returns
     /// - `Ok(Array2<f64>)` - Transformed data matrix
     /// - `Err(ModelError::InputValidationError)` - If input does not match expectation
-    pub fn transform(&self, x: &Array2<f64>, n_components: usize) -> Result<Array2<f64>, ModelError> {
+    pub fn transform(&self, x: ArrayView2<f64>, n_components: usize) -> Result<Array2<f64>, ModelError> {
         if x.nrows() == 0 || x.ncols() == 0 {
             return Err(ModelError::InputValidationError("Input array is empty".to_string()));
         }
@@ -360,7 +360,7 @@ impl LDA {
     /// # Returns
     /// - `Ok(Array2<f64>)` - Transformed data matrix
     /// - `Err(Box<dyn std::error::Error>>)` - If something goes wrong
-    pub fn fit_transform(&mut self, x: &Array2<f64>, y: &Array1<i32>, n_components: usize) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
+    pub fn fit_transform(&mut self, x: ArrayView2<f64>, y: ArrayView1<i32>, n_components: usize) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
         self.fit(x, y)?;
         Ok(self.transform(x, n_components)?)
     }

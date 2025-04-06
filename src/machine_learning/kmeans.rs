@@ -40,7 +40,7 @@ use rayon::prelude::*;
 /// let mut kmeans = KMeans::new(2, 100, 1e-4, Some(42));
 ///
 /// // Fit the model
-/// kmeans.fit(&data).unwrap();
+/// kmeans.fit(data.view()).unwrap();
 ///
 /// // Get cluster labels
 /// let labels = kmeans.get_labels().unwrap();
@@ -52,11 +52,11 @@ use rayon::prelude::*;
 ///
 /// // Predict clusters for new data points
 /// let new_data = array![[1.2, 1.9], [5.2, 5.9]];
-/// let predictions = kmeans.predict(&new_data).unwrap();
+/// let predictions = kmeans.predict(new_data.view()).unwrap();
 /// println!("Predictions: {:?}", predictions);
 ///
 /// // Fit and predict in one step
-/// let labels = kmeans.fit_predict(&data);
+/// let labels = kmeans.fit_predict(data.view());
 /// println!("Fit-predict results: {:?}", labels);
 /// ```
 #[derive(Debug, Clone)]
@@ -242,7 +242,7 @@ impl KMeans {
     /// # Arguments
     ///
     /// * `data` - Training data as a 2D array
-    fn init_centroids(&mut self, data: &Array2<f64>) {
+    fn init_centroids(&mut self, data: ArrayView2<f64>) {
         use crate::math::squared_euclidean_distance_row;
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
@@ -313,10 +313,10 @@ impl KMeans {
     ///
     /// - `&mut Self` - A mutable reference to self for method chaining
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn fit(&mut self, data: &Array2<f64>) -> Result<&mut Self, ModelError> {
+    pub fn fit(&mut self, data: ArrayView2<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
 
-        preliminary_check(&data, None)?;
+        preliminary_check(data, None)?;
 
         let n_samples = data.shape()[0];
         let n_features = data.shape()[1];
@@ -425,7 +425,7 @@ impl KMeans {
     ///
     /// - `Array1<usize>` - An array of cluster indices for each input data point
     /// - `Err(ModelError::NotFitted)` - If the model has not been fitted yet
-    pub fn predict(&self, data: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+    pub fn predict(&self, data: ArrayView2<f64>) -> Result<Array1<usize>, ModelError> {
         if self.centroids.is_none(){
             return Err(ModelError::NotFitted);
         }
@@ -456,7 +456,7 @@ impl KMeans {
     ///
     /// - `Ok(Array1<usize>)` - An array of cluster indices for each input data point
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, data: &Array2<f64>) -> Result<Array1<usize>, ModelError> {
+    pub fn fit_predict(&mut self, data: ArrayView2<f64>) -> Result<Array1<usize>, ModelError> {
         self.fit(data)?;
         Ok(self.labels.clone().unwrap())
     }

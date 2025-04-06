@@ -115,11 +115,11 @@ mod math_module_test;
 /// let y = Array1::from_vec(raw_y);
 ///
 /// // Train the model
-/// model.fit(&x, &y).unwrap();
+/// model.fit(x.view(), y.view()).unwrap();
 ///
 /// // Make predictions
 /// let new_data = Array2::from_shape_vec((1, 2), vec![4.0, 5.0]).unwrap();
-/// let predictions = model.predict(&new_data);
+/// let predictions = model.predict(new_data.view());
 ///
 /// // Since Clone is implemented, the model can be easily cloned
 /// let model_copy = model.clone();
@@ -184,7 +184,7 @@ pub mod prelude;
 /// ]);
 ///
 /// // Fit and transform data
-/// let transformed = pca.fit_transform(&data).unwrap();
+/// let transformed = pca.fit_transform(data.view()).unwrap();
 /// ```
 pub mod utility;
 

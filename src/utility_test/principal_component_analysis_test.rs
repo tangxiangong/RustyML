@@ -65,7 +65,7 @@ fn test_fit_and_transform() -> Result<(), Box<dyn Error>> {
         [10.0, 11.0, 12.0],
     ]);
 
-    pca.fit(&data)?;
+    pca.fit(data.view())?;
 
     // After fitting, getters should return valid components
     let components = pca.get_components()?;
@@ -82,7 +82,7 @@ fn test_fit_and_transform() -> Result<(), Box<dyn Error>> {
     assert_eq!(singular_values.len(), 2);
 
     // Test transform functionality
-    let transformed = pca.transform(&data)?;
+    let transformed = pca.transform(data.view())?;
     assert_eq!(transformed.shape(), &[4, 2]);
 
     Ok(())
@@ -98,7 +98,7 @@ fn test_fit_transform() -> Result<(), Box<dyn Error>> {
         [10.0, 11.0, 12.0],
     ]);
 
-    let transformed = pca.fit_transform(&data)?;
+    let transformed = pca.fit_transform(data.view())?;
 
     // After fit_transform, getters should return valid components
     assert!(pca.get_components().is_ok());
@@ -117,8 +117,8 @@ fn test_inverse_transform() -> Result<(), Box<dyn Error>> {
         [10.0, 11.0, 12.0],
     ]);
 
-    let transformed = pca.fit_transform(&data)?;
-    let reconstructed = pca.inverse_transform(&transformed)?;
+    let transformed = pca.fit_transform(data.view())?;
+    let reconstructed = pca.inverse_transform(transformed.view())?;
 
     // Verify shape of reconstructed data matches original data
     assert_eq!(reconstructed.shape(), data.shape());
@@ -146,8 +146,8 @@ fn test_errors_when_not_fitted() {
 
     // Attempting to transform data before fitting should return an error
     let data = arr2(&[[1.0, 2.0, 3.0]]);
-    assert!(pca.transform(&data).is_err());
-    assert!(pca.inverse_transform(&data).is_err());
+    assert!(pca.transform(data.view()).is_err());
+    assert!(pca.inverse_transform(data.view()).is_err());
 }
 
 #[test]
@@ -162,14 +162,14 @@ fn test_with_different_n_components() -> Result<(), Box<dyn Error>> {
             [13.0, 14.0, 15.0, 16.0],
         ]);
 
-        pca.fit(&data)?;
+        pca.fit(data.view())?;
 
         // Verify component dimensions
         let components = pca.get_components()?;
         assert_eq!(components.shape(), &[n_components, 4]);
 
         // Verify dimensions of transformed data
-        let transformed = pca.transform(&data)?;
+        let transformed = pca.transform(data.view())?;
         assert_eq!(transformed.shape(), &[4, n_components]);
     }
 
@@ -186,7 +186,7 @@ fn test_variance_explained_properties() -> Result<(), Box<dyn Error>> {
         [13.0, 14.0, 15.0, 16.0],
     ]);
 
-    pca.fit(&data)?;
+    pca.fit(data.view())?;
 
     // Check that variance explained is non-negative
     let explained_variance = pca.get_explained_variance()?;
@@ -228,16 +228,16 @@ fn test_pca_with_random_data() -> Result<(), Box<dyn Error>> {
     // Test PCA with different numbers of components
     for n_components in [2, 5, 8] {
         let mut pca = PCA::new(n_components);
-        pca.fit(&data)?;
+        pca.fit(data.view())?;
 
         // Check dimensions
         assert_eq!(pca.get_components()?.shape(), &[n_components, 10]);
 
         // Transform and reconstruct
-        let transformed = pca.transform(&data)?;
+        let transformed = pca.transform(data.view())?;
         assert_eq!(transformed.shape(), &[100, n_components]);
 
-        let reconstructed = pca.inverse_transform(&transformed)?;
+        let reconstructed = pca.inverse_transform(transformed.view())?;
         assert_eq!(reconstructed.shape(), data.shape());
     }
 

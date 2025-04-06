@@ -7,6 +7,7 @@ Please view [SomeB1oody/RustyML](https://github.com/SomeB1oody/RustyML) for more
 
 ## [v0.3.0] - 2025-4-5
 ### Changed
+- Refactor to use `ArrayView` for memory-efficient data handling
 - Refactor outputs to use `Array` instead of `Vec` in DBSCAN and KNN
 
 ## [v0.2.1] - 2025-4-4
