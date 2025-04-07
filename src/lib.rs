@@ -264,3 +264,8 @@ mod metric_module_test;
 /// println!("Loaded iris dataset with {} samples", data.shape()[0]);
 /// ```
 pub mod dataset;
+
+pub mod neural_network;
+
+#[cfg(test)]
+mod neural_network_test;
