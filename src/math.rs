@@ -605,6 +605,8 @@ pub fn average_path_length_factor(n: f64) -> f64 {
     }
 
     // Use constant for Euler's gamma to improve readability
+    // core::f64::consts::EGAMMA = 0.577215664901532860606512090082402431_f64 (nightly-only API) https://doc.rust-lang.org/core/f64/consts/constant.EGAMMA.html
+    #[allow(clippy::excessive_precision)]
     const EULER_GAMMA: f64 = 0.57721566490153286060651209008240243104215933593992;
 
     // Calculate n-1 once as it's used multiple times
