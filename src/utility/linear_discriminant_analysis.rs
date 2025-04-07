@@ -1,6 +1,6 @@
+use crate::ModelError;
 use ndarray::{Array1, Array2, Axis, s};
 use ndarray_linalg::{Eig, Inverse};
-use crate::ModelError;
 use rayon::prelude::*;
 
 /// # Linear Discriminant Analysis (LDA)
@@ -141,16 +141,22 @@ impl LDA {
     /// # Returns
     /// - `Ok(&mut Self)` - Reference to self
     /// - `Err(Box<dyn std::error::Error>>)` - If something goes wrong
-    pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<i32>) -> Result<&mut Self, Box<dyn std::error::Error>> {
+    pub fn fit(
+        &mut self,
+        x: &Array2<f64>,
+        y: &Array1<i32>,
+    ) -> Result<&mut Self, Box<dyn std::error::Error>> {
         // Input validation
         if x.nrows() != y.len() {
-            return Err(Box::new(ModelError::InputValidationError(
-                format!("x.nrows() {} != y.len() {}", x.nrows(), y.len())
-            )));
+            return Err(Box::new(ModelError::InputValidationError(format!(
+                "x.nrows() {} != y.len() {}",
+                x.nrows(),
+                y.len()
+            ))));
         }
         if x.is_empty() || y.len() == 0 {
             return Err(Box::new(ModelError::InputValidationError(
-                "Input array is empty".to_string()
+                "Input array is empty".to_string(),
             )));
         }
 
@@ -163,7 +169,7 @@ impl LDA {
         classes_vec.dedup();
         if classes_vec.len() < 2 {
             return Err(Box::new(ModelError::InputValidationError(
-                "At least two distinct classes are required".to_string()
+                "At least two distinct classes are required".to_string(),
             )));
         }
         let classes_arr = Array1::from_vec(classes_vec);
@@ -173,7 +179,9 @@ impl LDA {
         let classes = self.classes.as_ref().unwrap();
 
         // Parallel calculation of each class's prior probability and mean
-        let class_stats: Vec<(usize, f64, Array1<f64>, Vec<usize>)> = classes.iter().enumerate()
+        let class_stats: Vec<(usize, f64, Array1<f64>, Vec<usize>)> = classes
+            .iter()
+            .enumerate()
             .map(|(i, &class)| {
                 // Find indices of samples belonging to the current class
                 let indices: Vec<usize> = y
@@ -186,7 +194,8 @@ impl LDA {
                 let prior = n_class as f64 / n_samples as f64;
                 let class_data = x.select(Axis(0), &indices);
 
-                let mean_row = class_data.mean_axis(Axis(0))
+                let mean_row = class_data
+                    .mean_axis(Axis(0))
                     .expect("Error computing class mean");
 
                 (i, prior, mean_row, indices)
@@ -210,35 +219,43 @@ impl LDA {
         self.means = Some(means_mat);
 
         // Parallel computation of the within-class scatter matrix (Sw)
-        let sw_parts: Vec<Array2<f64>> = class_indices.par_iter()
+        let sw_parts: Vec<Array2<f64>> = class_indices
+            .par_iter()
             .map(|(i, indices)| {
                 let class_data = x.select(Axis(0), indices);
                 let class_mean = &self.means.as_ref().unwrap().row(*i);
 
                 // For this class, compute the scatter matrix part in parallel
-                class_data.outer_iter()
-                    .fold(Array2::<f64>::zeros((n_features, n_features)), |acc, row| {
+                class_data.outer_iter().fold(
+                    Array2::<f64>::zeros((n_features, n_features)),
+                    |acc, row| {
                         let diff = &row - class_mean;
                         let diff_col = diff.insert_axis(Axis(1));
                         acc + diff_col.dot(&diff_col.t())
-                    })
+                    },
+                )
             })
             .collect();
 
         // Combine all classes' scatter matrices
-        let sw = sw_parts.into_iter()
-            .fold(Array2::<f64>::zeros((n_features, n_features)), |acc, matrix| acc + matrix);
+        let sw = sw_parts.into_iter().fold(
+            Array2::<f64>::zeros((n_features, n_features)),
+            |acc, matrix| acc + matrix,
+        );
 
         // Covariance matrix estimation: cov = Sw / (n_samples - n_classes)
         let cov = sw / ((n_samples - n_classes) as f64);
         self.cov_inv = Some(cov.inv()?);
 
         // Calculate overall mean of x
-        let overall_mean = x.mean_axis(Axis(0))
-            .ok_or(ModelError::ProcessingError("Error computing overall mean".to_string()))?;
+        let overall_mean = x.mean_axis(Axis(0)).ok_or(ModelError::ProcessingError(
+            "Error computing overall mean".to_string(),
+        ))?;
 
         // Parallel computation of the between-class scatter matrix (Sb)
-        let sb_parts: Vec<Array2<f64>> = classes.iter().enumerate()
+        let sb_parts: Vec<Array2<f64>> = classes
+            .iter()
+            .enumerate()
             .collect::<Vec<_>>()
             .par_iter()
             .map(|&(i, &class)| {
@@ -250,8 +267,10 @@ impl LDA {
             .collect();
 
         // Combine between-class scatter matrices from all classes
-        let sb = sb_parts.into_iter()
-            .fold(Array2::<f64>::zeros((n_features, n_features)), |acc, matrix| acc + matrix);
+        let sb = sb_parts.into_iter().fold(
+            Array2::<f64>::zeros((n_features, n_features)),
+            |acc, matrix| acc + matrix,
+        );
 
         // Solve the generalized eigenvalue problem: cov_inv * Sb
         let cov_inv = self.cov_inv.as_ref().unwrap();
@@ -293,7 +312,9 @@ impl LDA {
     /// - `Err(ModelError::NotFitted)` - If not fitted
     pub fn predict(&self, x: &Array2<f64>) -> Result<Array1<i32>, ModelError> {
         if x.nrows() == 0 || x.ncols() == 0 {
-            return Err(ModelError::InputValidationError("Input array is empty".to_string()));
+            return Err(ModelError::InputValidationError(
+                "Input array is empty".to_string(),
+            ));
         }
         if self.classes.is_none() || self.means.is_none() || self.cov_inv.is_none() {
             return Err(ModelError::NotFitted);
@@ -306,13 +327,19 @@ impl LDA {
         let n_classes = classes.len();
 
         // Use Rayon's parallel iteration
-        let predictions: Vec<i32> = x.outer_iter()
-            .into_par_iter()  // Convert to parallel iterator
+        let predictions: Vec<i32> = x
+            .outer_iter()
+            .into_par_iter() // Convert to parallel iterator
             .map(|row| {
                 let mut best_score = f64::NEG_INFINITY;
                 let mut best_class = classes[0];
                 for j in 0..n_classes {
-                    let score = self.discriminant_score(&row.to_owned(), &means.row(j).to_owned(), priors[j], cov_inv);
+                    let score = self.discriminant_score(
+                        &row.to_owned(),
+                        &means.row(j).to_owned(),
+                        priors[j],
+                        cov_inv,
+                    );
                     if score > best_score {
                         best_score = score;
                         best_class = classes[j];
@@ -335,16 +362,23 @@ impl LDA {
     /// # Returns
     /// - `Ok(Array2<f64>)` - Transformed data matrix
     /// - `Err(ModelError::InputValidationError)` - If input does not match expectation
-    pub fn transform(&self, x: &Array2<f64>, n_components: usize) -> Result<Array2<f64>, ModelError> {
+    pub fn transform(
+        &self,
+        x: &Array2<f64>,
+        n_components: usize,
+    ) -> Result<Array2<f64>, ModelError> {
         if x.nrows() == 0 || x.ncols() == 0 {
-            return Err(ModelError::InputValidationError("Input array is empty".to_string()));
+            return Err(ModelError::InputValidationError(
+                "Input array is empty".to_string(),
+            ));
         }
         let proj = self.projection.as_ref().ok_or(ModelError::NotFitted)?;
         let total_components = proj.ncols();
         if n_components == 0 || n_components > total_components {
-            return Err(ModelError::InputValidationError(
-                format!("n_components should be in range [1, {}], got {}", total_components, n_components)
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "n_components should be in range [1, {}], got {}",
+                total_components, n_components
+            )));
         }
         let w_reduced = proj.slice(s![.., 0..n_components]).to_owned();
         Ok(x.dot(&w_reduced))
@@ -360,7 +394,12 @@ impl LDA {
     /// # Returns
     /// - `Ok(Array2<f64>)` - Transformed data matrix
     /// - `Err(Box<dyn std::error::Error>>)` - If something goes wrong
-    pub fn fit_transform(&mut self, x: &Array2<f64>, y: &Array1<i32>, n_components: usize) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
+    pub fn fit_transform(
+        &mut self,
+        x: &Array2<f64>,
+        y: &Array1<i32>,
+        n_components: usize,
+    ) -> Result<Array2<f64>, Box<dyn std::error::Error>> {
         self.fit(x, y)?;
         Ok(self.transform(x, n_components)?)
     }

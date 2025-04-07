@@ -1,8 +1,8 @@
-use ndarray::{Array1, Array2};
-use std::error::Error;
-use ndarray_linalg::Eigh;
 use crate::ModelError;
+use ndarray::{Array1, Array2};
+use ndarray_linalg::Eigh;
 use rayon::prelude::*;
+use std::error::Error;
 
 /// # PCA structure for implementing Principal Component Analysis
 ///
@@ -181,7 +181,9 @@ impl PCA {
         let n_features = x.ncols();
 
         if self.n_components <= 0 {
-            return Err(Box::new(ModelError::InputValidationError("Number of components must be positive.".to_string())));
+            return Err(Box::new(ModelError::InputValidationError(
+                "Number of components must be positive.".to_string(),
+            )));
         }
 
         // Calculate mean using parallel iteration
@@ -243,7 +245,6 @@ impl PCA {
         Ok(self)
     }
 
-
     /// Transforms data into principal component space
     ///
     /// # Parameters
@@ -263,7 +264,9 @@ impl PCA {
 
         // Use ndarray's vectorized operations for centering
         // This creates a view instead of cloning the entire array
-        let x_centered = x.view().outer_iter()
+        let x_centered = x
+            .view()
+            .outer_iter()
             .into_par_iter()
             .map(|row| {
                 // Subtract the mean from each row
@@ -278,7 +281,10 @@ impl PCA {
         // Convert the vector collection back to Array2
         let x_centered = Array2::from_shape_vec(
             (x.nrows(), x.ncols()),
-            x_centered.into_iter().flat_map(|row| row.into_iter().collect::<Vec<_>>()).collect()
+            x_centered
+                .into_iter()
+                .flat_map(|row| row.into_iter().collect::<Vec<_>>())
+                .collect(),
         )?;
 
         // Transform to principal component space

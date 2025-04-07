@@ -1,5 +1,5 @@
-use ndarray::{Array1, Array2, ArrayView2, s, Axis};
 use crate::ModelError;
+use ndarray::{Array1, Array2, ArrayView2, Axis, s};
 use rayon::prelude::*;
 
 /// # Logistic Regression model implementation
@@ -90,17 +90,18 @@ impl LogisticRegression {
     /// # Returns
     ///
     /// * `Self` - An untrained logistic regression model instance
-    pub fn new(fit_intercept: bool,
-               learning_rate: f64,
-               max_iterations: usize,
-               tolerance: f64,
+    pub fn new(
+        fit_intercept: bool,
+        learning_rate: f64,
+        max_iterations: usize,
+        tolerance: f64,
     ) -> Self {
         LogisticRegression {
             weights: None,
             fit_intercept,
             learning_rate,
             max_iter: max_iterations,
-            tol : tolerance,
+            tol: tolerance,
             n_iter: None,
         }
     }
@@ -187,8 +188,8 @@ impl LogisticRegression {
     /// - `Ok(&mut Self)` - A mutable reference to the trained model, allowing for method chaining
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
-        use crate::math::{sigmoid, logistic_loss};
         use super::preliminary_check;
+        use crate::math::{logistic_loss, sigmoid};
 
         // Preliminary check
         preliminary_check(&x, Some(&y))?;
@@ -207,9 +208,10 @@ impl LogisticRegression {
         let (n_samples, mut n_features) = x.dim();
         for (i, y_val) in y.iter().enumerate() {
             if y_val.is_nan() || y_val.is_infinite() {
-                return Err(ModelError::InputValidationError(
-                    format!("Target vector contains NaN or infinite values, at index {}", i),
-                ));
+                return Err(ModelError::InputValidationError(format!(
+                    "Target vector contains NaN or infinite values, at index {}",
+                    i
+                )));
             }
         }
         if self.max_iter <= 0 {
@@ -368,10 +370,11 @@ impl LogisticRegression {
     ///
     /// - `Ok(Array1<i32>)` - Predicted class labels for the test samples
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, 
-                       train_x: &Array2<f64>, 
-                       train_y: &Array1<f64>, 
-                       test_x: &Array2<f64>
+    pub fn fit_predict(
+        &mut self,
+        train_x: &Array2<f64>,
+        train_y: &Array1<f64>,
+        test_x: &Array2<f64>,
     ) -> Result<Array1<i32>, ModelError> {
         self.fit(train_x, train_y)?;
         Ok(self.predict(test_x)?)
@@ -456,7 +459,7 @@ pub fn generate_polynomial_features(x: &Array2<f64>, degree: usize) -> Array2<f6
             degree: usize,
             current_degree: usize,
             start_feature: usize,
-            combination: &mut Vec<usize>
+            combination: &mut Vec<usize>,
         ) {
             // If we've reached the target degree, compute the feature value
             if current_degree == degree {
@@ -477,15 +480,21 @@ pub fn generate_polynomial_features(x: &Array2<f64>, degree: usize) -> Array2<f6
                         row[current_col] = value;
                     });
                 return;
-
             }
 
             // Recursively build combinations (sequential since it modifies shared state)
             for j in start_feature..n_features {
                 combination.push(j);
                 add_combinations(
-                    x, result, col_idx, n_samples, n_features,
-                    degree, current_degree + 1, j, combination
+                    x,
+                    result,
+                    col_idx,
+                    n_samples,
+                    n_features,
+                    degree,
+                    current_degree + 1,
+                    j,
+                    combination,
                 );
                 combination.pop();
             }
@@ -493,7 +502,17 @@ pub fn generate_polynomial_features(x: &Array2<f64>, degree: usize) -> Array2<f6
 
         // Generate combinations for each degree
         for d in 2..=degree {
-            add_combinations(x, &mut result, &mut col_idx, n_samples, n_features, d, 0, 0, &mut vec![]);
+            add_combinations(
+                x,
+                &mut result,
+                &mut col_idx,
+                n_samples,
+                n_features,
+                d,
+                0,
+                0,
+                &mut vec![],
+            );
         }
     }
 

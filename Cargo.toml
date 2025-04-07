@@ -13,10 +13,20 @@ repository = "https://github.com/SomeB1oody/RustyML"
 [dependencies]
 ndarray = { version = "0.16.1", features = ["rayon"] }
 rand = "0.9.0"
-ndarray-linalg = { version = "0.17.0", default-features = false, features = ["openblas-static"] }
+ndarray-linalg = { version = "0.17.0", default-features = false }
 statrs = "0.18.0"
 rand_distr = "0.5.1"
 rayon = "1.10.0"
+
+[target.'cfg(not(all(target_os = "macos", target_arch = "aarch64")))'.dependencies.ndarray-linalg]
+version = "0.17.0"
+default-features = false
+features = ["openblas-static"]
+
+[target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies.ndarray-linalg]
+version = "0.17.0"
+default-features = false
+features = ["openblas-system"]
 
 [dev-dependencies]
 approx = "0.5.1"

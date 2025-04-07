@@ -1,8 +1,8 @@
+use crate::ModelError;
 use ndarray::{Array1, Array2};
 use ndarray_linalg::Norm;
-use rand::seq::SliceRandom;
 use rand::rng;
-use crate::ModelError;
+use rand::seq::SliceRandom;
 use rayon::prelude::*;
 
 /// # Linear Support Vector Classifier (LinearSVC)
@@ -283,33 +283,39 @@ impl LinearSVC {
     /// - `Err(ModelError)`: Error if validation fails or training encounters problems
     pub fn fit(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<&mut Self, ModelError> {
         if x.nrows() != y.len() {
-            return Err(ModelError::InputValidationError(
-                format!("Input data size mismatch: x.shape={}, y.shape={}", x.nrows(), y.len())
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "Input data size mismatch: x.shape={}, y.shape={}",
+                x.nrows(),
+                y.len()
+            )));
         }
 
         if self.max_iter <= 0 {
-            return Err(ModelError::InputValidationError(
-                format!("max_iter must be greater than 0, got {}", self.max_iter)
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "max_iter must be greater than 0, got {}",
+                self.max_iter
+            )));
         }
 
         if self.learning_rate <= 0.0 {
-            return Err(ModelError::InputValidationError(
-                format!("learning_rate must be greater than 0.0, got {}", self.learning_rate)
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "learning_rate must be greater than 0.0, got {}",
+                self.learning_rate
+            )));
         }
 
         if self.regularization_param <= 0.0 {
-            return Err(ModelError::InputValidationError(
-                format!("regularization_param must be greater than 0.0, got {}", self.regularization_param)
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "regularization_param must be greater than 0.0, got {}",
+                self.regularization_param
+            )));
         }
 
         if self.tol <= 0.0 {
-            return Err(ModelError::InputValidationError(
-                format!("tol must be greater than 0.0, got {}", self.tol)
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "tol must be greater than 0.0, got {}",
+                self.tol
+            )));
         }
 
         let n_samples = x.nrows();
@@ -374,15 +380,23 @@ impl LinearSVC {
                 // Apply regularization and learning rate
                 match self.penalty {
                     PenaltyType::L2 => {
-                        weights = &weights * (1.0 - self.learning_rate * self.regularization_param) +
-                            &(weight_update * (self.learning_rate / batch_indices.len() as f64));
-                    },
+                        weights = &weights * (1.0 - self.learning_rate * self.regularization_param)
+                            + &(weight_update * (self.learning_rate / batch_indices.len() as f64));
+                    }
                     PenaltyType::L1 => {
                         // L1 regularization subgradient update
-                        weights = &weights - &(weights.mapv(|w| if w > 0.0 { 1.0 } else if w < 0.0 { -1.0 } else { 0.0 }) *
-                            (self.learning_rate * self.regularization_param)) +
-                            &(weight_update * (self.learning_rate / batch_indices.len() as f64));
-                    },
+                        weights = &weights
+                            - &(weights.mapv(|w| {
+                                if w > 0.0 {
+                                    1.0
+                                } else if w < 0.0 {
+                                    -1.0
+                                } else {
+                                    0.0
+                                }
+                            }) * (self.learning_rate * self.regularization_param))
+                            + &(weight_update * (self.learning_rate / batch_indices.len() as f64));
+                    }
                 }
 
                 if self.fit_intercept {
@@ -392,7 +406,11 @@ impl LinearSVC {
 
             // Convergence check
             let weight_diff = (&weights - &prev_weights).norm_l2() / weights.len() as f64;
-            let bias_diff = if self.fit_intercept { (bias - prev_bias).abs() } else { 0.0 };
+            let bias_diff = if self.fit_intercept {
+                (bias - prev_bias).abs()
+            } else {
+                0.0
+            };
 
             if weight_diff < self.tol && bias_diff < self.tol {
                 break;
@@ -444,7 +462,7 @@ impl LinearSVC {
     /// - `Ok(Array1<f64>)`: Raw decision scores for each sample
     /// - `Err(ModelError::NotFitted)`: If the model hasn't been trained yet
     pub fn decision_function(&self, x: &Array2<f64>) -> Result<Array1<f64>, ModelError> {
-        let weights = match self.weights.as_ref(){
+        let weights = match self.weights.as_ref() {
             Some(w) => w,
             None => return Err(ModelError::NotFitted),
         };

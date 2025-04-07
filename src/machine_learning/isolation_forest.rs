@@ -1,9 +1,9 @@
+use crate::ModelError;
+use crate::machine_learning::decision_tree::{Node, NodeType};
 use ndarray::{Array1, Array2, Axis, s};
 use rand::prelude::*;
-use rand::rngs::StdRng;
 use rand::rng;
-use crate::machine_learning::decision_tree::{Node, NodeType};
-use crate::ModelError;
+use rand::rngs::StdRng;
 use rayon::prelude::*;
 
 /// # Implementation of Isolation Forest, a decision forest based on randomly generated Isolation Trees
@@ -44,10 +44,10 @@ use rayon::prelude::*;
 /// ```
 #[derive(Debug, Clone)]
 pub struct IsolationForest {
-    trees: Option<Vec<Box<Node>>>,   // Stores multiple Isolation Trees (each tree is a Node tree)
-    n_estimators: usize,     // Number of trees in the forest
-    max_samples: usize,      // Number of subsamples for each tree
-    max_depth: usize,        // Maximum depth of each tree (defaults to ceil(log2(max_samples)))
+    trees: Option<Vec<Box<Node>>>, // Stores multiple Isolation Trees (each tree is a Node tree)
+    n_estimators: usize,           // Number of trees in the forest
+    max_samples: usize,            // Number of subsamples for each tree
+    max_depth: usize, // Maximum depth of each tree (defaults to ceil(log2(max_samples)))
     random_state: Option<u64>, // Random seed, can be used for result reproducibility
 }
 
@@ -87,10 +87,14 @@ impl IsolationForest {
     ///
     /// # Returns
     /// A new IsolationForest instance
-    pub fn new(n_estimators: usize, max_samples: usize, max_depth: Option<usize>, random_state: Option<u64>) -> Self {
-        let computed_max_depth = max_depth.unwrap_or_else(|| {
-            (max_samples as f64).log2().ceil() as usize
-        });
+    pub fn new(
+        n_estimators: usize,
+        max_samples: usize,
+        max_depth: Option<usize>,
+        random_state: Option<u64>,
+    ) -> Self {
+        let computed_max_depth =
+            max_depth.unwrap_or_else(|| (max_samples as f64).log2().ceil() as usize);
         IsolationForest {
             trees: None,
             n_estimators,
@@ -159,18 +163,22 @@ impl IsolationForest {
     /// # Returns
     /// - `Ok(&mut Self)` - Trained instance
     /// - `Err(ModelError::InputValidationError)` - Input does not match expectation
-    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError>{
+    pub fn fit(&mut self, x: &Array2<f64>) -> Result<&mut Self, ModelError> {
         use super::preliminary_check;
         use std::sync::Arc;
 
         preliminary_check(&x, None)?;
 
         if self.max_samples <= 0 {
-            return Err(ModelError::InputValidationError("max_samples must be greater than 0".to_string()));
+            return Err(ModelError::InputValidationError(
+                "max_samples must be greater than 0".to_string(),
+            ));
         }
 
         if self.n_estimators <= 0 {
-            return Err(ModelError::InputValidationError("n_estimators must be greater than 0".to_string()));
+            return Err(ModelError::InputValidationError(
+                "n_estimators must be greater than 0".to_string(),
+            ));
         }
 
         let n_rows = x.nrows();
@@ -180,7 +188,7 @@ impl IsolationForest {
                 let mut temp_rng = rng();
                 temp_rng.random::<u64>()
             },
-            |seed| seed
+            |seed| seed,
         );
 
         // Create an Arc to share the input data across threads
@@ -188,7 +196,7 @@ impl IsolationForest {
 
         // Generate trees in parallel
         let trees: Vec<_> = (0..self.n_estimators)
-            .into_par_iter()  // Process each tree in parallel
+            .into_par_iter() // Process each tree in parallel
             .map(|i| {
                 // Create a new RNG for each tree with a derived seed
                 let mut tree_rng = StdRng::seed_from_u64(main_seed.wrapping_add(i as u64));
@@ -223,11 +231,16 @@ impl IsolationForest {
     /// * `rng` - Random number generator
     ///
     /// # Returns
-    /// * `Box(Node)` - A new node 
+    /// * `Box(Node)` - A new node
     ///
     /// If sample count <= 1 or max_depth is reached, returns a leaf node
     /// where the value represents the number of samples in that node
-    fn build_tree(x: &Array2<f64>, current_depth: usize, max_depth: usize, rng: &mut impl Rng) -> Box<Node> {
+    fn build_tree(
+        x: &Array2<f64>,
+        current_depth: usize,
+        max_depth: usize,
+        rng: &mut impl Rng,
+    ) -> Box<Node> {
         let n_samples = x.nrows();
         if current_depth >= max_depth || n_samples <= 1 {
             // Leaf node: value records the number of samples in this node
@@ -267,7 +280,12 @@ impl IsolationForest {
 
         let mut node = Node::new_internal(feature_index, split_value);
         node.left = Some(Self::build_tree(&left_x, current_depth + 1, max_depth, rng));
-        node.right = Some(Self::build_tree(&right_x, current_depth + 1, max_depth, rng));
+        node.right = Some(Self::build_tree(
+            &right_x,
+            current_depth + 1,
+            max_depth,
+            rng,
+        ));
 
         Box::new(node)
     }
@@ -286,13 +304,17 @@ impl IsolationForest {
     /// returns the current depth plus the adjustment factor c(n)
     fn path_length(node: &Box<Node>, sample: &[f64], current_depth: f64) -> f64 {
         use crate::math::average_path_length_factor;
-        
+
         match &node.node_type {
             NodeType::Leaf { value, .. } => {
                 // value stores the number of samples in the leaf node
                 current_depth + average_path_length_factor(*value)
-            },
-            NodeType::Internal { feature_index, threshold, .. } => {
+            }
+            NodeType::Internal {
+                feature_index,
+                threshold,
+                ..
+            } => {
                 if sample[*feature_index] < *threshold {
                     if let Some(ref left) = node.left {
                         Self::path_length(left, sample, current_depth + 1.0)
@@ -306,7 +328,7 @@ impl IsolationForest {
                         current_depth + 1.0
                     }
                 }
-            },
+            }
         }
     }
 
@@ -349,7 +371,6 @@ impl IsolationForest {
         }
 
         let expected_dimension = if let Some(first_tree) = trees.first() {
-            
             let mut max_feature_index = 0;
             find_max_feature_index(first_tree, &mut max_feature_index);
             max_feature_index + 1
@@ -357,11 +378,11 @@ impl IsolationForest {
             return Err(ModelError::NotFitted);
         };
 
-        
         if sample.len() != expected_dimension {
-            return Err(ModelError::InputValidationError("Input dimension does not match training data".to_string()));
+            return Err(ModelError::InputValidationError(
+                "Input dimension does not match training data".to_string(),
+            ));
         }
-
 
         // Continue with original logic
         let mut path_length_sum = 0.0;

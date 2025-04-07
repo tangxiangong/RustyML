@@ -1,7 +1,7 @@
+use crate::ModelError;
 use ndarray::prelude::*;
 use rand::prelude::*;
 use rand_distr::StandardNormal;
-use crate::ModelError;
 use rayon::prelude::*;
 
 /// A t-Distributed Stochastic Neighbor Embedding (t-SNE) implementation for dimensionality reduction.
@@ -235,7 +235,7 @@ impl TSNE {
             value: Option<T>,
             default: T,
             check_fn: impl Fn(T) -> bool,
-            error_msg: impl Fn(T) -> String
+            error_msg: impl Fn(T) -> String,
         ) -> Result<T, ModelError> {
             match value {
                 Some(val) => {
@@ -244,8 +244,8 @@ impl TSNE {
                     } else {
                         Ok(val)
                     }
-                },
-                None => Ok(default)
+                }
+                None => Ok(default),
             }
         }
 
@@ -253,21 +253,21 @@ impl TSNE {
             self.n_iter,
             1000,
             |val| val > 0,
-            |val| format!("Number of iterations must be greater than 0, got {}", val)
+            |val| format!("Number of iterations must be greater than 0, got {}", val),
         )?;
 
         let perplexity = validate_param(
             self.perplexity,
             30.0,
             |val| val > 0.0,
-            |val| format!("Perplexity must be greater than 0, got {}", val)
+            |val| format!("Perplexity must be greater than 0, got {}", val),
         )?;
 
         let learning_rate = validate_param(
             self.learning_rate,
             200.0,
             |val| val > 0.0,
-            |val| format!("Learning rate must be greater than 0, got {}", val)
+            |val| format!("Learning rate must be greater than 0, got {}", val),
         )?;
 
         let random_state = self.random_state.unwrap_or(42);
@@ -276,42 +276,53 @@ impl TSNE {
             self.early_exaggeration,
             12.0,
             |val| val > 1.0,
-            |val| format!("Early exaggeration must be greater than 1.0, got {}", val)
+            |val| format!("Early exaggeration must be greater than 1.0, got {}", val),
         )?;
 
         let exaggeration_iter = validate_param(
             self.exaggeration_iter,
             n_iter / 12,
             |val| val > 0,
-            |val| format!("Exaggeration iteration must be greater than 0, got {}", val)
+            |val| format!("Exaggeration iteration must be greater than 0, got {}", val),
         )?;
 
         let initial_momentum = validate_param(
             self.initial_momentum,
             0.5,
             |val| val >= 0.0 && val <= 1.0,
-            |val| format!("Initial momentum must be between 0.0 and 1.0, got {}", val)
+            |val| format!("Initial momentum must be between 0.0 and 1.0, got {}", val),
         )?;
 
         let final_momentum = validate_param(
             self.final_momentum,
             0.8,
             |val| val >= 0.0 && val <= 1.0,
-            |val| format!("Final momentum must be between 0.0 and 1.0, got {}", val)
+            |val| format!("Final momentum must be between 0.0 and 1.0, got {}", val),
         )?;
 
         let momentum_switch_iter = validate_param(
             self.momentum_switch_iter,
             n_iter / 3,
             |val| val > 0,
-            |val| format!("Momentum switch iteration must be greater than 0, got {}", val)
+            |val| {
+                format!(
+                    "Momentum switch iteration must be greater than 0, got {}",
+                    val
+                )
+            },
         )?;
 
         validate_param(
             Some(self.dim),
             2,
             |val| val > 0 && val <= x.nrows(),
-            |val| format!("Dimension must be greater than 0 and less than n_samples: {}, got {}", x.nrows(), val)
+            |val| {
+                format!(
+                    "Dimension must be greater than 0 and less than n_samples: {}, got {}",
+                    x.nrows(),
+                    val
+                )
+            },
         )?;
 
         let n_samples = x.nrows();
@@ -323,13 +334,16 @@ impl TSNE {
 
             // Method 1: Use index ranges for parallel computation, each thread is responsible for one row
             let indices: Vec<usize> = (0..n_samples).collect();
-            let results: Vec<_> = indices.par_iter().map(|&i| {
-                let mut row_dists = Vec::with_capacity(n_samples);
-                for j in 0..n_samples {
-                    row_dists.push(squared_euclidean_distance_row(x.row(i), x.row(j)));
-                }
-                (i, row_dists)
-            }).collect();
+            let results: Vec<_> = indices
+                .par_iter()
+                .map(|&i| {
+                    let mut row_dists = Vec::with_capacity(n_samples);
+                    for j in 0..n_samples {
+                        row_dists.push(squared_euclidean_distance_row(x.row(i), x.row(j)));
+                    }
+                    (i, row_dists)
+                })
+                .collect();
 
             // Collect results
             for (i, row_dists) in results {
@@ -378,19 +392,22 @@ impl TSNE {
 
                 // Use the same fix method as before
                 let indices: Vec<usize> = (0..n_samples).collect();
-                let results: Vec<_> = indices.par_iter().map(|&i| {
-                    let mut row_nums = Vec::with_capacity(n_samples);
-                    for j in 0..n_samples {
-                        if i != j {
-                            let diff = &y.row(i) - &y.row(j);
-                            let dist = diff.dot(&diff);
-                            row_nums.push((j, 1.0 / (1.0 + dist)));
-                        } else {
-                            row_nums.push((j, 0.0));
+                let results: Vec<_> = indices
+                    .par_iter()
+                    .map(|&i| {
+                        let mut row_nums = Vec::with_capacity(n_samples);
+                        for j in 0..n_samples {
+                            if i != j {
+                                let diff = &y.row(i) - &y.row(j);
+                                let dist = diff.dot(&diff);
+                                row_nums.push((j, 1.0 / (1.0 + dist)));
+                            } else {
+                                row_nums.push((j, 0.0));
+                            }
                         }
-                    }
-                    (i, row_nums)
-                }).collect();
+                        (i, row_nums)
+                    })
+                    .collect();
 
                 // Collect results
                 for (i, row_nums) in results {
@@ -411,18 +428,21 @@ impl TSNE {
 
                 // Use the same fix method as before
                 let indices: Vec<usize> = (0..n_samples).collect();
-                let results: Vec<_> = indices.par_iter().map(|&i| {
-                    let mut grad_i = Array1::<f64>::zeros(self.dim);
-                    for j in 0..n_samples {
-                        if i != j {
-                            let mult = (p_exagg[[i, j]] - q[[i, j]]) * num[[i, j]];
-                            let diff = &y.row(i) - &y.row(j);
-                            grad_i = grad_i + diff.to_owned() * mult;
+                let results: Vec<_> = indices
+                    .par_iter()
+                    .map(|&i| {
+                        let mut grad_i = Array1::<f64>::zeros(self.dim);
+                        for j in 0..n_samples {
+                            if i != j {
+                                let mult = (p_exagg[[i, j]] - q[[i, j]]) * num[[i, j]];
+                                let diff = &y.row(i) - &y.row(j);
+                                grad_i = grad_i + diff.to_owned() * mult;
+                            }
                         }
-                    }
-                    let grad_i = grad_i * 4.0;
-                    (i, grad_i)
-                }).collect();
+                        let grad_i = grad_i * 4.0;
+                        (i, grad_i)
+                    })
+                    .collect();
 
                 // Collect results
                 for (i, grad_i) in results {
@@ -482,7 +502,11 @@ fn binary_search_sigma(distances: &ArrayView1<f64>, target_perplexity: f64) -> (
 
     for _ in 0..50 {
         for (j, &d) in distances.iter().enumerate() {
-            p[j] = if d == 0.0 { 0.0 } else { (-d / (2.0 * sigma * sigma)).exp() };
+            p[j] = if d == 0.0 {
+                0.0
+            } else {
+                (-d / (2.0 * sigma * sigma)).exp()
+            };
         }
         let sum_p = p.sum();
         if sum_p == 0.0 {
@@ -490,7 +514,10 @@ fn binary_search_sigma(distances: &ArrayView1<f64>, target_perplexity: f64) -> (
         }
         p = p.mapv(|v| v / p.sum());
 
-        let h: f64 = p.iter().map(|&v| if v > 1e-10 { -v * v.ln() } else { 0.0 }).sum();
+        let h: f64 = p
+            .iter()
+            .map(|&v| if v > 1e-10 { -v * v.ln() } else { 0.0 })
+            .sum();
         let current_perplexity = h.exp();
         let diff = current_perplexity - target_perplexity;
         if diff.abs() < tol {

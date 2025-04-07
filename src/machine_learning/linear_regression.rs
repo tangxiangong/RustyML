@@ -1,4 +1,4 @@
-use crate::{math, ModelError};
+use crate::{ModelError, math};
 use ndarray::{Array1, Array2};
 use rayon::prelude::*;
 
@@ -200,7 +200,7 @@ impl LinearRegression {
 
         // Initialize parameters
         let mut weights = Array1::<f64>::zeros(n_features); // Initialize weights to zero
-        let mut intercept = 0.0;                 // Initialize intercept to zero
+        let mut intercept = 0.0; // Initialize intercept to zero
 
         let mut prev_cost = f64::INFINITY;
         let mut final_cost = prev_cost;
@@ -212,7 +212,8 @@ impl LinearRegression {
             n_iter += 1;
 
             // Calculate predictions using parallel iterator
-            let predictions: Array1<f64> = (0..n_samples).into_par_iter()
+            let predictions: Array1<f64> = (0..n_samples)
+                .into_par_iter()
                 .map(|i| {
                     let row = x.row(i);
                     let pred = row.dot(&weights) + if self.fit_intercept { intercept } else { 0.0 };
@@ -227,7 +228,8 @@ impl LinearRegression {
             final_cost = cost;
 
             // Calculate gradients in parallel
-            let gradients_result: (Array1<f64>, f64) = (0..n_samples).into_par_iter()
+            let gradients_result: (Array1<f64>, f64) = (0..n_samples)
+                .into_par_iter()
                 .map(|i| {
                     let error = predictions[i] - y[i];
                     let row = x.row(i);
@@ -245,7 +247,7 @@ impl LinearRegression {
                     |(mut acc_w, acc_i), (w_grad, i_grad)| {
                         acc_w += &w_grad;
                         (acc_w, acc_i + i_grad)
-                    }
+                    },
                 );
 
             // Extract and normalize gradients
@@ -272,8 +274,10 @@ impl LinearRegression {
         self.n_iter = Some(n_iter);
 
         // print training info
-        println!("Linear regression model training finished at iteration {}, cost: {}",
-                 n_iter, final_cost);
+        println!(
+            "Linear regression model training finished at iteration {}, cost: {}",
+            n_iter, final_cost
+        );
 
         Ok(self)
     }
@@ -296,13 +300,15 @@ impl LinearRegression {
         let intercept = self.intercept.unwrap_or(0.0);
 
         if x.ncols() != coeffs.len() {
-            return Err(ModelError::InputValidationError(
-                format!("Number of features does not match training data, x columns: {}, coefficients: {}",
-                        x.ncols(), coeffs.len())
-            ));
+            return Err(ModelError::InputValidationError(format!(
+                "Number of features does not match training data, x columns: {}, coefficients: {}",
+                x.ncols(),
+                coeffs.len()
+            )));
         }
 
-        let predictions = (0..x.nrows()).into_par_iter()
+        let predictions = (0..x.nrows())
+            .into_par_iter()
             .map(|i| {
                 let row = x.row(i);
                 intercept + row.dot(coeffs)
@@ -327,7 +333,11 @@ impl LinearRegression {
     /// A Result containing either:
     /// - `Ok(Vec<f64>)` - The predicted values for the input data
     /// - `Err(ModelError::InputValidationError(&str))` - Input does not match expectation
-    pub fn fit_predict(&mut self, x: &Array2<f64>, y: &Array1<f64>) -> Result<Array1<f64>, ModelError> {
+    pub fn fit_predict(
+        &mut self,
+        x: &Array2<f64>,
+        y: &Array1<f64>,
+    ) -> Result<Array1<f64>, ModelError> {
         self.fit(x, y)?;
         Ok(self.predict(x)?)
     }

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use ndarray::ArrayView1;
 use crate::ModelError;
+use ndarray::ArrayView1;
+use std::collections::HashMap;
 
 /// Calculates the Sum of Square Total
 ///
@@ -28,7 +28,7 @@ use crate::ModelError;
 pub fn sum_of_square_total(values: ArrayView1<f64>) -> Result<f64, ModelError> {
     if values.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Cannot calculate sum of square total with empty inputs".to_string()
+            "Cannot calculate sum of square total with empty inputs".to_string(),
         ));
     }
 
@@ -61,22 +61,28 @@ pub fn sum_of_square_total(values: ArrayView1<f64>) -> Result<f64, ModelError> {
 /// // (2-1)^2 + (3-3)^2 = 1 + 0 = 1
 /// assert!((sse - 1.0).abs() < 1e-6);
 /// ```
-pub fn sum_of_squared_errors(predicted: ArrayView1<f64>, actual: ArrayView1<f64>) -> Result<f64, ModelError> {
+pub fn sum_of_squared_errors(
+    predicted: ArrayView1<f64>,
+    actual: ArrayView1<f64>,
+) -> Result<f64, ModelError> {
     // Ensure both arrays have the same length
     if predicted.len() != actual.len() {
         return Err(ModelError::InputValidationError(format!(
             "Predicted and actual arrays must have the same length, predicted length: {}, actual length: {}",
-            predicted.len(), actual.len()
-        )))
+            predicted.len(),
+            actual.len()
+        )));
     }
 
     if predicted.is_empty() {
         return Err(ModelError::InputValidationError(
-            "Cannot calculate sum of squared errors with empty inputs".to_string()
+            "Cannot calculate sum of squared errors with empty inputs".to_string(),
         ));
     }
 
-    let sum = predicted.iter().zip(actual.iter())
+    let sum = predicted
+        .iter()
+        .zip(actual.iter())
         .map(|(p, a)| (p - a).powi(2))
         .sum();
 
@@ -137,26 +143,34 @@ pub fn sigmoid(z: f64) -> f64 {
 /// // Expected average loss is approximately 0.37778
 /// assert!((loss - 0.37778).abs() < 1e-5);
 /// ```
-pub fn logistic_loss(logits: ArrayView1<f64>, actual_labels: ArrayView1<f64>) -> Result<f64, ModelError> {
+pub fn logistic_loss(
+    logits: ArrayView1<f64>,
+    actual_labels: ArrayView1<f64>,
+) -> Result<f64, ModelError> {
     if logits.len() != actual_labels.len() {
         return Err(ModelError::InputValidationError(format!(
             "Predicted and actual vectors must have the same length, predicted length: {}, actual length: {}",
-            logits.len(), actual_labels.len()
-        )))
+            logits.len(),
+            actual_labels.len()
+        )));
     }
 
     // Validate that all labels are either 0 or 1
-    if actual_labels.iter().any(|&label| label != 0.0 && label != 1.0) {
+    if actual_labels
+        .iter()
+        .any(|&label| label != 0.0 && label != 1.0)
+    {
         return Err(ModelError::InputValidationError(
-            "All labels must be either 0 or 1".to_string()
-        ))
+            "All labels must be either 0 or 1".to_string(),
+        ));
     }
 
     // Using a vectorized approach to calculate log loss
     let n = logits.len() as f64;
 
     // Calculate total loss using zip to iterate through both arrays simultaneously
-    let total_loss = logits.iter()
+    let total_loss = logits
+        .iter()
         .zip(actual_labels.iter())
         .map(|(&x, &y)| {
             // Numerically stable way to calculate log loss:
@@ -406,7 +420,11 @@ pub fn gini(y: ArrayView1<f64>) -> f64 {
 /// // Entropy(parent)=1.0, Entropy(left)=Entropy(right)=0, so IG = 1.0
 /// assert!((ig - 1.0).abs() < 1e-6);
 /// ```
-pub fn information_gain(y: ArrayView1<f64>, left_y: ArrayView1<f64>, right_y: ArrayView1<f64>) -> f64 {
+pub fn information_gain(
+    y: ArrayView1<f64>,
+    left_y: ArrayView1<f64>,
+    right_y: ArrayView1<f64>,
+) -> f64 {
     // Calculate sample counts once
     let n = y.len() as f64;
 
@@ -479,8 +497,10 @@ pub fn gain_ratio(y: ArrayView1<f64>, left_y: ArrayView1<f64>, right_y: ArrayVie
     let n_right = right_y.len() as f64;
 
     // Verify that left and right subsets contain all samples from parent
-    debug_assert!((n_left + n_right - n).abs() < f64::EPSILON,
-                  "The sum of left and right samples should equal parent samples");
+    debug_assert!(
+        (n_left + n_right - n).abs() < f64::EPSILON,
+        "The sum of left and right samples should equal parent samples"
+    );
 
     // Calculate information gain
     let info_gain = information_gain(y, left_y, right_y);
@@ -585,6 +605,8 @@ pub fn average_path_length_factor(n: f64) -> f64 {
     }
 
     // Use constant for Euler's gamma to improve readability
+    // core::f64::consts::EGAMMA = 0.577215664901532860606512090082402431_f64 (nightly-only API) https://doc.rust-lang.org/core/f64/consts/constant.EGAMMA.html
+    #[allow(clippy::excessive_precision)]
     const EULER_GAMMA: f64 = 0.57721566490153286060651209008240243104215933593992;
 
     // Calculate n-1 once as it's used multiple times
