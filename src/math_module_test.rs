@@ -44,10 +44,7 @@ fn test_sum_of_squared_errors() {
     // Empty arrays case
     let empty_pred = Array::from(Vec::<f64>::new());
     let empty_actual = Array::from(Vec::<f64>::new());
-    assert!(matches!(
-        sum_of_squared_errors(empty_pred.view(), empty_actual.view()),
-        Err(_)
-    ));
+    assert!(sum_of_squared_errors(empty_pred.view(), empty_actual.view()).is_err());
 }
 
 #[test]
